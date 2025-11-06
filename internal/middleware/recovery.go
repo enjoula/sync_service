@@ -3,11 +3,10 @@
 package middleware
 
 import (
-	"fmt"
 	"net/http"
 	"runtime/debug"
 	"time"
-
+	"video-service/internal/errors"
 	"video-service/internal/response"
 
 	"github.com/gin-gonic/gin"
@@ -38,7 +37,7 @@ func RecoveryWithZap(logger *zap.Logger) gin.HandlerFunc {
 				)
 
 				// 返回统一的错误响应给客户端
-				response.Error(c, response.CodeInternalErr, fmt.Sprintf("server panic: %v", r))
+				response.Error(c, errors.CodeInternalErr, errors.NewServerPanic(r).GetMessage())
 
 				// 中止请求处理，返回HTTP 200状态码（业务错误统一返回200，通过code字段区分）
 				c.AbortWithStatus(http.StatusOK)

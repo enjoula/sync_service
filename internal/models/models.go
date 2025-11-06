@@ -16,6 +16,7 @@ type User struct {
 	Password          string     `gorm:"column:password;size:255;not null" json:"-"`    // 密码哈希值，不返回给客户端
 	Nickname          string     `gorm:"size:100" json:"nickname"`                      // 昵称
 	Email             string     `gorm:"size:255" json:"email"`                         // 邮箱地址
+	Avatar            string     `gorm:"type:text" json:"avatar"`                       // 头像URL
 	WebToken          string     `gorm:"size:255" json:"web_token"`                     // Web端token
 	WebTokenCreatedAt *time.Time `json:"web_token_created_at"`                          // Web token创建时间
 	TVToken           string     `gorm:"size:255" json:"tv_token"`                      // TV端token

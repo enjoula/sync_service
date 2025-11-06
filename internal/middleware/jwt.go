@@ -5,6 +5,7 @@ package middleware
 import (
 	"strings"
 	"video-service/internal/auth"
+	"video-service/internal/errors"
 	"video-service/internal/response"
 
 	"github.com/gin-gonic/gin"
@@ -22,7 +23,7 @@ func JWTAuth() gin.HandlerFunc {
 		// 格式: Authorization: Bearer <token>
 		authHeader := c.GetHeader("Authorization")
 		if authHeader == "" {
-			response.Error(c, response.CodeUnauthorized, "missing authorization header")
+			response.Error(c, errors.CodeUnauthorized, errors.MsgTokenMissing)
 			c.Abort()
 			return
 		}
@@ -30,7 +31,7 @@ func JWTAuth() gin.HandlerFunc {
 		// 检查Bearer前缀
 		parts := strings.SplitN(authHeader, " ", 2)
 		if len(parts) != 2 || parts[0] != "Bearer" {
-			response.Error(c, response.CodeUnauthorized, "invalid authorization header format")
+			response.Error(c, errors.CodeUnauthorized, errors.MsgTokenInvalidFormat)
 			c.Abort()
 			return
 		}
@@ -41,7 +42,7 @@ func JWTAuth() gin.HandlerFunc {
 		// 解析和验证token
 		claims, err := auth.ParseToken(tokenString)
 		if err != nil {
-			response.Error(c, response.CodeUnauthorized, "invalid token: "+err.Error())
+			response.Error(c, errors.CodeUnauthorized, errors.NewTokenInvalid(err).GetMessage())
 			c.Abort()
 			return
 		}
@@ -54,4 +55,3 @@ func JWTAuth() gin.HandlerFunc {
 		c.Next()
 	}
 }
-

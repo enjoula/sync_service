@@ -4,6 +4,7 @@ package response
 
 import (
 	"net/http"
+	"video-service/internal/errors"
 
 	"github.com/gin-gonic/gin"
 )
@@ -20,13 +21,13 @@ type Response struct {
 	TraceID string      `json:"trace_id,omitempty"` // 请求追踪ID（可选，用于分布式追踪）
 }
 
-// 定义业务状态码常量
+// 错误码常量从 errors 包导入
 const (
-	CodeSuccess      = 0   // 成功
-	CodeBadRequest   = 400 // 请求参数错误
-	CodeUnauthorized = 401 // 未授权（需要登录或token无效）
-	CodeConflict     = 409 // 资源冲突（如用户已存在）
-	CodeInternalErr  = 500 // 服务器内部错误
+	CodeSuccess      = errors.CodeSuccess      // 成功
+	CodeBadRequest   = errors.CodeBadRequest   // 请求参数错误
+	CodeUnauthorized = errors.CodeUnauthorized // 未授权（需要登录或token无效）
+	CodeConflict     = errors.CodeConflict     // 资源冲突（如用户已存在）
+	CodeInternalErr  = errors.CodeInternalErr  // 服务器内部错误
 )
 
 // Success 返回成功响应
@@ -41,7 +42,7 @@ func Success(c *gin.Context, data interface{}) {
 	// 返回JSON响应，HTTP状态码为200
 	c.JSON(http.StatusOK, Response{
 		Code:    CodeSuccess,
-		Message: "success",
+		Message: errors.MsgSuccess,
 		Data:    data,
 		TraceID: toStr(traceID),
 	})

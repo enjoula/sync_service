@@ -104,6 +104,7 @@ CREATE TABLE `users` (
   `password_hash` varchar(255) NOT NULL,
   `nickname` varchar(100) DEFAULT NULL,
   `email` varchar(255) DEFAULT NULL,
+  `avatar` text DEFAULT NULL,
   `web_token` varchar(255) DEFAULT NULL,
   `web_token_created_at` datetime(3) DEFAULT NULL,
   `tv_token` varchar(255) DEFAULT NULL,

@@ -63,6 +63,8 @@ func (r *userRepository) UpdateWebToken(userID int64, token string, createdAt in
 // UserTokenRepository 用户Token数据访问接口
 type UserTokenRepository interface {
 	Create(token *models.UserToken) error
+	CountByUserID(userID int64) (int64, error)
+	DeactivateOldestToken(userID int64) error
 }
 
 // userTokenRepository 用户Token数据访问实现
@@ -78,6 +80,32 @@ func (r *userTokenRepository) Create(token *models.UserToken) error {
 	return db.DB.Create(token).Error
 }
 
+// CountByUserID 统计某个用户的token数量（仅统计is_active=true的记录）
+func (r *userTokenRepository) CountByUserID(userID int64) (int64, error) {
+	var count int64
+	err := db.DB.Model(&models.UserToken{}).
+		Where("user_id = ? AND is_active = ?", userID, true).
+		Count(&count).Error
+	return count, err
+}
+
+// DeactivateOldestToken 将某个用户最早创建时间的那条token记录的is_active置为0
+func (r *userTokenRepository) DeactivateOldestToken(userID int64) error {
+	// 查找最早创建时间的token记录（最旧的token）
+	var oldestToken models.UserToken
+	err := db.DB.Where("user_id = ? AND is_active = ?", userID, true).
+		Order("created_at ASC").
+		First(&oldestToken).Error
+	if err != nil {
+		return err
+	}
+
+	// 将is_active置为0
+	return db.DB.Model(&models.UserToken{}).
+		Where("id = ?", oldestToken.ID).
+		Update("is_active", false).Error
+}
+
 // IsDuplicateError 检查是否是重复键错误
 func IsDuplicateError(err error) bool {
 	if err == nil {
@@ -89,4 +117,3 @@ func IsDuplicateError(err error) bool {
 		strings.Contains(errStrLower, "duplicate entry") ||
 		strings.Contains(errStrLower, "1062")
 }
-

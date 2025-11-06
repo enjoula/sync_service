@@ -3,6 +3,7 @@
 package api
 
 import (
+	"video-service/internal/errors"
 	"video-service/internal/response"
 
 	"github.com/gin-gonic/gin"
@@ -14,7 +15,12 @@ import (
 func Me(c *gin.Context) {
 	username, err := userService.GetCurrentUser(c)
 	if err != nil {
-		response.Error(c, response.CodeUnauthorized, err.Error())
+		// 检查是否是业务错误类型
+		if bizErr, ok := err.(*errors.BusinessError); ok {
+			response.Error(c, bizErr.GetCode(), bizErr.GetMessage())
+		} else {
+			response.Error(c, errors.CodeUnauthorized, err.Error())
+		}
 		return
 	}
 
