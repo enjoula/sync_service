@@ -1,0 +1,22 @@
+// api 包提供HTTP请求处理函数
+// user_handler.go 提供用户相关的HTTP处理器
+package api
+
+import (
+	"video-service/internal/response"
+
+	"github.com/gin-gonic/gin"
+)
+
+// Me 获取当前登录用户信息
+// GET /user/me
+// 需要JWT认证中间件，用户信息从context中获取
+func Me(c *gin.Context) {
+	username, err := userService.GetCurrentUser(c)
+	if err != nil {
+		response.Error(c, response.CodeUnauthorized, err.Error())
+		return
+	}
+
+	response.Success(c, gin.H{"user": username})
+}

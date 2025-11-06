@@ -4,10 +4,13 @@ package response
 
 import (
 	"net/http"
-	"video-service/internal/middleware"
 
 	"github.com/gin-gonic/gin"
 )
+
+// TraceIDKey 是context中存储追踪ID的键名
+// 与middleware包中的TraceIDKey保持一致
+const TraceIDKey = "trace_id"
 
 // Response 定义统一的API响应结构
 type Response struct {
@@ -22,6 +25,7 @@ const (
 	CodeSuccess      = 0   // 成功
 	CodeBadRequest   = 400 // 请求参数错误
 	CodeUnauthorized = 401 // 未授权（需要登录或token无效）
+	CodeConflict     = 409 // 资源冲突（如用户已存在）
 	CodeInternalErr  = 500 // 服务器内部错误
 )
 
@@ -32,7 +36,7 @@ const (
 //	data: 要返回的业务数据
 func Success(c *gin.Context, data interface{}) {
 	// 从context中获取追踪ID（由Trace中间件设置）
-	traceID, _ := c.Get(middleware.TraceIDKey)
+	traceID, _ := c.Get(TraceIDKey)
 
 	// 返回JSON响应，HTTP状态码为200
 	c.JSON(http.StatusOK, Response{
@@ -50,7 +54,7 @@ func Success(c *gin.Context, data interface{}) {
 //	msg: 自定义成功消息
 //	data: 要返回的业务数据
 func SuccessMsg(c *gin.Context, msg string, data interface{}) {
-	traceID, _ := c.Get(middleware.TraceIDKey)
+	traceID, _ := c.Get(TraceIDKey)
 	c.JSON(http.StatusOK, Response{
 		Code:    CodeSuccess,
 		Message: msg,
@@ -66,7 +70,7 @@ func SuccessMsg(c *gin.Context, msg string, data interface{}) {
 //	code: 业务错误码
 //	msg: 错误消息
 func Error(c *gin.Context, code int, msg string) {
-	traceID, _ := c.Get(middleware.TraceIDKey)
+	traceID, _ := c.Get(TraceIDKey)
 	c.JSON(http.StatusOK, Response{
 		Code:    code,
 		Message: msg,
@@ -81,7 +85,7 @@ func Error(c *gin.Context, code int, msg string) {
 //	c: Gin上下文
 //	err: 错误对象
 func InternalError(c *gin.Context, err error) {
-	traceID, _ := c.Get(middleware.TraceIDKey)
+	traceID, _ := c.Get(TraceIDKey)
 	c.JSON(http.StatusOK, Response{
 		Code:    CodeInternalErr,
 		Message: err.Error(),

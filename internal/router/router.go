@@ -4,7 +4,6 @@ package router
 
 import (
 	"video-service/internal/api"
-	"video-service/internal/metrics"
 	"video-service/internal/middleware"
 
 	"github.com/gin-gonic/gin"
@@ -48,8 +47,8 @@ func SetupRouter() *gin.Engine {
 	// 注册需要认证的API端点
 	auth.GET("/me", api.Me) // 获取当前用户信息
 
-	// 注册Prometheus指标端点
-	r.GET("/metrics", gin.WrapH(metrics.Handler()))
+	// 注意：/metrics 路由已由 go-gin-prometheus 中间件自动注册，无需手动注册
+	// r.GET("/metrics", gin.WrapH(metrics.Handler()))
 
 	return r
 }
