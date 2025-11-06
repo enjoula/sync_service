@@ -22,7 +22,7 @@ const (
 	MsgUnauthorized  = "未授权"
 
 	// 用户相关错误信息
-	MsgUsernamePasswordEmpty = "用户名或密码不能为空"
+	MsgUsernamePasswordEmpty = "账号密码不能为空"
 	MsgUsernameLengthInvalid = "用户名长度必须在4-15个字符之间"
 	MsgUsernameFormatInvalid = "用户名格式验证失败"
 	MsgUsernameInvalidChars  = "用户名只能包含字母和数字"

@@ -69,6 +69,12 @@ func Login(c *gin.Context) {
 		return
 	}
 
+	// 验证username和password参数不能为空
+	if req.Username == "" || req.Password == "" {
+		response.Error(c, errors.CodeBadRequest, errors.MsgUsernamePasswordEmpty)
+		return
+	}
+
 	// 调用服务层登录
 	ipAddress := c.ClientIP()
 	token, user, err := userService.Login(req.Username, req.Password, req.Device, ipAddress)
