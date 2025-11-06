@@ -3,7 +3,6 @@
 package api
 
 import (
-	"video-service/internal/errors"
 	"video-service/internal/response"
 	"video-service/internal/service"
 
@@ -25,7 +24,7 @@ func Register(c *gin.Context) {
 
 	// 绑定JSON请求体
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.Error(c, errors.CodeBadRequest, errors.MsgBadRequest)
+		response.Error(c, response.CodeBadRequest, "invalid request")
 		return
 	}
 
@@ -34,11 +33,13 @@ func Register(c *gin.Context) {
 	ipAddress := c.ClientIP()
 	token, user, err := userService.Register(req.Username, req.Password, device, ipAddress)
 	if err != nil {
-		// 检查是否是业务错误类型
-		if bizErr, ok := err.(*errors.BusinessError); ok {
-			response.Error(c, bizErr.GetCode(), bizErr.GetMessage())
-		} else {
-			response.Error(c, errors.CodeInternalErr, err.Error())
+		switch err.Error() {
+		case "username/password required":
+			response.Error(c, response.CodeBadRequest, err.Error())
+		case "用户名重复":
+			response.Error(c, response.CodeConflict, err.Error())
+		default:
+			response.Error(c, response.CodeInternalErr, err.Error())
 		}
 		return
 	}
@@ -54,45 +55,34 @@ func Register(c *gin.Context) {
 
 // Login 处理用户登录请求
 // POST /login
-// 请求体: {"username": "string", "password": "string", "device": "string"}
-// 功能: 验证用户名密码，生成JWT token（过期时间一年），记录登录信息
+// 请求体: {"username": "string", "password": "string"}
+// 请求头: X-Device (可选，如"web"或"tv")
+// 功能: 验证用户名密码，生成JWT token，记录登录信息
 func Login(c *gin.Context) {
 	var req struct {
 		Username string `json:"username"`
 		Password string `json:"password"`
-		Device   string `json:"device"`
 	}
 
 	// 绑定JSON请求体
 	if err := c.ShouldBindJSON(&req); err != nil {
-		response.Error(c, errors.CodeBadRequest, errors.MsgBadRequest)
-		return
-	}
-
-	// 验证username和password参数不能为空
-	if req.Username == "" || req.Password == "" {
-		response.Error(c, errors.CodeBadRequest, errors.MsgUsernamePasswordEmpty)
+		response.Error(c, response.CodeBadRequest, "invalid request")
 		return
 	}
 
 	// 调用服务层登录
+	device := c.GetHeader("X-Device")
 	ipAddress := c.ClientIP()
-	token, user, err := userService.Login(req.Username, req.Password, req.Device, ipAddress)
+	token, err := userService.Login(req.Username, req.Password, device, ipAddress)
 	if err != nil {
-		// 检查是否是业务错误类型
-		if bizErr, ok := err.(*errors.BusinessError); ok {
-			response.Error(c, bizErr.GetCode(), bizErr.GetMessage())
+		if err.Error() == "invalid credentials" {
+			response.Error(c, response.CodeUnauthorized, err.Error())
 		} else {
-			response.Error(c, errors.CodeInternalErr, err.Error())
+			response.Error(c, response.CodeInternalErr, err.Error())
 		}
 		return
 	}
 
-	// 返回用户信息和token给客户端
-	response.Success(c, gin.H{
-		"username": user.Username,
-		"avatar":   user.Avatar,
-		"nickname": user.Nickname,
-		"token":    token,
-	})
+	// 返回token给客户端
+	response.Success(c, gin.H{"token": token})
 }

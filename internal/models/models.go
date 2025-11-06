@@ -11,18 +11,18 @@ import (
 // User 用户模型
 // 存储用户基本信息、认证信息和多设备token
 type User struct {
-	ID                int64      `gorm:"primaryKey" json:"id"`                          // 用户ID，主键，使用算法生成（非自增）
-	Username          string     `gorm:"size:100;uniqueIndex;not null" json:"username"` // 用户名，唯一索引，不能为空
-	Password          string     `gorm:"column:password;size:255;not null" json:"-"`    // 密码哈希值，不返回给客户端
-	Nickname          string     `gorm:"size:100" json:"nickname"`                      // 昵称
-	Email             string     `gorm:"size:255" json:"email"`                         // 邮箱地址
-	Avatar            string     `gorm:"type:text" json:"avatar"`                       // 头像URL
-	WebToken          string     `gorm:"size:255" json:"web_token"`                     // Web端token
-	WebTokenCreatedAt *time.Time `json:"web_token_created_at"`                          // Web token创建时间
-	TVToken           string     `gorm:"size:255" json:"tv_token"`                      // TV端token
-	TVTokenCreatedAt  *time.Time `json:"tv_token_created_at"`                           // TV token创建时间
-	CreatedAt         time.Time  `gorm:"autoCreateTime" json:"created_at"`              // 创建时间，自动设置
-	UpdatedAt         time.Time  `gorm:"autoUpdateTime" json:"updated_at"`              // 更新时间，自动更新
+	ID             int64      `gorm:"primaryKey" json:"id"`                              // 用户ID，主键，使用算法生成（非自增）
+	Username       string     `gorm:"size:100;uniqueIndex;not null" json:"username"`     // 用户名，唯一索引，不能为空
+	Password       string     `gorm:"column:password;size:255;not null" json:"-"`        // 密码哈希值，不返回给客户端
+	Nickname       string     `gorm:"size:100" json:"nickname"`                          // 昵称
+	Email          string     `gorm:"size:255" json:"email"`                             // 邮箱地址
+	Avatar         string     `gorm:"type:text" json:"avatar"`                           // 头像URL
+	AccWeb         string     `gorm:"column:acc_web;size:255" json:"acc_web"`            // Web端token
+	AccWebCreateAt *time.Time `gorm:"column:acc_web_create_at" json:"acc_web_create_at"` // Web token创建时间
+	AccTV          string     `gorm:"column:acc_tv;size:255" json:"acc_tv"`              // TV端token
+	AccTVCreateAt  *time.Time `gorm:"column:acc_tv_create_at" json:"acc_tv_create_at"`   // TV token创建时间
+	CreatedAt      time.Time  `gorm:"autoCreateTime" json:"created_at"`                  // 创建时间，自动设置
+	UpdatedAt      time.Time  `gorm:"autoUpdateTime" json:"updated_at"`                  // 更新时间，自动更新
 }
 
 // UserToken 用户Token记录模型
