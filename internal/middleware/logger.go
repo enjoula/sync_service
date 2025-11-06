@@ -19,45 +19,45 @@ func LoggerWithZap(logger *zap.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 记录请求开始时间
 		start := time.Now()
-		
+
 		// 记录请求路径和查询参数
 		path := c.Request.URL.Path
 		query := c.Request.URL.RawQuery
-		
+
 		// 记录请求方法
 		method := c.Request.Method
-		
+
 		// 记录请求大小
 		requestSize := c.Request.ContentLength
 		if requestSize < 0 {
 			requestSize = 0
 		}
-		
+
 		// 继续处理请求
 		c.Next()
-		
+
 		// 计算请求处理耗时
 		latency := time.Since(start)
-		
+
 		// 记录响应状态码
 		statusCode := c.Writer.Status()
-		
+
 		// 记录响应大小
 		responseSize := c.Writer.Size()
 		if responseSize < 0 {
 			responseSize = 0
 		}
-		
+
 		// 获取客户端IP地址
 		clientIP := c.ClientIP()
-		
+
 		// 获取追踪ID（如果存在）
 		traceID, _ := c.Get(TraceIDKey)
 		traceIDStr := ""
 		if tid, ok := traceID.(string); ok {
 			traceIDStr = tid
 		}
-		
+
 		// 构建日志字段
 		fields := []zap.Field{
 			zap.Int("status", statusCode),
@@ -70,12 +70,17 @@ func LoggerWithZap(logger *zap.Logger) gin.HandlerFunc {
 			zap.Int("response_size", responseSize),
 			zap.String("user_agent", c.Request.UserAgent()),
 		}
-		
+
 		// 如果有追踪ID，添加到日志字段中
 		if traceIDStr != "" {
 			fields = append(fields, zap.String("trace_id", traceIDStr))
 		}
-		
+
+		// 跳过 /metrics 路径的日志记录（Prometheus 监控请求）
+		if path == "/metrics" {
+			return
+		}
+
 		// 根据状态码选择日志级别
 		if statusCode >= 500 {
 			// 服务器错误，记录为Error级别
@@ -89,4 +94,3 @@ func LoggerWithZap(logger *zap.Logger) gin.HandlerFunc {
 		}
 	}
 }
-
