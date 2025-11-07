@@ -5,17 +5,17 @@ package repository
 import (
 	"errors"
 	"strings"
-	"video-service/internal/db"
-	"video-service/internal/models"
+	"video-service/internal/model"
+	"video-service/pkg/infrastructure/database"
 
 	"gorm.io/gorm"
 )
 
 // UserRepository 用户数据访问接口
 type UserRepository interface {
-	Create(user *models.User) error
-	FindByUsername(username string) (*models.User, error)
-	FindByID(id int64) (*models.User, error)
+	Create(user *model.User) error
+	FindByUsername(username string) (*model.User, error)
+	FindByID(id int64) (*model.User, error)
 	UpdateWebToken(userID int64, token string, createdAt interface{}) error
 }
 
@@ -28,14 +28,14 @@ func NewUserRepository() UserRepository {
 }
 
 // Create 创建用户
-func (r *userRepository) Create(user *models.User) error {
-	return db.DB.Create(user).Error
+func (r *userRepository) Create(user *model.User) error {
+	return database.DB.Create(user).Error
 }
 
 // FindByUsername 根据用户名查找用户
-func (r *userRepository) FindByUsername(username string) (*models.User, error) {
-	var user models.User
-	err := db.DB.Where("username = ?", username).First(&user).Error
+func (r *userRepository) FindByUsername(username string) (*model.User, error) {
+	var user model.User
+	err := database.DB.Where("username = ?", username).First(&user).Error
 	if err != nil {
 		return nil, err
 	}
@@ -43,9 +43,9 @@ func (r *userRepository) FindByUsername(username string) (*models.User, error) {
 }
 
 // FindByID 根据ID查找用户
-func (r *userRepository) FindByID(id int64) (*models.User, error) {
-	var user models.User
-	err := db.DB.First(&user, id).Error
+func (r *userRepository) FindByID(id int64) (*model.User, error) {
+	var user model.User
+	err := database.DB.First(&user, id).Error
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func (r *userRepository) FindByID(id int64) (*models.User, error) {
 
 // UpdateWebToken 更新用户的Web token
 func (r *userRepository) UpdateWebToken(userID int64, token string, createdAt interface{}) error {
-	return db.DB.Model(&models.User{}).Where("id = ?", userID).Updates(map[string]interface{}{
+	return database.DB.Model(&model.User{}).Where("id = ?", userID).Updates(map[string]interface{}{
 		"acc_web":           token,
 		"acc_web_create_at": createdAt,
 	}).Error
@@ -62,7 +62,7 @@ func (r *userRepository) UpdateWebToken(userID int64, token string, createdAt in
 
 // UserTokenRepository 用户Token数据访问接口
 type UserTokenRepository interface {
-	Create(token *models.UserToken) error
+	Create(token *model.UserToken) error
 	CountByUserID(userID int64) (int64, error)
 	ManageActiveTokens(userID int64, keepCount int) error
 	IsTokenActive(token string) (bool, error)
@@ -77,14 +77,14 @@ func NewUserTokenRepository() UserTokenRepository {
 }
 
 // Create 创建用户Token记录
-func (r *userTokenRepository) Create(token *models.UserToken) error {
-	return db.DB.Create(token).Error
+func (r *userTokenRepository) Create(token *model.UserToken) error {
+	return database.DB.Create(token).Error
 }
 
 // CountByUserID 统计指定用户的token数量
 func (r *userTokenRepository) CountByUserID(userID int64) (int64, error) {
 	var count int64
-	err := db.DB.Model(&models.UserToken{}).Where("user_id = ?", userID).Count(&count).Error
+	err := database.DB.Model(&model.UserToken{}).Where("user_id = ?", userID).Count(&count).Error
 	return count, err
 }
 
@@ -92,7 +92,7 @@ func (r *userTokenRepository) CountByUserID(userID int64) (int64, error) {
 // 保持最新的keepCount个token为活跃状态，其余设为非活跃
 func (r *userTokenRepository) ManageActiveTokens(userID int64, keepCount int) error {
 	// 首先将该用户所有token设为非活跃
-	if err := db.DB.Model(&models.UserToken{}).
+	if err := database.DB.Model(&model.UserToken{}).
 		Where("user_id = ?", userID).
 		Update("is_active", false).Error; err != nil {
 		return err
@@ -100,7 +100,7 @@ func (r *userTokenRepository) ManageActiveTokens(userID int64, keepCount int) er
 
 	// 查询最新的keepCount个token的ID
 	var tokenIDs []int64
-	if err := db.DB.Model(&models.UserToken{}).
+	if err := database.DB.Model(&model.UserToken{}).
 		Where("user_id = ?", userID).
 		Order("created_at DESC").
 		Limit(keepCount).
@@ -110,7 +110,7 @@ func (r *userTokenRepository) ManageActiveTokens(userID int64, keepCount int) er
 
 	// 如果有token需要设为活跃
 	if len(tokenIDs) > 0 {
-		if err := db.DB.Model(&models.UserToken{}).
+		if err := database.DB.Model(&model.UserToken{}).
 			Where("id IN ?", tokenIDs).
 			Update("is_active", true).Error; err != nil {
 			return err
@@ -122,8 +122,8 @@ func (r *userTokenRepository) ManageActiveTokens(userID int64, keepCount int) er
 
 // IsTokenActive 检查token是否在数据库中且处于活跃状态
 func (r *userTokenRepository) IsTokenActive(token string) (bool, error) {
-	var userToken models.UserToken
-	err := db.DB.Where("token = ? AND is_active = ?", token, true).First(&userToken).Error
+	var userToken model.UserToken
+	err := database.DB.Where("token = ? AND is_active = ?", token, true).First(&userToken).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			// Token不存在或未激活

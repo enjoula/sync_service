@@ -2,13 +2,13 @@
 package main
 
 import (
-	"video-service/internal/cache"
-	"video-service/internal/config"
-	"video-service/internal/db"
-	"video-service/internal/logger"
-	"video-service/internal/metrics"
 	"video-service/internal/router"
-	"video-service/internal/scheduler"
+	"video-service/pkg/infrastructure/cache"
+	"video-service/pkg/infrastructure/config"
+	"video-service/pkg/infrastructure/database"
+	"video-service/pkg/infrastructure/logger"
+	"video-service/pkg/infrastructure/metrics"
+	"video-service/pkg/infrastructure/scheduler"
 
 	"go.uber.org/zap"
 )
@@ -31,7 +31,7 @@ func main() {
 	log := zap.L()
 
 	// 初始化MySQL数据库连接，并执行自动迁移创建表结构
-	db.InitMySQL()
+	database.InitMySQL()
 
 	// 初始化Redis缓存连接
 	cache.InitRedis()

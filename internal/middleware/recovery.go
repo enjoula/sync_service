@@ -6,8 +6,8 @@ import (
 	"net/http"
 	"runtime/debug"
 	"time"
-	"video-service/internal/errors"
-	"video-service/internal/response"
+	"video-service/internal/pkg/errors"
+	"video-service/internal/pkg/response"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"

@@ -3,7 +3,7 @@
 package router
 
 import (
-	"video-service/internal/api"
+	"video-service/internal/handler"
 	"video-service/internal/middleware"
 
 	"github.com/gin-gonic/gin"
@@ -47,17 +47,17 @@ func SetupRouter() *gin.Engine {
 	p.Use(r)
 
 	// 注册公开API端点（无需认证）
-	r.POST("/register", api.Register) // 用户注册
-	r.POST("/login", api.Login)       // 用户登录
-	r.GET("/ping", api.Ping)          // 健康检查
-	r.GET("/ip-info", api.GetIPInfo)  // IP信息查询（用于测试）
+	r.POST("/register", handler.Register) // 用户注册
+	r.POST("/login", handler.Login)       // 用户登录
+	r.GET("/ping", handler.Ping)          // 健康检查
+	r.GET("/ip-info", handler.GetIPInfo)  // IP信息查询（用于测试）
 
 	// 创建需要认证的路由组
 	auth := r.Group("/user")
 	// 在该路由组上应用JWT认证中间件
 	auth.Use(middleware.JWTAuth())
 	// 注册需要认证的API端点
-	auth.GET("/me", api.Me) // 获取当前用户信息
+	auth.GET("/me", handler.Me) // 获取当前用户信息
 
 	// 注意：/metrics 路由已由 go-gin-prometheus 中间件自动注册，无需手动注册
 	// r.GET("/metrics", gin.WrapH(metrics.Handler()))

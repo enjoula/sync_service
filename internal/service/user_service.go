@@ -5,11 +5,9 @@ package service
 import (
 	"errors"
 	"time"
-	"video-service/internal/auth"
-	"video-service/internal/avatar"
-	"video-service/internal/idgen"
-	"video-service/internal/models"
-	"video-service/internal/nickname"
+	"video-service/internal/model"
+	"video-service/internal/pkg/auth"
+	"video-service/internal/pkg/utils"
 	"video-service/internal/repository"
 
 	"github.com/gin-gonic/gin"
@@ -20,8 +18,8 @@ import (
 
 // UserService 用户服务接口
 type UserService interface {
-	Register(username, password string, device, ipAddress string) (string, *models.User, error)
-	Login(username, password string, device, ipAddress string) (string, *models.User, error)
+	Register(username, password string, device, ipAddress string) (string, *model.User, error)
+	Login(username, password string, device, ipAddress string) (string, *model.User, error)
 	GetCurrentUser(c *gin.Context) (string, error)
 }
 
@@ -41,7 +39,7 @@ func NewUserService() UserService {
 
 // Register 用户注册
 // 注册成功后自动生成token并写入user_tokens表，实现注册即登录
-func (s *userService) Register(username, password string, device, ipAddress string) (string, *models.User, error) {
+func (s *userService) Register(username, password string, device, ipAddress string) (string, *model.User, error) {
 	log := zap.L()
 
 	// 验证输入
@@ -67,12 +65,12 @@ func (s *userService) Register(username, password string, device, ipAddress stri
 	}
 
 	// 生成用户ID、随机昵称和随机头像
-	userID := idgen.GenerateUserID()
-	randomNickname := nickname.GenerateRandomNickname()
-	randomAvatar := avatar.GetRandomAvatar()
+	userID := utils.GenerateUserID()
+	randomNickname := utils.GenerateRandomNickname()
+	randomAvatar := utils.GetRandomAvatar()
 
 	// 创建用户
-	user := &models.User{
+	user := &model.User{
 		ID:       userID,
 		Username: username,
 		Password: string(hashedPassword),
@@ -88,8 +86,8 @@ func (s *userService) Register(username, password string, device, ipAddress stri
 		return "", nil, errors.New("创建用户失败")
 	}
 
-	// 生成token
-	expiration := time.Now().Add(24 * time.Hour)
+	// 生成token（有效期一年）
+	expiration := time.Now().Add(365 * 24 * time.Hour)
 	token, err := auth.GenerateToken(username, expiration)
 	if err != nil {
 		log.Error("生成token失败", zap.Int64("user_id", userID), zap.Error(err))
@@ -97,7 +95,7 @@ func (s *userService) Register(username, password string, device, ipAddress stri
 	}
 
 	// 保存token记录
-	userToken := &models.UserToken{
+	userToken := &model.UserToken{
 		UserID:    user.ID,
 		Token:     token,
 		Device:    device,
@@ -119,7 +117,7 @@ func (s *userService) Register(username, password string, device, ipAddress stri
 }
 
 // Login 用户登录
-func (s *userService) Login(username, password string, device, ipAddress string) (string, *models.User, error) {
+func (s *userService) Login(username, password string, device, ipAddress string) (string, *model.User, error) {
 	log := zap.L()
 
 	// 查找用户
@@ -136,8 +134,8 @@ func (s *userService) Login(username, password string, device, ipAddress string)
 		return "", nil, errors.New("invalid credentials")
 	}
 
-	// 生成token
-	expiration := time.Now().Add(24 * time.Hour)
+	// 生成token（有效期一年）
+	expiration := time.Now().Add(365 * 24 * time.Hour)
 	token, err := auth.GenerateToken(username, expiration)
 	if err != nil {
 		log.Error("生成token失败", zap.Int64("user_id", user.ID), zap.Error(err))
@@ -145,7 +143,7 @@ func (s *userService) Login(username, password string, device, ipAddress string)
 	}
 
 	// 保存token记录
-	userToken := &models.UserToken{
+	userToken := &model.UserToken{
 		UserID:    user.ID,
 		Token:     token,
 		Device:    device,
