@@ -23,6 +23,17 @@ func SetupRouter() *gin.Engine {
 	r := gin.New()
 	log := zap.L()
 
+	// 配置信任的代理IP地址，以便正确获取客户端真实IP
+	// 信任本地和私有网络IP段（适用于Nginx、Docker等反向代理场景）
+	if err := r.SetTrustedProxies([]string{
+		"127.0.0.1",      // 本地回环
+		"10.0.0.0/8",     // 私有网络 A类
+		"172.16.0.0/12",  // 私有网络 B类
+		"192.168.0.0/16", // 私有网络 C类
+	}); err != nil {
+		log.Warn("设置信任代理失败", zap.Error(err))
+	}
+
 	// 注册全局中间件（按顺序执行）
 	// Trace: 生成请求追踪ID
 	r.Use(middleware.Trace())
@@ -39,6 +50,7 @@ func SetupRouter() *gin.Engine {
 	r.POST("/register", api.Register) // 用户注册
 	r.POST("/login", api.Login)       // 用户登录
 	r.GET("/ping", api.Ping)          // 健康检查
+	r.GET("/ip-info", api.GetIPInfo)  // IP信息查询（用于测试）
 
 	// 创建需要认证的路由组
 	auth := r.Group("/user")
