@@ -100,7 +100,7 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	log.Info("登录成功", zap.Int64("user_id", user.ID), zap.String("username", req.Username), zap.String("ip", ipAddress))
+	log.Info("用户登录", zap.Int64("user_id", user.ID), zap.String("username", req.Username), zap.String("ip", ipAddress))
 
 	// 返回用户信息和token给客户端
 	response.Success(c, gin.H{

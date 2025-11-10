@@ -27,8 +27,11 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /app/server 
 # 使用alpine作为运行时镜像（体积小）
 FROM --platform=$TARGETPLATFORM alpine:3.18
 
-# 安装CA证书（用于HTTPS连接）
-RUN apk add --no-cache ca-certificates
+# 安装CA证书（用于HTTPS连接）和时区数据
+RUN apk add --no-cache ca-certificates tzdata
+
+# 设置时区为东八区
+ENV TZ=Asia/Shanghai
 
 # 设置工作目录
 WORKDIR /root/

@@ -29,7 +29,7 @@ func InitLogger() {
 	lj := &lumberjack.Logger{
 		Filename:   "logs/app.log",
 		MaxSize:    100, // 100MB
-		MaxBackups: 3,   // 保留3个备份文件
+		MaxBackups: 5,   // 保留3个备份文件
 		MaxAge:     28,  // 保留28天
 	}
 

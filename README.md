@@ -2,6 +2,10 @@
 
 一个基于 Golang + Gin + GORM + Redis + etcd + Prometheus 的完整在线视频服务后端框架，支持 JWT 登录鉴权、TraceID 链路追踪、日志系统、自动迁移与定时任务。
 
+docker-compose -f deployments/docker/docker-compose.yml down
+docker-compose -f deployments/docker/docker-compose.yml build --no-cache
+docker-compose -f deployments/docker/docker-compose.yml up -d
+
 
 ## 🚀 快速启动（Docker 环境）
 1️⃣ 解压项目
