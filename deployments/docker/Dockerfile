@@ -43,7 +43,7 @@ COPY --from=builder /app/server .
 COPY configs ./configs
 
 # 暴露端口
-EXPOSE 8080
+EXPOSE 5501
 
 # 设置入口点
 ENTRYPOINT ["./server"]

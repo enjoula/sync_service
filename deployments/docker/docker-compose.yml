@@ -6,7 +6,7 @@ services:
     image: video-service:latest         # ✅ 自定义镜像名称
     container_name: VideoService
     ports:
-      - "8080:8080"
+      - "5501:5501"
     environment:
       - TZ=Asia/Shanghai
     depends_on:
@@ -20,19 +20,22 @@ services:
       - ../../configs:/root/configs
       - ../../logs:/root/logs
     restart: on-failure
+    networks:
+      - video_network
 
   mysql:
-    image: mysql:8                      # 官方镜像，可保留或改为自定义名
+    image: mysql:8.4.5                     # 官方镜像，可保留或改为自定义名
     container_name: Mysql               # ✅ 自定义容器名
     environment:
       MYSQL_ROOT_PASSWORD: 123456
       MYSQL_DATABASE: video_service
       TZ: Asia/Shanghai
     ports:
-      - "3306:3306"
+      - "5506:3306"
     volumes:
-      - ~/docker/container/Mysql/data/mysql:/var/lib/mysql
-      - ~/docker/container/Mysql/conf/mysql/conf.d:/etc/mysql/conf.d
+      # 使用命名卷代替主机路径，更便于跨机器部署
+      - mysql-data:/var/lib/mysql
+      - mysql-conf:/etc/mysql/conf.d
     restart: always
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p123456"]
@@ -40,22 +43,29 @@ services:
       timeout: 3s
       retries: 10
       start_period: 10s
+    networks:
+      - video_network
 
   redis:
     image: redis:7.0.14
+    hostname: Redis
     container_name: Redis         # ✅ 自定义容器名
     environment:
       - TZ=Asia/Shanghai
     ports:
-      - "6379:6379"
+      - "5509:6379"
     volumes:
-      - ~/docker/container/Redis/data:/data
-      - ~/docker/container/Redis/conf:/etc/redis
+      # 使用命名卷代替主机路径
+      - redis-data:/data
+      - redis-conf:/etc/redis
+    restart: always
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 5s
       timeout: 3s
       retries: 5
+    networks:
+      - video_network
 
   etcd:
     image: quay.io/coreos/etcd:v3.5.10
@@ -74,25 +84,49 @@ services:
       - --initial-cluster-token=etcd-cluster-1
       - --initial-cluster-state=new
     ports:
-      - "2379:2379"
+      - "5579:2379"
       - "2380:2380"
     volumes:
       - etcd-data:/etcd-data
+    restart: always
     healthcheck:
       test: ["CMD", "etcdctl", "--endpoints=http://localhost:2379", "endpoint", "health"]
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - video_network
 
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v2.45.5
     container_name: Prometheus  # ✅ 自定义容器名
     environment:
       - TZ=Asia/Shanghai
     ports:
-      - "9090:9090"
+      - "5590:9090"
     volumes:
       - ../../configs/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    restart: always
+    networks:
+      - video_network
 
+# 定义命名卷
 volumes:
   etcd-data:
+    driver: local
+  mysql-data:
+    driver: local
+  mysql-conf:
+    driver: local
+  redis-data:
+    driver: local
+  redis-conf:
+    driver: local
+  prometheus-data:
+    driver: local
+
+# 定义网络
+networks:
+  video_network:
+    driver: bridge

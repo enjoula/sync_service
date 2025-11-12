@@ -57,18 +57,18 @@ etcdctl put /video-service/secret '{
 5️⃣ 测试接口
 1、 注册用户
 
-curl -X POST http://localhost:8080/register \
+curl -X POST http://localhost:5501/user/register \
   -H "Content-Type: application/json" \
-  -d '{"username":"alice","password":"pwd"}'
+  -d '{"username":"alice","password":"pwd","device":"PC-MacBookPro"}'
 
 2、登录
-curl -X POST http://localhost:8080/login \
+curl -X POST http://localhost:5501/user/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"alice","password":"pwd"}'
+  -d '{"username":"alice","password":"pwd","device":"PC-MacBookPro"}'
 
 3、获取用户信息
-curl http://localhost:8080/user/me \
-  -H "Authorization: <token>"
+curl http://localhost:5501/user/me \
+  -H "Authorization: Bearer <token>"
 
 
 
@@ -87,8 +87,8 @@ curl http://localhost:8080/user/me \
 
 6️⃣ 访问监控
 
-- 后端 API: http://localhost:8080
-- Prometheus: http://localhost:9090
+- 后端 API: http://localhost:5501
+- Prometheus: http://localhost:5590
 
 
 

@@ -58,20 +58,27 @@
 
 ### 1. 用户注册
 
-**接口**: `POST /register`
+**接口**: `POST /user/register`
 
 **描述**: 注册新用户，注册成功后自动登录并返回token
-
-**请求头**:
-- `X-Device` (可选): 设备类型，如`web`、`tv`、`mobile`
 
 **请求体**:
 ```json
 {
   "username": "testuser",
-  "password": "password123"
+  "password": "password123",
+  "device": "iOS-iPhone15Pro"
 }
 ```
+
+**参数说明**:
+- `username` (string, 必需): 用户名
+- `password` (string, 必需): 密码
+- `device` (string, 必需): 设备信息，格式：平台-设备型号，示例：
+  - `iOS-iPhone15Pro`
+  - `android-SamsungS24`
+  - `TV-XiaomiTV5`
+  - `PC-Windows11`
 
 **响应示例**:
 ```json
@@ -113,20 +120,27 @@
 
 ### 2. 用户登录
 
-**接口**: `POST /login`
+**接口**: `POST /user/login`
 
 **描述**: 用户登录，返回JWT token
-
-**请求头**:
-- `X-Device` (可选): 设备类型
 
 **请求体**:
 ```json
 {
   "username": "testuser",
-  "password": "password123"
+  "password": "password123",
+  "device": "iOS-iPhone15Pro"
 }
 ```
+
+**参数说明**:
+- `username` (string, 必需): 用户名
+- `password` (string, 必需): 密码
+- `device` (string, 必需): 设备信息，格式：平台-设备型号，示例：
+  - `iOS-iPhone15Pro`
+  - `android-SamsungS24`
+  - `TV-XiaomiTV5`
+  - `PC-Windows11`
 
 **响应示例**:
 ```json
@@ -317,19 +331,16 @@ http_requests_total{method="POST",endpoint="/login",status="200"} 42
 
 ## 使用示例
 
-### curl
-
 ```bash
 # 注册
-curl -X POST http://localhost:8080/register \
+curl -X POST http://localhost:8080/user/register \
   -H "Content-Type: application/json" \
-  -H "X-Device: web" \
-  -d '{"username":"alice","password":"pwd123"}'
+  -d '{"username":"alice","password":"pwd123","device":"PC-MacBookPro"}'
 
 # 登录
-curl -X POST http://localhost:8080/login \
+curl -X POST http://localhost:8080/user/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"alice","password":"pwd123"}'
+  -d '{"username":"alice","password":"pwd123","device":"PC-MacBookPro"}'
 
 # 获取用户信息（需要先登录获取token）
 curl http://localhost:8080/user/me \
@@ -340,76 +351,6 @@ curl http://localhost:8080/ping
 
 # IP信息
 curl http://localhost:8080/ip-info
-```
-
-### JavaScript (fetch)
-
-```javascript
-// 注册
-const register = async (username, password) => {
-  const response = await fetch('http://localhost:8080/register', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Device': 'web'
-    },
-    body: JSON.stringify({ username, password })
-  });
-  return await response.json();
-};
-
-// 登录
-const login = async (username, password) => {
-  const response = await fetch('http://localhost:8080/login', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ username, password })
-  });
-  return await response.json();
-};
-
-// 获取用户信息
-const getMe = async (token) => {
-  const response = await fetch('http://localhost:8080/user/me', {
-    headers: {
-      'Authorization': `Bearer ${token}`
-    }
-  });
-  return await response.json();
-};
-```
-
-### Python (requests)
-
-```python
-import requests
-
-# 注册
-def register(username, password):
-    response = requests.post(
-        'http://localhost:8080/register',
-        headers={'X-Device': 'web'},
-        json={'username': username, 'password': password}
-    )
-    return response.json()
-
-# 登录
-def login(username, password):
-    response = requests.post(
-        'http://localhost:8080/login',
-        json={'username': username, 'password': password}
-    )
-    return response.json()
-
-# 获取用户信息
-def get_me(token):
-    response = requests.get(
-        'http://localhost:8080/user/me',
-        headers={'Authorization': f'Bearer {token}'}
-    )
-    return response.json()
 ```
 
 ## Token管理
@@ -435,8 +376,8 @@ JWT Token 采用标准的 JWT 格式，包含以下声明（Claims）：
 
 ### Token生命周期
 
-- **有效期**: 24小时（从签发时间开始计算）
-- **刷新**: 需要重新登录获取新token
+- **有效期**: 365天（从签发时间开始计算）
+- **刷新**: Token 过期后需要重新登录获取新token
 - **多设备**: 最多3个活跃token，超过后最早的 token 会被设置为失效（is_active=0）
 - **存储**: Token 在数据库中记录，包含设备信息、IP地址、活跃状态等
 
@@ -449,9 +390,9 @@ JWT Token 采用标准的 JWT 格式，包含以下声明（Claims）：
 
 ### Token失效场景
 
-1. **自然过期**: Token 超过24小时有效期
+1. **自然过期**: Token 超过365天有效期
 2. **多设备限制**: 用户登录新设备超过3个活跃 token 限制时，最早的 token 被标记为失效
-3. **主动登出**: 用户主动登出时，token 的 `is_active` 被设置为 0
+3. **主动登出**: 用户主动登出时，token 的 `is_active` 被设置为 0（待实现）
 4. **数据库状态**: Token 在数据库中被标记为失效（`is_active=0`）
 
 ## 追踪ID（Trace ID）
@@ -616,12 +557,13 @@ curl http://localhost:8080/metrics
 
 ### Q1: Token过期后如何处理？
 
-A: Token过期后，客户端需要重新调用登录接口获取新的token。当前版本不支持刷新token，需要用户重新输入用户名和密码。
+A: Token有效期为365天（1年），过期后客户端需要重新调用登录接口获取新的token。当前版本不支持刷新token机制，需要用户重新输入用户名和密码。
 
 **建议**：
-- 在token即将过期时（如剩余1小时）提示用户
+- 在token即将过期时（如剩余7天）提示用户
 - 检测到401错误时，引导用户重新登录
 - 使用本地存储保存用户名（需用户同意），便于快速重新登录
+- 由于有效期较长，一般无需担心频繁过期的问题
 
 ### Q2: 如何处理多设备登录？
 
@@ -811,7 +753,16 @@ WHERE token = 'your-token-here';
 
 ---
 
-**文档版本**: v1.2  
-**最后更新**: 2024-11-10  
+**文档版本**: v1.4  
+**最后更新**: 2024-11-12  
 **维护者**: Video Service Team
+
+### 更新内容 (v1.4)
+- ✅ 精简使用示例：移除JavaScript和Python示例，仅保留curl示例
+
+### 更新内容 (v1.3)
+- ✅ 修正 device 参数位置：从请求头改为请求体
+- ✅ 修正 Token 有效期说明：从24小时更新为365天
+- ✅ 更新所有代码示例以反映正确的API调用方式
+- ✅ 补充 device 参数格式说明和示例
 
