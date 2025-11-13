@@ -11,7 +11,7 @@
  Target Server Version : 80405 (8.4.5)
  File Encoding         : 65001
 
- Date: 13/11/2025 10:02:27
+ Date: 13/11/2025 11:44:54
 */
 
 SET NAMES utf8mb4;
@@ -65,11 +65,11 @@ CREATE TABLE `episodes` (
   `channel` varchar(255) DEFAULT NULL COMMENT '同步渠道',
   `channel_id` int DEFAULT NULL COMMENT '渠道视频ID',
   `video_id` bigint NOT NULL COMMENT '视频ID',
-  `episode_number` bigint DEFAULT '1' COMMENT '第几集',
-  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '剧集名称',
-  `play_urls` json NOT NULL COMMENT '播放地址(JSON数组)',
-  `duration_seconds` bigint DEFAULT NULL COMMENT '时长(秒)',
-  `subtitle_urls` json DEFAULT NULL COMMENT '字幕地址(JSON数组)',
+  `episode_number` int DEFAULT '1' COMMENT '集数，默认第1集',
+  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '集名称',
+  `play_urls` json NOT NULL COMMENT '播放地址列表（JSON数组），支持多源',
+  `duration_seconds` int DEFAULT NULL COMMENT '时长（秒）',
+  `subtitle_urls` json DEFAULT NULL COMMENT '字幕文件URL列表（JSON数组），支持多语言',
   `created_at` datetime(3) DEFAULT NULL COMMENT '创建时间',
   `updated_at` datetime(3) DEFAULT NULL COMMENT '更新时间',
   PRIMARY KEY (`id`),
@@ -110,19 +110,19 @@ CREATE TABLE `user_tokens` (
 -- ----------------------------
 DROP TABLE IF EXISTS `user_watch_progresses`;
 CREATE TABLE `user_watch_progresses` (
-  `user_id` bigint NOT NULL,
-  `episode_id` bigint NOT NULL,
-  `last_position_ms` bigint DEFAULT '0',
-  `last_played_at` datetime(3) DEFAULT NULL,
+  `user_id` bigint NOT NULL COMMENT '用户ID，复合主键',
+  `episode_id` bigint NOT NULL COMMENT '剧集ID，复合主键',
+  `last_position_ms` bigint DEFAULT '0' COMMENT '最后观看位置（毫秒），默认0',
+  `last_played_at` datetime(3) DEFAULT NULL COMMENT '最后播放时间',
   PRIMARY KEY (`user_id`,`episode_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户观看进度表';
 
 -- ----------------------------
 -- Table structure for users
 -- ----------------------------
 DROP TABLE IF EXISTS `users`;
 CREATE TABLE `users` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '用户ID',
+  `id` bigint NOT NULL COMMENT '用户ID，使用算法生成（非自增）',
   `username` varchar(100) NOT NULL COMMENT '用户名',
   `password` varchar(255) NOT NULL COMMENT '密码(加密)',
   `nickname` varchar(100) DEFAULT NULL COMMENT '昵称',
@@ -136,26 +136,29 @@ CREATE TABLE `users` (
   `updated_at` datetime(3) DEFAULT NULL COMMENT '更新时间',
   PRIMARY KEY (`id`),
   UNIQUE KEY `idx_users_username` (`username`)
-) ENGINE=InnoDB AUTO_INCREMENT=246149288072368129 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户表';
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户表';
 
 -- ----------------------------
 -- Table structure for videos
 -- ----------------------------
 DROP TABLE IF EXISTS `videos`;
 CREATE TABLE `videos` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '视频ID',
-  `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '视频标题',
-  `type` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '类型(电影、电视剧、短剧、综艺、动漫、纪录片)',
+  `id` bigint NOT NULL COMMENT '视频ID，使用雪花算法生成（非自增）',
+  `source_id` int DEFAULT NULL COMMENT '视频来源三方ID',
+  `source` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '视频来源三方',
+  `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '视频标题',
+  `type` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '类型(电影、电视剧、短剧、综艺、动漫、纪录片)',
   `cover_url` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci COMMENT '封面图片URL',
   `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci COMMENT '视频描述',
-  `year` bigint DEFAULT NULL COMMENT '上映年份',
+  `year` int DEFAULT NULL COMMENT '上映年份',
   `rating` varchar(255) DEFAULT NULL COMMENT '评分',
   `country` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '制作国家/地区',
   `director` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '导演',
   `actors` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '主演(多个用逗号分隔)',
   `tags` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '标签(多个用逗号分隔)',
-  `source` varchar(255) DEFAULT NULL COMMENT '视频来源三方',
-  `source_id` int DEFAULT NULL COMMENT '视频来源三方ID',
+  `status` varchar(255) DEFAULT NULL COMMENT '状态(0:否，1:是)',
+  `imdb_id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'IMDb ID',
+  `runtime` int DEFAULT NULL COMMENT '时长（分钟）',
   `created_at` datetime(3) DEFAULT NULL COMMENT '创建时间',
   `updated_at` datetime(3) DEFAULT NULL COMMENT '更新时间',
   PRIMARY KEY (`id`)

@@ -6283,3 +6283,13 @@
 {"level":"info","ts":"2025-11-12T18:01:14.633+0800","msg":"HTTP Request","status":200,"method":"POST","path":"/user/login","query":"","ip":"172.29.0.46","latency":0.139468917,"request_size":83,"response_size":466,"user_agent":"python-requests/2.31.0","trace_id":"6d81a53f-8c3f-46b0-9230-4bbb1f502ab4"}
 {"level":"info","ts":"2025-11-12T18:01:14.634+0800","msg":"用户登录","user_id":246937438796926976,"username":"testuser0100","device":"Device-Login6","ip":"172.29.0.46"}
 {"level":"info","ts":"2025-11-12T18:01:14.634+0800","msg":"HTTP Request","status":200,"method":"POST","path":"/user/login","query":"","ip":"172.29.0.46","latency":0.138528834,"request_size":83,"response_size":466,"user_agent":"python-requests/2.31.0","trace_id":"8a8e9cd0-8227-4e4a-956e-ae0aa3340c23"}
+{"level":"info","ts":"2025-11-13T12:16:12.671+0800","msg":"mysql connected"}
+{"level":"info","ts":"2025-11-13T12:16:12.906+0800","msg":"auto migrate applied"}
+{"level":"info","ts":"2025-11-13T12:16:12.908+0800","msg":"redis connected"}
+{"level":"info","ts":"2025-11-13T12:16:12.908+0800","msg":"定时任务调度器已启动"}
+{"level":"info","ts":"2025-11-13T12:16:12.908+0800","msg":"server start","addr":":5501"}
+{"level":"fatal","ts":"2025-11-13T13:43:25.139+0800","msg":"mysql connect error","error":"driver: bad connection"}
+{"level":"fatal","ts":"2025-11-13T13:44:37.608+0800","msg":"mysql connect error","error":"driver: bad connection"}
+{"level":"fatal","ts":"2025-11-13T13:45:15.959+0800","msg":"mysql connect error","error":"driver: bad connection"}
+{"level":"info","ts":"2025-11-13T13:47:04.515+0800","msg":"使用配置文件中的数据库连接","dsn":"root:***@tcp(mysql:3306)/video_service?charset=utf8mb4&parseTime=True&loc=Local"}
+{"level":"fatal","ts":"2025-11-13T13:47:04.515+0800","msg":"检测到Docker容器地址，本地运行需要设置环境变量 MYSQL_DSN","当前DSN":"root:***@tcp(mysql:3306)/video_service?charset=utf8mb4&parseTime=True&loc=Local","提示":"配置文件中的地址是Docker容器地址，本地运行无法连接","解决方法":"请设置环境变量 MYSQL_DSN 指向本地数据库","示例1":"export MYSQL_DSN='root:123456@tcp(127.0.0.1:5506)/video_service?charset=utf8mb4&parseTime=True&loc=Local'","示例2":"MYSQL_DSN='root:123456@tcp(127.0.0.1:5506)/video_service?charset=utf8mb4&parseTime=True&loc=Local' make sync-douban"}

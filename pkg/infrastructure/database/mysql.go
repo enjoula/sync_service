@@ -68,6 +68,7 @@ func InitMySQL() {
 		&model.Danmaku{},
 		&model.UserFavorite{},
 		&model.UserWatchProgress{},
+		&model.AppVersion{},
 	); err != nil {
 		zap.L().Error("auto migrate failed", zap.Error(err))
 	} else {
