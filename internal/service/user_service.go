@@ -16,11 +16,19 @@ import (
 	"gorm.io/gorm"
 )
 
+// UserMeResponse 获取当前用户信息的响应结构
+type UserMeResponse struct {
+	UserID   int64    `json:"user_id"`  // 用户ID
+	Nickname string   `json:"nickname"` // 用户昵称
+	Avatar   string   `json:"avatar"`   // 用户头像
+	Devices  []string `json:"devices"`  // 用户活跃的设备列表
+}
+
 // UserService 用户服务接口
 type UserService interface {
 	Register(username, password string, device, ipAddress string) (string, *model.User, error)
 	Login(username, password string, device, ipAddress string) (string, *model.User, error)
-	GetCurrentUser(c *gin.Context) (string, error)
+	GetCurrentUser(c *gin.Context) (*UserMeResponse, error)
 }
 
 // userService 用户服务实现
@@ -163,15 +171,49 @@ func (s *userService) Login(username, password string, device, ipAddress string)
 	return token, user, nil
 }
 
-// GetCurrentUser 获取当前登录用户
-func (s *userService) GetCurrentUser(c *gin.Context) (string, error) {
-	user, exists := c.Get("user")
+// GetCurrentUser 获取当前登录用户信息，包括活跃设备列表
+func (s *userService) GetCurrentUser(c *gin.Context) (*UserMeResponse, error) {
+	log := zap.L()
+
+	// 从context获取用户名
+	userInterface, exists := c.Get("user")
 	if !exists {
-		return "", errors.New("未登录")
+		return nil, errors.New("未登录")
 	}
-	username, ok := user.(string)
+	username, ok := userInterface.(string)
 	if !ok {
-		return "", errors.New("用户信息格式错误")
+		return nil, errors.New("用户信息格式错误")
 	}
-	return username, nil
+
+	// 根据用户名查询用户信息
+	user, err := s.userRepo.FindByUsername(username)
+	if err != nil {
+		log.Error("查询用户信息失败", zap.String("username", username), zap.Error(err))
+		return nil, errors.New("查询用户信息失败")
+	}
+
+	// 查询用户的所有活跃token（包含设备信息）
+	activeTokens, err := s.userTokenRepo.FindActiveTokensByUserID(user.ID)
+	if err != nil {
+		log.Error("查询用户活跃设备失败", zap.Int64("user_id", user.ID), zap.Error(err))
+		return nil, errors.New("查询用户活跃设备失败")
+	}
+
+	// 提取设备列表
+	devices := make([]string, 0, len(activeTokens))
+	for _, token := range activeTokens {
+		if token.Device != "" {
+			devices = append(devices, token.Device)
+		}
+	}
+
+	// 构建响应
+	response := &UserMeResponse{
+		UserID:   user.ID,
+		Nickname: user.Nickname,
+		Avatar:   user.Avatar,
+		Devices:  devices,
+	}
+
+	return response, nil
 }

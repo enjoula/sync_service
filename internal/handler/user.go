@@ -13,7 +13,7 @@ import (
 // GET /user/me
 // 需要JWT认证中间件，用户信息从context中获取
 func Me(c *gin.Context) {
-	username, err := userService.GetCurrentUser(c)
+	userInfo, err := userService.GetCurrentUser(c)
 	if err != nil {
 		// 检查是否是业务错误类型
 		if bizErr, ok := err.(*errors.BusinessError); ok {
@@ -24,5 +24,5 @@ func Me(c *gin.Context) {
 		return
 	}
 
-	response.Success(c, gin.H{"user": username})
+	response.Success(c, userInfo)
 }

@@ -66,6 +66,7 @@ type UserTokenRepository interface {
 	CountByUserID(userID int64) (int64, error)
 	ManageActiveTokens(userID int64, keepCount int) error
 	IsTokenActive(token string) (bool, error)
+	FindActiveTokensByUserID(userID int64) ([]model.UserToken, error)
 }
 
 // userTokenRepository 用户Token数据访问实现
@@ -134,6 +135,18 @@ func (r *userTokenRepository) IsTokenActive(token string) (bool, error) {
 	}
 	// Token存在且活跃
 	return true, nil
+}
+
+// FindActiveTokensByUserID 查询用户所有活跃的token记录
+func (r *userTokenRepository) FindActiveTokensByUserID(userID int64) ([]model.UserToken, error) {
+	var tokens []model.UserToken
+	err := database.DB.Where("user_id = ? AND is_active = ?", userID, true).
+		Order("created_at DESC").
+		Find(&tokens).Error
+	if err != nil {
+		return nil, err
+	}
+	return tokens, nil
 }
 
 // IsDuplicateError 检查是否是重复键错误

@@ -23,7 +23,7 @@
 
 ## 基本信息
 
-- **Base URL**: `http://localhost:8080`
+- **Base URL**: `http://localhost:5501`
 - **Content-Type**: `application/json`
 - **响应格式**: 所有响应均为JSON格式
 
@@ -72,13 +72,16 @@
 ```
 
 **参数说明**:
-- `username` (string, 必需): 用户名
-- `password` (string, 必需): 密码
-- `device` (string, 必需): 设备信息，格式：平台-设备型号，示例：
-  - `iOS-iPhone15Pro`
-  - `android-SamsungS24`
-  - `TV-XiaomiTV5`
-  - `PC-Windows11`
+- `username` (string, 必需): 用户名，唯一标识
+- `password` (string, 必需): 密码，将使用bcrypt算法加密存储
+- `device` (string, 必需): 设备信息，用于多设备管理和安全追踪
+  - **格式**：`平台-设备型号`（无空格）
+  - **示例**：
+    - `iOS-iPhone15Pro` - iOS设备
+    - `android-SamsungS24` - Android设备
+    - `TV-XiaomiTV5` - 电视设备
+    - `PC-Windows11` - PC设备
+  - **作用**：记录在`user_tokens`表中，用于识别不同登录设备
 
 **响应示例**:
 ```json
@@ -86,15 +89,27 @@
   "code": 0,
   "message": "Success",
   "data": {
-    "id": 244770533047660544,
-    "username": "testuser",
-    "nickname": "喜羊羊",
-    "avatar": "https://img.pngsucai.com/00/53/87/d9bbfc94bea22c16.webp",
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    "id": 244770533047660544,  // 用户ID（雪花算法生成，全局唯一）
+    "username": "testuser",     // 用户名
+    "nickname": "喜羊羊",        // 随机生成的昵称
+    "avatar": "https://img.pngsucai.com/00/53/87/d9bbfc94bea22c16.webp",  // 随机头像URL
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."  // JWT Token（有效期365天）
   },
   "trace_id": "abc-123-def-456"
 }
 ```
+
+**字段说明**:
+- `id`: 用户唯一ID，使用雪花算法生成（64位整数）
+- `username`: 用户名
+- `nickname`: 系统自动分配的随机昵称（从100+个卡通人物中随机选择）
+- `avatar`: 系统自动分配的随机头像URL（从131个头像中随机选择）
+- `token`: JWT认证Token，后续请求需要在Header中携带：`Authorization: Bearer <token>`
+
+**注册成功后**：
+- 用户信息已保存到`users`表
+- Token已保存到`user_tokens`表，标记为活跃状态
+- 可以直接使用返回的token进行认证（注册即登录）
 
 **错误响应示例**:
 
@@ -135,12 +150,15 @@
 
 **参数说明**:
 - `username` (string, 必需): 用户名
-- `password` (string, 必需): 密码
-- `device` (string, 必需): 设备信息，格式：平台-设备型号，示例：
-  - `iOS-iPhone15Pro`
-  - `android-SamsungS24`
-  - `TV-XiaomiTV5`
-  - `PC-Windows11`
+- `password` (string, 必需): 密码（明文传输，服务端会与数据库中的bcrypt哈希值进行比对）
+- `device` (string, 必需): 设备信息，用于多设备管理和安全追踪
+  - **格式**：`平台-设备型号`（无空格）
+  - **示例**：
+    - `iOS-iPhone15Pro` - iOS设备
+    - `android-SamsungS24` - Android设备
+    - `TV-XiaomiTV5` - 电视设备
+    - `PC-Windows11` - PC设备
+  - **作用**：每次登录会生成新的Token并记录设备信息
 
 **响应示例**:
 ```json
@@ -148,15 +166,21 @@
   "code": 0,
   "message": "Success",
   "data": {
-    "id": 244770533047660544,
-    "username": "testuser",
-    "nickname": "喜羊羊",
-    "avatar": "https://img.pngsucai.com/00/53/87/d9bbfc94bea22c16.webp",
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+    "id": 244770533047660544,  // 用户ID
+    "username": "testuser",     // 用户名
+    "nickname": "喜羊羊",        // 用户昵称
+    "avatar": "https://img.pngsucai.com/00/53/87/d9bbfc94bea22c16.webp",  // 用户头像
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."  // 新生成的JWT Token
   },
   "trace_id": "abc-123-def-456"
 }
 ```
+
+**登录成功后**：
+- 生成新的JWT Token（每次登录都会生成新Token）
+- Token保存到`user_tokens`表，标记为活跃状态
+- 如果该用户已有3个活跃Token，最早的Token会被自动标记为失效
+- 使用新Token进行后续请求：`Authorization: Bearer <new_token>`
 
 **错误响应示例**:
 
@@ -243,7 +267,7 @@ Authorization: Bearer <your-token-here>
 
 **接口**: `GET /user/me`
 
-**描述**: 获取当前登录用户信息
+**描述**: 获取当前登录用户信息，包括用户ID、昵称、头像以及所有处于活跃状态的设备列表
 
 **请求头**:
 - `Authorization`: `Bearer <token>` (必需)
@@ -254,11 +278,24 @@ Authorization: Bearer <your-token-here>
   "code": 0,
   "message": "Success",
   "data": {
-    "user": "testuser"
+    "user_id": 244770533047660544,
+    "nickname": "喜羊羊",
+    "avatar": "https://img.pngsucai.com/00/53/87/d9bbfc94bea22c16.webp",
+    "devices": [
+      "iOS-iPhone15Pro",
+      "PC-MacBookPro",
+      "android-SamsungS24"
+    ]
   },
   "trace_id": "abc-123-def-456"
 }
 ```
+
+**字段说明**:
+- `user_id`: 用户ID（雪花算法生成的64位整数）
+- `nickname`: 用户昵称
+- `avatar`: 用户头像URL
+- `devices`: 用户所有处于活跃状态的设备列表（最多3个），按登录时间倒序排列
 
 **错误响应示例**:
 
@@ -333,24 +370,24 @@ http_requests_total{method="POST",endpoint="/login",status="200"} 42
 
 ```bash
 # 注册
-curl -X POST http://localhost:8080/user/register \
+curl -X POST http://localhost:5501/user/register \
   -H "Content-Type: application/json" \
   -d '{"username":"alice","password":"pwd123","device":"PC-MacBookPro"}'
 
 # 登录
-curl -X POST http://localhost:8080/user/login \
+curl -X POST http://localhost:5501/user/login \
   -H "Content-Type: application/json" \
   -d '{"username":"alice","password":"pwd123","device":"PC-MacBookPro"}'
 
 # 获取用户信息（需要先登录获取token）
-curl http://localhost:8080/user/me \
+curl http://localhost:5501/user/me \
   -H "Authorization: Bearer YOUR_TOKEN_HERE"
 
 # 健康检查
-curl http://localhost:8080/ping
+curl http://localhost:5501/ping
 
 # IP信息
-curl http://localhost:8080/ip-info
+curl http://localhost:5501/ip-info
 ```
 
 ## Token管理
@@ -383,10 +420,42 @@ JWT Token 采用标准的 JWT 格式，包含以下声明（Claims）：
 
 ### Token验证流程
 
-1. **验证顺序**: 先检查数据库中的 `is_active` 状态，再验证 token 签名和过期时间
-2. **数据库检查**: 确保 token 存在且 `is_active=1`
-3. **签名验证**: 使用 JWT 密钥验证 token 签名
-4. **过期检查**: 验证 token 是否在有效期内
+采用**双重验证机制**，确保Token的安全性和可控性：
+
+```
+请求 → 提取Token → ┬→ 1️⃣ 数据库验证: is_active=1?
+                   │   └→ 支持主动撤销Token
+                   │
+                   ├→ 2️⃣ JWT签名验证: 签名正确?
+                   │   └→ 防止Token被篡改
+                   │
+                   └→ 3️⃣ 过期时间验证: 未过期?
+                       └→ 检查Token有效期
+```
+
+**验证步骤详解**：
+
+1. **数据库验证**（第一道防线）
+   - 查询`user_tokens`表检查Token的`is_active`字段
+   - 只有`is_active=1`的Token才能通过
+   - 优势：支持主动撤销Token，实现强制登出功能
+
+2. **JWT签名验证**（第二道防线）
+   - 使用HMAC-SHA256算法验证Token签名
+   - 确保Token未被篡改
+   - 使用etcd配置中心管理的密钥
+
+3. **过期时间验证**（第三道防线）
+   - 检查Token的`exp`字段
+   - 确保Token在有效期内（365天）
+
+**为什么需要数据库验证？**
+- JWT本身无法主动撤销（一旦签发，在过期前始终有效）
+- 通过数据库的`is_active`字段可以实现：
+  - 多设备登录管理（超过3个设备自动失效旧Token）
+  - 用户主动登出
+  - 管理员强制下线
+  - 安全事件响应（如发现Token泄露）
 
 ### Token失效场景
 
@@ -409,7 +478,7 @@ JWT Token 采用标准的 JWT 格式，包含以下声明（Claims）：
 **示例**:
 ```bash
 # 使用 curl 查看响应头
-curl -i http://localhost:8080/ping
+curl -i http://localhost:5501/ping
 
 # 响应头中包含
 X-Trace-ID: 550e8400-e29b-41d4-a716-446655440000
@@ -518,7 +587,7 @@ etcdctl put /video-service/secret '{
 
 **访问指标**:
 ```bash
-curl http://localhost:8080/metrics
+curl http://localhost:5501/metrics
 ```
 
 ### 日志系统
@@ -613,7 +682,7 @@ A: 系统支持最多3个设备同时登录。当用户在第4个设备登录时
 
 1. **查看响应的trace_id**：
    ```bash
-   curl -i http://localhost:8080/your-endpoint
+   curl -i http://localhost:5501/your-endpoint
    ```
    
 2. **在日志中搜索trace_id**：
@@ -623,12 +692,12 @@ A: 系统支持最多3个设备同时登录。当用户在第4个设备登录时
 
 3. **使用IP信息接口验证网络配置**：
    ```bash
-   curl http://localhost:8080/ip-info
+   curl http://localhost:5501/ip-info
    ```
 
 4. **检查Prometheus指标**：
    ```bash
-   curl http://localhost:8080/metrics
+   curl http://localhost:5501/metrics
    ```
 
 ### Q5: 注册时昵称和头像是如何生成的？

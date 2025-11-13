@@ -3,19 +3,40 @@
 
  Source Server         : 127.0.0.1
  Source Server Type    : MySQL
- Source Server Version : 80407 (8.4.7)
+ Source Server Version : 80405 (8.4.5)
  Source Host           : localhost:5506
  Source Schema         : video_service
 
  Target Server Type    : MySQL
- Target Server Version : 80407 (8.4.7)
+ Target Server Version : 80405 (8.4.5)
  File Encoding         : 65001
 
- Date: 11/11/2025 14:34:46
+ Date: 13/11/2025 10:02:27
 */
 
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
+
+-- ----------------------------
+-- Table structure for app_versions
+-- ----------------------------
+DROP TABLE IF EXISTS `app_versions`;
+CREATE TABLE `app_versions` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '版本ID',
+  `version_code` bigint NOT NULL COMMENT '版本号(数字)',
+  `version_name` varchar(50) NOT NULL COMMENT '版本名称(如1.0.0)',
+  `platform` varchar(20) NOT NULL COMMENT '平台(android/ios/windows/macos/linux)',
+  `download_url` text COMMENT '下载地址',
+  `update_content` text COMMENT '更新内容',
+  `is_force` tinyint(1) DEFAULT '0' COMMENT '是否强制更新(1:是 0:否)',
+  `file_size` bigint DEFAULT NULL COMMENT '文件大小(字节)',
+  `is_active` tinyint(1) DEFAULT '1' COMMENT '是否启用(1:是 0:否)',
+  `created_at` datetime(3) DEFAULT NULL COMMENT '创建时间',
+  `updated_at` datetime(3) DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_app_versions_platform_version` (`platform`,`version_code`),
+  KEY `idx_app_versions_platform` (`platform`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='应用版本表';
 
 -- ----------------------------
 -- Table structure for danmakus
@@ -85,6 +106,18 @@ CREATE TABLE `user_tokens` (
 ) ENGINE=InnoDB AUTO_INCREMENT=71 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='用户登录控制表';
 
 -- ----------------------------
+-- Table structure for user_watch_progresses
+-- ----------------------------
+DROP TABLE IF EXISTS `user_watch_progresses`;
+CREATE TABLE `user_watch_progresses` (
+  `user_id` bigint NOT NULL,
+  `episode_id` bigint NOT NULL,
+  `last_position_ms` bigint DEFAULT '0',
+  `last_played_at` datetime(3) DEFAULT NULL,
+  PRIMARY KEY (`user_id`,`episode_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- ----------------------------
 -- Table structure for users
 -- ----------------------------
 DROP TABLE IF EXISTS `users`;
@@ -112,7 +145,7 @@ DROP TABLE IF EXISTS `videos`;
 CREATE TABLE `videos` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '视频ID',
   `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '视频标题',
-  `type` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '类型(电影、电视剧、综艺、动漫、纪录片)',
+  `type` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '类型(电影、电视剧、短剧、综艺、动漫、纪录片)',
   `cover_url` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci COMMENT '封面图片URL',
   `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci COMMENT '视频描述',
   `year` bigint DEFAULT NULL COMMENT '上映年份',
@@ -121,30 +154,11 @@ CREATE TABLE `videos` (
   `director` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '导演',
   `actors` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '主演(多个用逗号分隔)',
   `tags` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '标签(多个用逗号分隔)',
+  `source` varchar(255) DEFAULT NULL COMMENT '视频来源三方',
+  `source_id` int DEFAULT NULL COMMENT '视频来源三方ID',
   `created_at` datetime(3) DEFAULT NULL COMMENT '创建时间',
   `updated_at` datetime(3) DEFAULT NULL COMMENT '更新时间',
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='视频表';
-
--- ----------------------------
--- Table structure for app_versions
--- ----------------------------
-DROP TABLE IF EXISTS `app_versions`;
-CREATE TABLE `app_versions` (
-  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '版本ID',
-  `version_code` bigint NOT NULL COMMENT '版本号(数字)',
-  `version_name` varchar(50) NOT NULL COMMENT '版本名称(如1.0.0)',
-  `platform` varchar(20) NOT NULL COMMENT '平台(android/ios/windows/macos/linux)',
-  `download_url` text COMMENT '下载地址',
-  `update_content` text COMMENT '更新内容',
-  `is_force` tinyint(1) DEFAULT '0' COMMENT '是否强制更新(1:是 0:否)',
-  `file_size` bigint DEFAULT NULL COMMENT '文件大小(字节)',
-  `is_active` tinyint(1) DEFAULT '1' COMMENT '是否启用(1:是 0:否)',
-  `created_at` datetime(3) DEFAULT NULL COMMENT '创建时间',
-  `updated_at` datetime(3) DEFAULT NULL COMMENT '更新时间',
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `idx_app_versions_platform_version` (`platform`,`version_code`),
-  KEY `idx_app_versions_platform` (`platform`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='应用版本表';
 
 SET FOREIGN_KEY_CHECKS = 1;
