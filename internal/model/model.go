@@ -30,7 +30,7 @@ type User struct {
 type UserToken struct {
 	ID        int64      `gorm:"primaryKey;autoIncrement" json:"id"`             // Token记录ID，主键，自增
 	UserID    int64      `gorm:"column:user_id;index;not null" json:"user_id"`   // 用户ID，索引，不能为空
-	Token     string     `gorm:"size:255;not null;uniqueIndex" json:"token"`     // JWT token字符串，唯一索引
+	Token     string     `gorm:"size:512;not null;uniqueIndex" json:"token"`     // JWT token字符串，唯一索引
 	Device    string     `gorm:"size:100" json:"device"`                         // 设备类型（如web、tv、mobile等）
 	IPAddress string     `gorm:"column:ip_address;size:45" json:"ip_address"`    // 登录IP地址（IPv6最长45字符）
 	ExpiresAt *time.Time `gorm:"column:expires_at" json:"expires_at"`            // Token过期时间
@@ -104,10 +104,10 @@ type UserFavorite struct {
 // UserWatchProgress 用户观看进度模型
 // 记录用户观看每个剧集的进度信息，使用复合主键（UserID + EpisodeID）
 type UserWatchProgress struct {
-	UserID         int64     `gorm:"column:user_id;primaryKey" json:"user_id"`                  // 用户ID，复合主键
-	EpisodeID      int64     `gorm:"column:episode_id;primaryKey" json:"episode_id"`            // 剧集ID，复合主键
-	LastPositionMs int64     `gorm:"column:last_position_ms;default:0" json:"last_position_ms"` // 最后观看位置（毫秒），默认0
-	LastPlayedAt   time.Time `gorm:"column:last_played_at" json:"last_played_at"`               // 最后播放时间
+	UserID         int64      `gorm:"column:user_id;primaryKey" json:"user_id"`                  // 用户ID，复合主键
+	EpisodeID      int64      `gorm:"column:episode_id;primaryKey" json:"episode_id"`            // 剧集ID，复合主键
+	LastPositionMs int64      `gorm:"column:last_position_ms;default:0" json:"last_position_ms"` // 最后观看位置（毫秒），默认0
+	LastPlayedAt   *time.Time `gorm:"column:last_played_at" json:"last_played_at"`               // 最后播放时间
 }
 
 // AppVersion 应用版本模型
