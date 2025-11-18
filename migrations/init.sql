@@ -150,7 +150,7 @@ CREATE TABLE `videos` (
   `type` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '类型(电影、电视剧、短剧、综艺、动漫、纪录片)',
   `cover_url` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci COMMENT '封面图片URL',
   `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci COMMENT '视频描述',
-  `year` int DEFAULT NULL COMMENT '上映年份',
+  `year` varchar(20) DEFAULT NULL COMMENT '上映日期',
   `rating` varchar(255) DEFAULT NULL COMMENT '评分',
   `country` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '制作国家/地区',
   `director` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '导演',
@@ -159,6 +159,9 @@ CREATE TABLE `videos` (
   `status` varchar(255) DEFAULT NULL COMMENT '状态(0:否，1:是)',
   `imdb_id` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT 'IMDb ID',
   `runtime` int DEFAULT NULL COMMENT '时长（分钟）',
+  `resolution` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '清晰度(如: 1080p, 720p, 4K)',
+  `episode_count` int DEFAULT NULL COMMENT '集数',
+  `is_completed` tinyint(1) DEFAULT '0' COMMENT '是否完结(1:是 0:否)',
   `created_at` datetime(3) DEFAULT NULL COMMENT '创建时间',
   `updated_at` datetime(3) DEFAULT NULL COMMENT '更新时间',
   PRIMARY KEY (`id`)

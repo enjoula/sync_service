@@ -1,0 +1,63 @@
+// repository 包提供数据访问层，封装数据库操作
+package repository
+
+import (
+	"video-service/internal/model"
+	"video-service/pkg/infrastructure/database"
+)
+
+// VideoRepository 视频仓库接口
+type VideoRepository interface {
+	// FindBySourceID 根据来源ID查找视频
+	FindBySourceID(sourceID int) (*model.Video, error)
+
+	// Create 创建视频记录
+	Create(video *model.Video) error
+
+	// Update 更新视频记录
+	Update(video *model.Video) error
+
+	// FindNeedDetailVideos 查找需要补充详情的视频（source_id不为空且year和country都为空）
+	FindNeedDetailVideos(limit int) ([]*model.Video, error)
+}
+
+// videoRepository 视频仓库实现
+type videoRepository struct{}
+
+// NewVideoRepository 创建视频仓库实例
+func NewVideoRepository() VideoRepository {
+	return &videoRepository{}
+}
+
+// FindBySourceID 根据来源ID查找视频
+func (r *videoRepository) FindBySourceID(sourceID int) (*model.Video, error) {
+	var video model.Video
+	err := database.DB.Where("source_id = ?", sourceID).First(&video).Error
+	if err != nil {
+		return nil, err
+	}
+	return &video, nil
+}
+
+// Create 创建视频记录
+func (r *videoRepository) Create(video *model.Video) error {
+	return database.DB.Create(video).Error
+}
+
+// Update 更新视频记录
+func (r *videoRepository) Update(video *model.Video) error {
+	return database.DB.Save(video).Error
+}
+
+// FindNeedDetailVideos 查找需要补充详情的视频
+// 条件：source_id不为空且country为空（country为空说明详情未获取）
+func (r *videoRepository) FindNeedDetailVideos(limit int) ([]*model.Video, error) {
+	var videos []*model.Video
+	err := database.DB.Where("source_id IS NOT NULL AND source_id != 0 AND (country IS NULL OR country = '')").
+		Limit(limit).
+		Find(&videos).Error
+	if err != nil {
+		return nil, err
+	}
+	return videos, nil
+}

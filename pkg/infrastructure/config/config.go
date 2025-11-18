@@ -5,10 +5,13 @@ package config
 import (
 	"context"
 	"encoding/json"
+	"fmt"
+	"os"
 	"time"
 
 	"github.com/spf13/viper"
 	clientv3 "go.etcd.io/etcd/client/v3"
+	"gopkg.in/yaml.v3"
 )
 
 // Cfg 是全局配置对象，使用Viper管理配置
@@ -83,6 +86,9 @@ func InitConfig() {
 		// 合并敏感配置到全局Secrets对象
 		mergeSecrets(&s)
 	}
+
+	// 生成 Prometheus 配置文件
+	GeneratePrometheusConfig()
 }
 
 // mergeSecrets 合并从Etcd获取的敏感配置到全局配置
@@ -95,5 +101,107 @@ func mergeSecrets(s *Secret) {
 	// 如果Etcd中配置了MySQL连接字符串，则覆盖配置文件中的值
 	if s.MySQLDsn != "" {
 		Cfg.Set("mysql.dsn", s.MySQLDsn)
+	}
+}
+
+// PrometheusConfig 定义 Prometheus 配置结构
+type PrometheusConfig struct {
+	Global        GlobalConfig   `yaml:"global"`
+	ScrapeConfigs []ScrapeConfig `yaml:"scrape_configs"`
+}
+
+// GlobalConfig 定义全局配置
+type GlobalConfig struct {
+	ScrapeInterval string `yaml:"scrape_interval"`
+}
+
+// ScrapeConfig 定义抓取配置
+type ScrapeConfig struct {
+	JobName       string         `yaml:"job_name"`
+	MetricsPath   string         `yaml:"metrics_path"`
+	StaticConfigs []StaticConfig `yaml:"static_configs"`
+}
+
+// StaticConfig 定义静态配置
+type StaticConfig struct {
+	Targets []string `yaml:"targets"`
+}
+
+// GeneratePrometheusConfig 从 config.yaml 读取 Prometheus 配置并生成 prometheus.yml 文件
+func GeneratePrometheusConfig() {
+	// 检查是否配置了 Prometheus
+	if !Cfg.IsSet("prometheus") {
+		return
+	}
+
+	// 构建 Prometheus 配置结构
+	promCfg := PrometheusConfig{}
+
+	// 读取全局配置
+	if Cfg.IsSet("prometheus.global.scrape_interval") {
+		promCfg.Global.ScrapeInterval = Cfg.GetString("prometheus.global.scrape_interval")
+	} else {
+		// 默认值
+		promCfg.Global.ScrapeInterval = "60s"
+	}
+
+	// 读取抓取配置 - 使用更可靠的方式读取嵌套配置
+	if Cfg.IsSet("prometheus.scrape_configs") {
+		// 尝试直接读取整个 scrape_configs 配置块
+		scrapeConfigsRaw := Cfg.Get("prometheus.scrape_configs")
+		if scrapeConfigsRaw != nil {
+			// 将 Viper 的配置转换为 JSON，再转换为目标结构
+			scrapeConfigsBytes, err := json.Marshal(scrapeConfigsRaw)
+			if err == nil {
+				if err := json.Unmarshal(scrapeConfigsBytes, &promCfg.ScrapeConfigs); err == nil && len(promCfg.ScrapeConfigs) > 0 {
+					// 成功解析配置
+				} else {
+					// 解析失败，使用默认配置
+					promCfg.ScrapeConfigs = nil
+				}
+			}
+		}
+	}
+
+	// 如果配置为空，使用默认配置
+	if len(promCfg.ScrapeConfigs) == 0 {
+		// 从配置中获取服务地址，用于构建 targets
+		serverAddr := Cfg.GetString("server.addr")
+		target := "video_service:5500"
+		if serverAddr != "" && serverAddr != ":5500" {
+			// 尝试从地址中提取端口
+			if len(serverAddr) > 0 && serverAddr[0] == ':' {
+				target = fmt.Sprintf("video_service%s", serverAddr)
+			}
+		}
+
+		promCfg.ScrapeConfigs = []ScrapeConfig{
+			{
+				JobName:     "video_service",
+				MetricsPath: "/metrics",
+				StaticConfigs: []StaticConfig{
+					{
+						Targets: []string{target},
+					},
+				},
+			},
+		}
+	}
+
+	// 将配置转换为 YAML
+	yamlData, err := yaml.Marshal(&promCfg)
+	if err != nil {
+		// 如果生成失败，静默处理（不影响主程序启动）
+		return
+	}
+
+	// 确保 configs 目录存在
+	_ = os.MkdirAll("configs", 0755)
+
+	// 写入 prometheus.yml 文件
+	prometheusConfigPath := "configs/prometheus.yml"
+	if err := os.WriteFile(prometheusConfigPath, yamlData, 0644); err != nil {
+		// 如果写入失败，静默处理（不影响主程序启动）
+		return
 	}
 }

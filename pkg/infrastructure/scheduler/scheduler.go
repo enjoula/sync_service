@@ -3,6 +3,8 @@
 package scheduler
 
 import (
+	"video-service/internal/service"
+
 	"github.com/robfig/cron/v3"
 	"go.uber.org/zap"
 )
@@ -13,20 +15,26 @@ var (
 )
 
 // InitCron 初始化定时任务调度器
-// 功能：创建cron调度器并启动
 func InitCron() {
 	// 创建cron调度器，使用秒级精度
-	cronScheduler = cron.New()
+	cronScheduler = cron.New(cron.WithSeconds())
 
-	// 可以在这里添加定时任务
-	// 示例：每天凌晨2点执行清理任务
-	// _, err := cronScheduler.AddFunc("0 0 2 * * *", func() {
-	//     zap.L().Info("执行定时清理任务")
-	//     // 执行清理逻辑
-	// })
-	// if err != nil {
-	//     zap.L().Error("添加定时任务失败", zap.Error(err))
-	// }
+	// 添加豆瓣电影同步任务：每8小时执行一次
+	// Cron表达式: 0 0 */8 * * * (每8小时的整点执行)
+	doubanSyncService := service.NewDoubanSyncService()
+	_, err := cronScheduler.AddFunc("0 0 */8 * * *", func() {
+		zap.L().Info("开始执行豆瓣电影同步任务")
+		if err := doubanSyncService.SyncMovies(); err != nil {
+			zap.L().Error("豆瓣电影同步任务执行失败", zap.Error(err))
+		} else {
+			zap.L().Info("豆瓣电影同步任务执行成功")
+		}
+	})
+	if err != nil {
+		zap.L().Error("添加豆瓣电影同步定时任务失败", zap.Error(err))
+	} else {
+		zap.L().Info("豆瓣电影同步定时任务已添加", zap.String("schedule", "每8小时执行一次"))
+	}
 
 	// 启动调度器
 	cronScheduler.Start()

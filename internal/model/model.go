@@ -41,24 +41,27 @@ type UserToken struct {
 // Video 视频模型
 // 存储视频/电影/电视剧的基本信息
 type Video struct {
-	ID          int64     `gorm:"primaryKey" json:"id"`                        // 视频ID，主键，使用雪花算法生成（非自增）
-	SourceID    int       `gorm:"column:source_id" json:"source_id"`           // 视频来源三方ID
-	Source      string    `gorm:"size:255" json:"source"`                      // 视频来源三方
-	Title       string    `gorm:"size:255" json:"title"`                       // 视频标题
-	Type        string    `gorm:"size:32" json:"type"`                         // 视频类型（电影、电视剧、短剧、综艺、动漫、纪录片）
-	CoverURL    string    `gorm:"column:cover_url;type:text" json:"cover_url"` // 封面图片URL
-	Description string    `gorm:"type:text" json:"description"`                // 视频描述，文本类型
-	Year        int       `json:"year"`                                        // 发布年份
-	Rating      string    `gorm:"size:255" json:"rating"`                      // 评分
-	Country     string    `gorm:"size:50" json:"country"`                      // 制作国家/地区
-	Director    string    `gorm:"size:255" json:"director"`                    // 导演
-	Actors      string    `gorm:"size:500" json:"actors"`                      // 主演（多个用逗号分隔）
-	Tags        string    `gorm:"size:255" json:"tags"`                        // 标签（多个用逗号分隔）
-	Status      string    `gorm:"size:255" json:"status"`                      // 状态（0:否，1:是）
-	IMDbID      string    `gorm:"column:imdb_id;size:20" json:"imdb_id"`       // IMDb ID
-	Runtime     int       `json:"runtime"`                                     // 时长（分钟）
-	CreatedAt   time.Time `gorm:"autoCreateTime" json:"created_at"`            // 创建时间，自动设置
-	UpdatedAt   time.Time `gorm:"autoUpdateTime" json:"updated_at"`            // 更新时间，自动更新
+	ID           int64     `gorm:"primaryKey" json:"id"`                              // 视频ID，主键，使用雪花算法生成（非自增）
+	SourceID     int       `gorm:"column:source_id" json:"source_id"`                 // 视频来源三方ID
+	Source       string    `gorm:"size:255" json:"source"`                            // 视频来源三方
+	Title        string    `gorm:"size:255" json:"title"`                             // 视频标题
+	Type         string    `gorm:"size:32" json:"type"`                               // 视频类型（电影、电视剧、短剧、综艺、动漫、纪录片）
+	CoverURL     string    `gorm:"column:cover_url;type:text" json:"cover_url"`       // 封面图片URL
+	Description  string    `gorm:"type:text" json:"description"`                      // 视频描述，文本类型
+	Year         string    `gorm:"size:20" json:"year"`                               // 发布年份
+	Rating       string    `gorm:"size:255" json:"rating"`                            // 评分
+	Country      string    `gorm:"size:50" json:"country"`                            // 制作国家/地区
+	Director     string    `gorm:"size:255" json:"director"`                          // 导演
+	Actors       string    `gorm:"size:500" json:"actors"`                            // 主演（多个用逗号分隔）
+	Tags         string    `gorm:"size:255" json:"tags"`                              // 标签（多个用逗号分隔）
+	Status       string    `gorm:"size:255" json:"status"`                            // 状态（0:否，1:是）
+	IMDbID       string    `gorm:"column:imdb_id;size:20" json:"imdb_id"`             // IMDb ID
+	Runtime      int       `json:"runtime"`                                           // 时长（分钟）
+	Resolution   string    `gorm:"size:20" json:"resolution"`                         // 清晰度（如：1080p、720p、4K）
+	EpisodeCount int       `gorm:"column:episode_count" json:"episode_count"`         // 集数
+	IsCompleted  bool      `gorm:"column:is_completed;default:0" json:"is_completed"` // 是否完结（1:是 0:否）
+	CreatedAt    time.Time `gorm:"autoCreateTime" json:"created_at"`                  // 创建时间，自动设置
+	UpdatedAt    time.Time `gorm:"autoUpdateTime" json:"updated_at"`                  // 更新时间，自动更新
 }
 
 // Episode 剧集/集数模型

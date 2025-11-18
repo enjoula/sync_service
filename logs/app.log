@@ -6293,3 +6293,417 @@
 {"level":"fatal","ts":"2025-11-13T13:45:15.959+0800","msg":"mysql connect error","error":"driver: bad connection"}
 {"level":"info","ts":"2025-11-13T13:47:04.515+0800","msg":"使用配置文件中的数据库连接","dsn":"root:***@tcp(mysql:3306)/video_service?charset=utf8mb4&parseTime=True&loc=Local"}
 {"level":"fatal","ts":"2025-11-13T13:47:04.515+0800","msg":"检测到Docker容器地址，本地运行需要设置环境变量 MYSQL_DSN","当前DSN":"root:***@tcp(mysql:3306)/video_service?charset=utf8mb4&parseTime=True&loc=Local","提示":"配置文件中的地址是Docker容器地址，本地运行无法连接","解决方法":"请设置环境变量 MYSQL_DSN 指向本地数据库","示例1":"export MYSQL_DSN='root:123456@tcp(127.0.0.1:5506)/video_service?charset=utf8mb4&parseTime=True&loc=Local'","示例2":"MYSQL_DSN='root:123456@tcp(127.0.0.1:5506)/video_service?charset=utf8mb4&parseTime=True&loc=Local' make sync-douban"}
+{"level":"fatal","ts":"2025-11-13T18:56:24.098+0800","msg":"mysql connect error","error":"driver: bad connection"}
+{"level":"fatal","ts":"2025-11-13T18:57:23.164+0800","msg":"mysql connect error","error":"driver: bad connection"}
+{"level":"fatal","ts":"2025-11-14T10:56:33.859+0800","msg":"mysql connect error","error":"dial tcp 172.20.0.2:5506: connect: connection refused"}
+{"level":"fatal","ts":"2025-11-14T10:56:36.119+0800","msg":"mysql connect error","error":"dial tcp 172.20.0.2:5506: connect: connection refused"}
+{"level":"fatal","ts":"2025-11-14T10:56:38.470+0800","msg":"mysql connect error","error":"dial tcp 172.20.0.2:5506: connect: connection refused"}
+{"level":"fatal","ts":"2025-11-14T10:56:40.983+0800","msg":"mysql connect error","error":"dial tcp 172.20.0.2:5506: connect: connection refused"}
+{"level":"fatal","ts":"2025-11-14T10:56:43.925+0800","msg":"mysql connect error","error":"dial tcp 172.20.0.2:5506: connect: connection refused"}
+{"level":"fatal","ts":"2025-11-14T10:56:47.651+0800","msg":"mysql connect error","error":"dial tcp 172.20.0.2:5506: connect: connection refused"}
+{"level":"fatal","ts":"2025-11-14T10:56:52.978+0800","msg":"mysql connect error","error":"dial tcp 172.20.0.2:5506: connect: connection refused"}
+{"level":"fatal","ts":"2025-11-14T10:57:01.487+0800","msg":"mysql connect error","error":"dial tcp 172.20.0.2:5506: connect: connection refused"}
+{"level":"fatal","ts":"2025-11-14T10:57:16.425+0800","msg":"mysql connect error","error":"dial tcp 172.20.0.2:5506: connect: connection refused"}
+{"level":"fatal","ts":"2025-11-14T10:57:44.156+0800","msg":"mysql connect error","error":"dial tcp 172.20.0.2:5506: connect: connection refused"}
+{"level":"fatal","ts":"2025-11-14T10:58:37.511+0800","msg":"mysql connect error","error":"dial tcp 172.20.0.2:5506: connect: connection refused"}
+{"level":"fatal","ts":"2025-11-14T10:59:39.663+0800","msg":"mysql connect error","error":"dial tcp 172.20.0.2:5506: connect: connection refused"}
+{"level":"fatal","ts":"2025-11-14T11:00:41.815+0800","msg":"mysql connect error","error":"dial tcp 172.20.0.2:5506: connect: connection refused"}
+{"level":"fatal","ts":"2025-11-14T11:01:31.257+0800","msg":"mysql connect error","error":"dial tcp 172.20.0.3:5506: connect: connection refused"}
+{"level":"fatal","ts":"2025-11-14T11:01:33.483+0800","msg":"mysql connect error","error":"dial tcp 172.20.0.3:5506: connect: connection refused"}
+{"level":"fatal","ts":"2025-11-14T11:01:35.808+0800","msg":"mysql connect error","error":"dial tcp 172.20.0.3:5506: connect: connection refused"}
+{"level":"fatal","ts":"2025-11-14T11:05:28.252+0800","msg":"mysql connect error","error":"dial tcp 172.19.0.5:5506: connect: connection refused"}
+{"level":"fatal","ts":"2025-11-14T11:05:30.455+0800","msg":"mysql connect error","error":"dial tcp 172.19.0.5:5506: connect: connection refused"}
+{"level":"fatal","ts":"2025-11-14T11:05:32.773+0800","msg":"mysql connect error","error":"dial tcp 172.19.0.5:5506: connect: connection refused"}
+{"level":"fatal","ts":"2025-11-14T11:05:35.302+0800","msg":"mysql connect error","error":"dial tcp 172.19.0.5:5506: connect: connection refused"}
+{"level":"fatal","ts":"2025-11-14T11:05:38.259+0800","msg":"mysql connect error","error":"dial tcp 172.19.0.5:5506: connect: connection refused"}
+{"level":"fatal","ts":"2025-11-14T11:05:42.001+0800","msg":"mysql connect error","error":"dial tcp 172.19.0.5:5506: connect: connection refused"}
+{"level":"fatal","ts":"2025-11-14T11:05:47.333+0800","msg":"mysql connect error","error":"dial tcp 172.19.0.5:5506: connect: connection refused"}
+{"level":"fatal","ts":"2025-11-14T11:05:55.889+0800","msg":"mysql connect error","error":"dial tcp 172.19.0.5:5506: connect: connection refused"}
+{"level":"fatal","ts":"2025-11-14T11:06:10.821+0800","msg":"mysql connect error","error":"dial tcp 172.19.0.5:5506: connect: connection refused"}
+{"level":"fatal","ts":"2025-11-14T11:06:38.563+0800","msg":"mysql connect error","error":"dial tcp 172.19.0.5:5506: connect: connection refused"}
+{"level":"fatal","ts":"2025-11-14T11:07:31.996+0800","msg":"mysql connect error","error":"dial tcp 172.19.0.5:5506: connect: connection refused"}
+{"level":"info","ts":"2025-11-14T11:09:05.222+0800","msg":"mysql connected"}
+{"level":"info","ts":"2025-11-14T11:09:05.284+0800","msg":"auto migrate applied"}
+{"level":"info","ts":"2025-11-14T11:09:05.285+0800","msg":"redis connected"}
+{"level":"info","ts":"2025-11-14T11:09:05.285+0800","msg":"定时任务调度器已启动"}
+{"level":"info","ts":"2025-11-14T11:09:05.285+0800","msg":"server start","addr":":5501"}
+{"level":"fatal","ts":"2025-11-14T11:10:06.994+0800","msg":"mysql connect error","error":"dial tcp 172.19.0.6:3306: connect: connection refused"}
+{"level":"info","ts":"2025-11-14T11:10:07.196+0800","msg":"mysql connected"}
+{"level":"info","ts":"2025-11-14T11:10:07.226+0800","msg":"auto migrate applied"}
+{"level":"info","ts":"2025-11-14T11:10:07.228+0800","msg":"redis connected"}
+{"level":"info","ts":"2025-11-14T11:10:07.228+0800","msg":"定时任务调度器已启动"}
+{"level":"info","ts":"2025-11-14T11:10:07.228+0800","msg":"server start","addr":":5501"}
+{"level":"info","ts":"2025-11-14T11:17:03.312+0800","msg":"mysql connected"}
+{"level":"info","ts":"2025-11-14T11:17:03.343+0800","msg":"auto migrate applied"}
+{"level":"info","ts":"2025-11-14T11:17:03.345+0800","msg":"redis connected"}
+{"level":"info","ts":"2025-11-14T11:17:03.345+0800","msg":"定时任务调度器已启动"}
+{"level":"info","ts":"2025-11-14T11:17:03.346+0800","msg":"server start","addr":":5501"}
+{"level":"fatal","ts":"2025-11-14T11:20:19.540+0800","msg":"mysql connect error","error":"dial tcp 172.19.0.4:3306: connect: connection refused"}
+{"level":"info","ts":"2025-11-14T11:20:19.754+0800","msg":"mysql connected"}
+{"level":"info","ts":"2025-11-14T11:20:19.786+0800","msg":"auto migrate applied"}
+{"level":"info","ts":"2025-11-14T11:20:19.789+0800","msg":"redis connected"}
+{"level":"info","ts":"2025-11-14T11:20:19.789+0800","msg":"定时任务调度器已启动"}
+{"level":"info","ts":"2025-11-14T11:20:19.791+0800","msg":"server start","addr":":5501"}
+{"level":"fatal","ts":"2025-11-18T23:48:28.731+0800","msg":"mysql connect error","error":"driver: bad connection"}
+{"level":"fatal","ts":"2025-11-18T23:49:33.039+0800","msg":"mysql connect error","error":"driver: bad connection"}
+{"level":"info","ts":"2025-11-18T23:51:41.833+0800","msg":"mysql connected"}
+{"level":"error","ts":"2025-11-18T23:51:42.005+0800","msg":"auto migrate failed","error":"Error 1265 (01000): Data truncated for column 'year' at row 1"}
+{"level":"info","ts":"2025-11-18T23:51:42.008+0800","msg":"redis connected"}
+{"level":"error","ts":"2025-11-18T23:51:42.008+0800","msg":"添加豆瓣电影同步定时任务失败","error":"expected exactly 5 fields, found 6: [0 0 */8 * * *]"}
+{"level":"info","ts":"2025-11-18T23:51:42.008+0800","msg":"定时任务调度器已启动"}
+{"level":"info","ts":"2025-11-18T23:51:42.009+0800","msg":"server start","addr":":5500"}
+{"level":"info","ts":"2025-11-18T23:51:58.247+0800","msg":"HTTP Request","status":200,"method":"GET","path":"/ping","query":"","ip":"::1","latency":0.000111583,"request_size":0,"response_size":98,"user_agent":"curl/8.7.1","trace_id":"5f6daa93-94fa-419d-9e99-4625babe0ad9"}
+{"level":"info","ts":"2025-11-18T23:52:32.212+0800","msg":"mysql connected"}
+{"level":"error","ts":"2025-11-18T23:52:32.257+0800","msg":"auto migrate failed","error":"Error 1265 (01000): Data truncated for column 'year' at row 1"}
+{"level":"info","ts":"2025-11-18T23:52:32.259+0800","msg":"redis connected"}
+{"level":"info","ts":"2025-11-18T23:52:32.259+0800","msg":"豆瓣电影同步定时任务已添加","schedule":"每8小时执行一次"}
+{"level":"info","ts":"2025-11-18T23:52:32.259+0800","msg":"定时任务调度器已启动"}
+{"level":"info","ts":"2025-11-18T23:52:32.259+0800","msg":"server start","addr":":5500"}
+{"level":"info","ts":"2025-11-18T23:52:53.872+0800","msg":"手动触发豆瓣电影同步","ip":"::1"}
+{"level":"info","ts":"2025-11-18T23:52:53.872+0800","msg":"开始同步豆瓣电影数据"}
+{"level":"info","ts":"2025-11-18T23:52:53.872+0800","msg":"HTTP Request","status":200,"method":"POST","path":"/api/sync/douban/movies","query":"","ip":"::1","latency":0.00012925,"request_size":0,"response_size":127,"user_agent":"curl/8.7.1","trace_id":"03576180-2e1b-4f31-828b-fd4c7f8f31f5"}
+{"level":"info","ts":"2025-11-18T23:52:54.330+0800","msg":"获取到电影列表","count":40}
+{"level":"info","ts":"2025-11-18T23:52:54.341+0800","msg":"保存新电影","title":"三滴血","source_id":30286126}
+{"level":"error","ts":"2025-11-18T23:52:54.342+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-25\") to a int: invalid syntax"}
+{"level":"info","ts":"2025-11-18T23:52:54.349+0800","msg":"保存新电影","title":"血色牢笼","source_id":37327029}
+{"level":"error","ts":"2025-11-18T23:52:54.351+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2024-05-15\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-18T23:52:54.352+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-23\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-18T23:52:54.353+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-17\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-18T23:52:54.354+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-17\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-18T23:52:54.355+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-17\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-18T23:52:54.355+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-16\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-18T23:52:54.356+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-10\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-18T23:52:54.357+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-08\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-18T23:52:54.358+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-17\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-18T23:52:54.360+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-04\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-18T23:52:54.361+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-03\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-18T23:52:54.362+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-01\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-18T23:52:54.363+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-01\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-18T23:52:54.364+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-01\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-18T23:52:54.365+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-01\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-18T23:52:54.365+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-30\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-18T23:52:54.366+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-30\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-18T23:52:54.367+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-17\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-18T23:52:54.367+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-23\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-18T23:52:54.368+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-19\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-18T23:52:54.369+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-18\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-18T23:52:54.369+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-13\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-18T23:52:54.370+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-12\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-18T23:52:54.371+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-12\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-18T23:52:54.371+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-12\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-18T23:52:54.372+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-12\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-18T23:52:54.372+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-10\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-18T23:52:54.373+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-09\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-18T23:52:54.374+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-08\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-18T23:52:54.374+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-07\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-18T23:52:54.376+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-07\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-18T23:52:54.377+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-06\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-18T23:52:54.378+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-05\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-18T23:52:54.378+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-05\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-18T23:52:54.379+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-05\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-18T23:52:54.379+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-05\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-18T23:52:54.380+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-05\") to a int: invalid syntax"}
+{"level":"info","ts":"2025-11-18T23:52:54.380+0800","msg":"电影列表同步完成","saved_count":2}
+{"level":"info","ts":"2025-11-18T23:52:54.382+0800","msg":"找到需要更新详情的电影","count":2}
+{"level":"error","ts":"2025-11-18T23:52:55.662+0800","msg":"更新电影详情失败","error":"更新数据库失败: Error 1406 (22001): Data too long for column 'imdb_id' at row 1","title":"三滴血"}
+{"level":"error","ts":"2025-11-18T23:52:56.754+0800","msg":"更新电影详情失败","error":"更新数据库失败: Error 1406 (22001): Data too long for column 'imdb_id' at row 1","title":"血色牢笼"}
+{"level":"info","ts":"2025-11-18T23:52:56.754+0800","msg":"豆瓣电影数据同步完成"}
+{"level":"info","ts":"2025-11-18T23:52:56.754+0800","msg":"豆瓣电影同步成功"}
+{"level":"info","ts":"2025-11-19T00:00:00.004+0800","msg":"开始执行豆瓣电影同步任务"}
+{"level":"info","ts":"2025-11-19T00:00:00.005+0800","msg":"开始同步豆瓣电影数据"}
+{"level":"info","ts":"2025-11-19T00:00:00.996+0800","msg":"获取到电影列表","count":40}
+{"level":"error","ts":"2025-11-19T00:00:01.003+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.004+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-25\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.006+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.007+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2024-05-15\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.008+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-23\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.009+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-17\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.010+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-17\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.011+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-17\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.012+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-16\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.012+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-10\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.013+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-08\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.014+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-17\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.015+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-04\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.016+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-03\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.017+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-01\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.017+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-01\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.018+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-01\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.019+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-01\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.019+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-30\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.020+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-30\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.020+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-17\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.021+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-23\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.022+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-19\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.023+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-18\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.023+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-13\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.024+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-12\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.024+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-12\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.025+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-12\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.026+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-12\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.027+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-10\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.027+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-09\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.028+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-08\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.028+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-07\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.029+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-07\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.030+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-06\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.030+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-05\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.031+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-05\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.032+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-05\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.033+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-05\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.033+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-05\") to a int: invalid syntax"}
+{"level":"info","ts":"2025-11-19T00:00:01.033+0800","msg":"电影列表同步完成","saved_count":0}
+{"level":"error","ts":"2025-11-19T00:00:01.036+0800","msg":"更新电影详情失败","error":"查询需要更新的视频失败: sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"\") to a int: invalid syntax; sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:00:01.036+0800","msg":"豆瓣电影同步任务执行失败","error":"查询需要更新的视频失败: sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"\") to a int: invalid syntax; sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"\") to a int: invalid syntax"}
+{"level":"info","ts":"2025-11-19T00:00:43.814+0800","msg":"mysql connected"}
+{"level":"error","ts":"2025-11-19T00:00:43.858+0800","msg":"auto migrate failed","error":"Error 1265 (01000): Data truncated for column 'year' at row 1"}
+{"level":"info","ts":"2025-11-19T00:00:43.859+0800","msg":"redis connected"}
+{"level":"info","ts":"2025-11-19T00:00:43.859+0800","msg":"豆瓣电影同步定时任务已添加","schedule":"每8小时执行一次"}
+{"level":"info","ts":"2025-11-19T00:00:43.859+0800","msg":"定时任务调度器已启动"}
+{"level":"info","ts":"2025-11-19T00:00:43.860+0800","msg":"server start","addr":":5500"}
+{"level":"info","ts":"2025-11-19T00:00:46.410+0800","msg":"HTTP Request","status":200,"method":"GET","path":"/ping","query":"","ip":"::1","latency":0.000139542,"request_size":0,"response_size":98,"user_agent":"curl/8.7.1","trace_id":"78acda4e-17c2-4181-bb2a-a693a443f410"}
+{"level":"info","ts":"2025-11-19T00:01:05.306+0800","msg":"手动触发豆瓣电影同步","ip":"::1"}
+{"level":"info","ts":"2025-11-19T00:01:05.306+0800","msg":"HTTP Request","status":200,"method":"POST","path":"/api/sync/douban/movies","query":"","ip":"::1","latency":0.000171625,"request_size":0,"response_size":127,"user_agent":"curl/8.7.1","trace_id":"412401ec-0792-421c-a235-e67b20797de0"}
+{"level":"info","ts":"2025-11-19T00:01:05.306+0800","msg":"开始同步豆瓣电影数据"}
+{"level":"info","ts":"2025-11-19T00:01:05.869+0800","msg":"获取到电影列表","count":60}
+{"level":"error","ts":"2025-11-19T00:01:05.874+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.876+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-25\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.878+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.880+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2024-05-15\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.881+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-23\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.882+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-17\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.883+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-17\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.884+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-17\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.886+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-16\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.887+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-10\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.888+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-08\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.889+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-17\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.890+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-04\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.891+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-03\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.892+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-01\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.893+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-01\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.894+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-01\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.894+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-01\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.895+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-30\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.896+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-30\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.897+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-17\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.898+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-23\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.898+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-19\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.900+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-18\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.900+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-13\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.901+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-12\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.902+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-12\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.902+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-12\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.903+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-12\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.904+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-10\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.904+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-09\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.905+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-08\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.906+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-07\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.906+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-07\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.907+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-06\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.908+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-05\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.908+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-05\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.909+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-05\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.910+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-05\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.910+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-05\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.911+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-04\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.912+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-04\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.912+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-03\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.913+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-02\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.913+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-02\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.914+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-01\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.915+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-08-30\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.916+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-08-29\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.917+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-08-29\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.917+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-08-29\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.918+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-08-29\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.918+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-08-28\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.919+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-24\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.920+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-08-27\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.920+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-08-21\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.921+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-08-20\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.921+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-08-16\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.922+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-08-15\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.923+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-08-15\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.923+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-08-14\") to a int: invalid syntax"}
+{"level":"info","ts":"2025-11-19T00:01:05.923+0800","msg":"电影列表同步完成","saved_count":0}
+{"level":"error","ts":"2025-11-19T00:01:05.925+0800","msg":"更新电影详情失败","error":"查询需要更新的视频失败: sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"\") to a int: invalid syntax; sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:05.925+0800","msg":"豆瓣电影同步失败","error":"查询需要更新的视频失败: sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"\") to a int: invalid syntax; sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"\") to a int: invalid syntax"}
+{"level":"info","ts":"2025-11-19T00:01:56.599+0800","msg":"mysql connected"}
+{"level":"error","ts":"2025-11-19T00:01:56.643+0800","msg":"auto migrate failed","error":"Error 1265 (01000): Data truncated for column 'year' at row 1"}
+{"level":"info","ts":"2025-11-19T00:01:56.645+0800","msg":"redis connected"}
+{"level":"info","ts":"2025-11-19T00:01:56.645+0800","msg":"豆瓣电影同步定时任务已添加","schedule":"每8小时执行一次"}
+{"level":"info","ts":"2025-11-19T00:01:56.645+0800","msg":"定时任务调度器已启动"}
+{"level":"info","ts":"2025-11-19T00:01:56.645+0800","msg":"server start","addr":":5500"}
+{"level":"info","ts":"2025-11-19T00:01:59.194+0800","msg":"手动触发豆瓣电影同步","ip":"::1"}
+{"level":"info","ts":"2025-11-19T00:01:59.194+0800","msg":"开始同步豆瓣电影数据"}
+{"level":"info","ts":"2025-11-19T00:01:59.195+0800","msg":"HTTP Request","status":200,"method":"POST","path":"/api/sync/douban/movies","query":"","ip":"::1","latency":0.000641959,"request_size":0,"response_size":127,"user_agent":"curl/8.7.1","trace_id":"5e06ab90-0d02-463d-9c8f-70df592307fb"}
+{"level":"info","ts":"2025-11-19T00:01:59.813+0800","msg":"获取到电影列表","count":60}
+{"level":"error","ts":"2025-11-19T00:01:59.817+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.818+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-25\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.820+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.821+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2024-05-15\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.822+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-23\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.823+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-17\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.823+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-17\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.824+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-17\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.825+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-16\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.826+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-10\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.827+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-08\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.828+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-17\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.828+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-04\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.829+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-03\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.830+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-01\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.830+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-01\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.831+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-01\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.831+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-01\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.832+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-30\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.833+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-30\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.833+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-17\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.834+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-23\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.834+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-19\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.835+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-18\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.835+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-13\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.836+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-12\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.837+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-12\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.837+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-12\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.838+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-12\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.838+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-10\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.839+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-09\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.839+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-08\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.840+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-07\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.841+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-07\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.841+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-06\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.842+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-05\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.842+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-05\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.843+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-05\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.843+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-05\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.844+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-05\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.844+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-04\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.845+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-04\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.846+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-03\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.846+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-02\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.847+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-02\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.847+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-01\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.848+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-08-30\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.849+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-08-29\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.849+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-08-29\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.850+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-08-29\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.850+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-08-29\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.851+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-08-28\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.851+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-24\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.852+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-08-27\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.853+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-08-21\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.853+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-08-20\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.854+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-08-16\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.854+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-08-15\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.855+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-08-15\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.855+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-08-14\") to a int: invalid syntax"}
+{"level":"info","ts":"2025-11-19T00:01:59.855+0800","msg":"电影列表同步完成","saved_count":0}
+{"level":"error","ts":"2025-11-19T00:01:59.857+0800","msg":"更新电影详情失败","error":"查询需要更新的视频失败: sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"\") to a int: invalid syntax; sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:01:59.857+0800","msg":"豆瓣电影同步失败","error":"查询需要更新的视频失败: sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"\") to a int: invalid syntax; sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"\") to a int: invalid syntax"}
+{"level":"info","ts":"2025-11-19T00:02:45.634+0800","msg":"mysql connected"}
+{"level":"error","ts":"2025-11-19T00:02:45.677+0800","msg":"auto migrate failed","error":"Error 1265 (01000): Data truncated for column 'year' at row 1"}
+{"level":"info","ts":"2025-11-19T00:02:45.679+0800","msg":"redis connected"}
+{"level":"info","ts":"2025-11-19T00:02:45.679+0800","msg":"豆瓣电影同步定时任务已添加","schedule":"每8小时执行一次"}
+{"level":"info","ts":"2025-11-19T00:02:45.679+0800","msg":"定时任务调度器已启动"}
+{"level":"info","ts":"2025-11-19T00:02:45.679+0800","msg":"server start","addr":":5500"}
+{"level":"info","ts":"2025-11-19T00:02:47.957+0800","msg":"手动触发豆瓣电影同步","ip":"::1"}
+{"level":"info","ts":"2025-11-19T00:02:47.957+0800","msg":"开始同步豆瓣电影数据"}
+{"level":"info","ts":"2025-11-19T00:02:47.957+0800","msg":"HTTP Request","status":200,"method":"POST","path":"/api/sync/douban/movies","query":"","ip":"::1","latency":0.000228416,"request_size":0,"response_size":127,"user_agent":"curl/8.7.1","trace_id":"d6bd5419-bba5-46c9-b8f6-196b68cb61a3"}
+{"level":"info","ts":"2025-11-19T00:02:48.552+0800","msg":"获取到电影列表","count":60}
+{"level":"error","ts":"2025-11-19T00:02:48.556+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.557+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-25\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.559+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.561+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2024-05-15\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.562+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-23\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.563+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-17\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.563+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-17\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.564+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-17\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.565+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-16\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.566+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-10\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.567+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-08\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.568+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-17\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.569+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-04\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.570+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-03\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.570+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-01\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.571+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-01\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.572+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-01\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.572+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-01\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.573+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-30\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.574+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-30\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.574+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-17\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.575+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-23\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.576+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-19\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.576+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-18\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.577+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-13\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.578+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-12\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.578+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-12\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.579+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-12\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.579+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-12\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.580+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-10\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.581+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-09\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.581+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-08\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.582+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-07\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.583+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-07\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.584+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-06\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.584+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-05\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.585+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-05\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.586+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-05\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.586+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-05\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.587+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-05\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.588+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-04\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.588+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-04\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.589+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-03\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.590+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-02\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.590+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-02\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.591+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-09-01\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.591+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-08-30\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.592+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-08-29\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.592+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-08-29\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.593+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-08-29\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.593+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-08-29\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.594+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-08-28\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.594+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-10-24\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.595+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-08-27\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.596+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-08-21\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.596+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-08-20\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.597+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-08-16\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.597+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-08-15\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.598+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-08-15\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.598+0800","msg":"查询数据库失败","error":"sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"2025-08-14\") to a int: invalid syntax"}
+{"level":"info","ts":"2025-11-19T00:02:48.598+0800","msg":"电影列表同步完成","saved_count":0}
+{"level":"error","ts":"2025-11-19T00:02:48.599+0800","msg":"更新电影详情失败","error":"查询需要更新的视频失败: sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"\") to a int: invalid syntax; sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"\") to a int: invalid syntax"}
+{"level":"error","ts":"2025-11-19T00:02:48.599+0800","msg":"豆瓣电影同步失败","error":"查询需要更新的视频失败: sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"\") to a int: invalid syntax; sql: Scan error on column index 7, name \"year\": converting driver.Value type []uint8 (\"\") to a int: invalid syntax"}
+{"level":"info","ts":"2025-11-19T00:05:27.830+0800","msg":"mysql connected"}
+{"level":"info","ts":"2025-11-19T00:05:28.106+0800","msg":"auto migrate applied"}
+{"level":"info","ts":"2025-11-19T00:05:28.107+0800","msg":"redis connected"}
+{"level":"info","ts":"2025-11-19T00:05:28.107+0800","msg":"豆瓣电影同步定时任务已添加","schedule":"每8小时执行一次"}
+{"level":"info","ts":"2025-11-19T00:05:28.107+0800","msg":"定时任务调度器已启动"}
+{"level":"info","ts":"2025-11-19T00:05:28.108+0800","msg":"server start","addr":":5500"}
+{"level":"info","ts":"2025-11-19T00:05:30.424+0800","msg":"手动触发豆瓣电影同步","ip":"::1"}
+{"level":"info","ts":"2025-11-19T00:05:30.424+0800","msg":"开始同步豆瓣电影数据"}
+{"level":"info","ts":"2025-11-19T00:05:30.424+0800","msg":"HTTP Request","status":200,"method":"POST","path":"/api/sync/douban/movies","query":"","ip":"::1","latency":0.000153625,"request_size":0,"response_size":127,"user_agent":"curl/8.7.1","trace_id":"e422b41e-5a8d-4717-87e6-f9865b1f805b"}
+{"level":"info","ts":"2025-11-19T00:05:31.285+0800","msg":"获取到电影列表","count":60}
+{"level":"info","ts":"2025-11-19T00:05:31.332+0800","msg":"电影列表同步完成","saved_count":0}
+{"level":"info","ts":"2025-11-19T00:05:31.333+0800","msg":"找到需要更新详情的电影","count":2}
+{"level":"info","ts":"2025-11-19T00:05:32.499+0800","msg":"更新电影详情成功","title":"三滴血","source_id":30286126}
+{"level":"info","ts":"2025-11-19T00:05:35.626+0800","msg":"更新电影详情成功","title":"血色牢笼","source_id":37327029}
+{"level":"info","ts":"2025-11-19T00:05:37.627+0800","msg":"豆瓣电影数据同步完成"}
+{"level":"info","ts":"2025-11-19T00:05:37.627+0800","msg":"豆瓣电影同步成功"}
+{"level":"info","ts":"2025-11-19T00:08:11.547+0800","msg":"mysql connected"}
+{"level":"info","ts":"2025-11-19T00:08:11.602+0800","msg":"auto migrate applied"}
+{"level":"info","ts":"2025-11-19T00:08:11.604+0800","msg":"redis connected"}
+{"level":"info","ts":"2025-11-19T00:08:11.604+0800","msg":"豆瓣电影同步定时任务已添加","schedule":"每8小时执行一次"}
+{"level":"info","ts":"2025-11-19T00:08:11.604+0800","msg":"定时任务调度器已启动"}
+{"level":"info","ts":"2025-11-19T00:08:11.604+0800","msg":"server start","addr":":5500"}
+{"level":"info","ts":"2025-11-19T00:08:14.128+0800","msg":"手动触发豆瓣电影同步","ip":"::1"}
+{"level":"info","ts":"2025-11-19T00:08:14.128+0800","msg":"开始同步豆瓣电影数据"}
+{"level":"info","ts":"2025-11-19T00:08:14.128+0800","msg":"HTTP Request","status":200,"method":"POST","path":"/api/sync/douban/movies","query":"","ip":"::1","latency":0.000163542,"request_size":0,"response_size":127,"user_agent":"curl/8.7.1","trace_id":"1facb472-f66c-483c-a637-c11dd93f99b8"}
+{"level":"info","ts":"2025-11-19T00:08:15.081+0800","msg":"获取到电影列表","count":60}
+{"level":"info","ts":"2025-11-19T00:08:15.133+0800","msg":"电影列表同步完成","saved_count":0}
+{"level":"info","ts":"2025-11-19T00:08:15.134+0800","msg":"找到需要更新详情的电影","count":2}
+{"level":"info","ts":"2025-11-19T00:08:16.347+0800","msg":"更新电影详情成功","title":"三滴血","source_id":30286126}
+{"level":"info","ts":"2025-11-19T00:08:19.529+0800","msg":"更新电影详情成功","title":"血色牢笼","source_id":37327029}
+{"level":"info","ts":"2025-11-19T00:08:21.531+0800","msg":"豆瓣电影数据同步完成"}
+{"level":"info","ts":"2025-11-19T00:08:21.531+0800","msg":"豆瓣电影同步成功"}

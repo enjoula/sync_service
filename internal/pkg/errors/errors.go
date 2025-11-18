@@ -9,6 +9,7 @@ const (
 	CodeSuccess      = 0   // 成功
 	CodeBadRequest   = 400 // 请求参数错误
 	CodeUnauthorized = 401 // 未授权（需要登录或token无效）
+	CodeForbidden    = 403 // 禁止访问
 	CodeConflict     = 409 // 资源冲突（如用户已存在）
 	CodeInternalErr  = 500 // 服务器内部错误
 )

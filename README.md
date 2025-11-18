@@ -1,6 +1,6 @@
 # 🧩 Video Service — 启动与开发说明
 
-一个基于 Golang + Gin + GORM + Redis + etcd + Prometheus 的完整在线视频服务后端框架，支持 JWT 登录鉴权、TraceID 链路追踪、日志系统、自动迁移与定时任务。
+一个基于 Golang + Gin + GORM + Redis + etcd + Prometheus 的完整后端服务框架，支持 JWT 认证、TraceID 链路追踪、日志系统、自动迁移与定时任务。
 
 docker-compose -f deployments/docker/docker-compose.yml down
 docker-compose -f deployments/docker/docker-compose.yml build --no-cache
@@ -17,7 +17,7 @@ cd video_service
 可在 configs/config.yaml 中修改服务配置（如 MySQL、Redis、etcd 地址）：
 ```yaml
 server:
-  addr: ":5501"
+  addr: ":5500"
 
 etcd:
   addr: "http://etcd:2379"
@@ -55,39 +55,20 @@ etcdctl put /video-service/secret '{
 🔄 etcd 支持实时热加载，无需重启应用。
 
 5️⃣ 测试接口
-1、 注册用户
 
-curl -X POST http://localhost:5501/user/register \
-  -H "Content-Type: application/json" \
-  -d '{"username":"alice","password":"pwd","device":"PC-MacBookPro"}'
+健康检查：
+```bash
+curl http://localhost:5500/ping
+```
 
-2、登录
-curl -X POST http://localhost:5501/user/login \
-  -H "Content-Type: application/json" \
-  -d '{"username":"alice","password":"pwd","device":"PC-MacBookPro"}'
-
-3、获取用户信息
-curl http://localhost:5501/user/me \
-  -H "Authorization: Bearer <token>"
-
-
-
-返回示例(返回头部中也包含 X-Trace-Id。)：
-```json
-{
-  "code": 0,
-  "msg": "login success",
-  "data": {
-    "token": "xxxx.yyyy.zzzz"
-  },
-  "trace_id": "2a3c1b7f..."
-}
-
+监控指标：
+```bash
+curl http://localhost:5500/metrics
 ```
 
 6️⃣ 访问监控
 
-- 后端 API: http://localhost:5501
+- 后端 API: http://localhost:5500
 - Prometheus: http://localhost:5590
 
 

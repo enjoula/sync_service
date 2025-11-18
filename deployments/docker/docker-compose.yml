@@ -1,12 +1,12 @@
 services:
-  video_service:
+  sync_service:
     build:
-      context: ../..
+      context: ~/Docker/container/syncService
       dockerfile: deployments/docker/Dockerfile
-    image: video-service:latest         # ✅ 自定义镜像名称
-    container_name: VideoService
+    image: sync-service:latest         # ✅ 自定义镜像名称
+    container_name: SyncService
     ports:
-      - "5501:5501"
+      - "5500:5500"
     environment:
       - TZ=Asia/Shanghai
     depends_on:
@@ -17,8 +17,8 @@ services:
       etcd:
         condition: service_started
     volumes:
-      - ../../configs:/root/configs
-      - ../../logs:/root/logs
+      - ~/Docker/container/syncService/configs:/root/configs
+      - ~/Docker/container/syncService/logs:/root/logs
     restart: on-failure
     networks:
       - video_network
@@ -34,8 +34,8 @@ services:
       - "5506:3306"
     volumes:
       # 使用命名卷代替主机路径，更便于跨机器部署
-      - mysql-data:/var/lib/mysql
-      - mysql-conf:/etc/mysql/conf.d
+      - ~/Docker/container/Mysql/data:/var/lib/mysql
+      - ~/Docker/container/Mysql/conf:/etc/mysql/conf.d
     restart: always
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p123456"]
@@ -56,8 +56,8 @@ services:
       - "5509:6379"
     volumes:
       # 使用命名卷代替主机路径
-      - redis-data:/data
-      - redis-conf:/etc/redis
+      - ~/Docker/container/Redis/data:/data
+      - ~/Docker/container/Redis/conf:/etc/redis
     restart: always
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
@@ -87,7 +87,7 @@ services:
       - "5579:2379"
       - "2380:2380"
     volumes:
-      - etcd-data:/etcd-data
+      - ~/Docker/container/Etcd/data:/etcd-data
     restart: always
     healthcheck:
       test: ["CMD", "etcdctl", "--endpoints=http://localhost:2379", "endpoint", "health"]
@@ -105,26 +105,11 @@ services:
     ports:
       - "5590:9090"
     volumes:
-      - ../../configs/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus-data:/prometheus
+      - ~/Docker/container/videoService/configs/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ~/Docker/container/Prometheus/data:/prometheus
     restart: always
     networks:
       - video_network
-
-# 定义命名卷
-volumes:
-  etcd-data:
-    driver: local
-  mysql-data:
-    driver: local
-  mysql-conf:
-    driver: local
-  redis-data:
-    driver: local
-  redis-conf:
-    driver: local
-  prometheus-data:
-    driver: local
 
 # 定义网络
 networks:

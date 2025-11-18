@@ -15,9 +15,8 @@ import (
 // 功能包括：
 // 1. 注册全局中间件（Trace、Recovery、Logger）
 // 2. 集成Prometheus监控
-// 3. 注册公开API端点（健康检查、IP信息查询）
-// 4. 注册用户相关API端点（/user/register、/user/login、/user/me）
-// 5. 注册监控指标端点（由go-gin-prometheus自动注册）
+// 3. 注册公开API端点（健康检查）
+// 4. 注册监控指标端点（由go-gin-prometheus自动注册）
 func SetupRouter() *gin.Engine {
 	// 创建新的Gin引擎（不使用默认中间件）
 	r := gin.New()
@@ -47,25 +46,18 @@ func SetupRouter() *gin.Engine {
 	p.Use(r)
 
 	// 注册公开API端点（无需认证）
-	r.GET("/ping", handler.Ping)         // 健康检查
-	r.GET("/ip-info", handler.GetIPInfo) // IP信息查询（用于测试）
+	r.GET("/ping", handler.Ping) // 健康检查
 
-	// 创建用户相关路由组
-	userGroup := r.Group("/user")
+	// API路由组
+	apiGroup := r.Group("/api")
 	{
-		// 公开接口（无需认证）
-		userGroup.POST("/register", handler.Register) // 用户注册
-		userGroup.POST("/login", handler.Login)       // 用户登录
-
-		// 需要认证的接口
-		// 在该路由组上应用JWT认证中间件
-		authGroup := userGroup.Group("")
-		authGroup.Use(middleware.JWTAuth())
-		authGroup.GET("/me", handler.Me) // 获取当前用户信息
+		// 同步相关接口
+		syncGroup := apiGroup.Group("/sync")
+		{
+			// 豆瓣电影同步接口（手动触发）
+			syncGroup.POST("/douban/movies", handler.SyncDoubanMovies)
+		}
 	}
-
-	// 注意：/metrics 路由已由 go-gin-prometheus 中间件自动注册，无需手动注册
-	// r.GET("/metrics", gin.WrapH(metrics.Handler()))
 
 	return r
 }
