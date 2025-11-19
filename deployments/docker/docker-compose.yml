@@ -1,12 +1,9 @@
 services:
   sync_service:
-    build:
-      context: ~/Docker/container/syncService
-      dockerfile: deployments/docker/Dockerfile
-    image: sync-service:latest         # ✅ 自定义镜像名称
+    image: sily1/sync_service:latest
     container_name: SyncService
     ports:
-      - "5500:5500"
+      - "5550:5550"
     environment:
       - TZ=Asia/Shanghai
     depends_on:
