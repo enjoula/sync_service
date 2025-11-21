@@ -19,8 +19,8 @@ import (
 	"gorm.io/gorm"
 )
 
-// DoubanMovieItem 豆瓣电影列表项
-type DoubanMovieItem struct {
+// DoubanItem 豆瓣列表项
+type DoubanItem struct {
 	ID     string `json:"id"`
 	Title  string `json:"title"`
 	Type   string `json:"type"`
@@ -32,9 +32,9 @@ type DoubanMovieItem struct {
 	} `json:"pic"`
 }
 
-// DoubanMovieListResponse 豆瓣电影列表响应
-type DoubanMovieListResponse struct {
-	Items []DoubanMovieItem `json:"items"`
+// DoubanListResponse 豆瓣列表响应
+type DoubanListResponse struct {
+	Items []DoubanItem `json:"items"`
 }
 
 // DoubanSyncService 豆瓣同步服务
@@ -49,30 +49,103 @@ func NewDoubanSyncService() *DoubanSyncService {
 	}
 }
 
-// SyncMovies 同步豆瓣电影数据
-func (s *DoubanSyncService) SyncMovies() error {
-	zap.L().Info("开始同步豆瓣电影数据")
+// SyncAll 同步所有豆瓣数据
+func (s *DoubanSyncService) SyncAll() error {
+	zap.L().Info("开始同步豆瓣数据")
 
-	// 第一步：获取最新电影列表并保存基本信息
-	if err := s.fetchAndSaveMovieList(); err != nil {
-		zap.L().Error("获取电影列表失败", zap.Error(err))
+	// 第一步：获取最新列表并保存基本信息
+	if err := s.fetchAndSaveAllLists(); err != nil {
+		zap.L().Error("获取列表失败", zap.Error(err))
 		return err
 	}
 
-	// 第二步：补充电影详情信息
+	// 第二步：更新详细信息
+	// a. 更新电影详细信息
 	if err := s.fetchAndUpdateMovieDetails(); err != nil {
 		zap.L().Error("更新电影详情失败", zap.Error(err))
-		return err
 	}
 
-	zap.L().Info("豆瓣电影数据同步完成")
+	// b. 更新电视详细信息
+	if err := s.fetchAndUpdateTVDetails(); err != nil {
+		zap.L().Error("更新电视详情失败", zap.Error(err))
+	}
+
+	// c. 更新动漫详细信息（b执行完才能执行）
+	if err := s.fetchAndUpdateAnimeDetails(); err != nil {
+		zap.L().Error("更新动漫详情失败", zap.Error(err))
+	}
+
+	// d. 更新综艺详细信息（b执行完才能执行）
+	if err := s.fetchAndUpdateShowDetails(); err != nil {
+		zap.L().Error("更新综艺详情失败", zap.Error(err))
+	}
+
+	// e. 更新纪录片详细信息（b执行完才能执行）
+	if err := s.fetchAndUpdateDocDetails(); err != nil {
+		zap.L().Error("更新纪录片详情失败", zap.Error(err))
+	}
+
+	zap.L().Info("豆瓣数据同步完成")
 	return nil
 }
 
-// fetchAndSaveMovieList 获取并保存电影列表
-func (s *DoubanSyncService) fetchAndSaveMovieList() error {
-	url := "https://m.douban.com/rexxar/api/v2/subject/recent_hot/movie?start=0&limit=80&category=%E6%9C%80%E6%96%B0&type=%E5%85%A8%E9%83%A8"
+// fetchAndSaveAllLists 获取并保存所有列表
+func (s *DoubanSyncService) fetchAndSaveAllLists() error {
+	// 1. 最新电影列表
+	if err := s.fetchAndSaveList(
+		"https://m.douban.com/rexxar/api/v2/subject/recent_hot/movie?start=0&limit=100&category=%E6%9C%80%E6%96%B0&type=%E5%85%A8%E9%83%A8",
+		"https://movie.douban.com/explore",
+		"movie",
+		"", // 使用items.type
+	); err != nil {
+		zap.L().Error("获取电影列表失败", zap.Error(err))
+	}
 
+	// 2. 最新电视列表
+	if err := s.fetchAndSaveList(
+		"https://m.douban.com/rexxar/api/v2/subject/recent_hot/tv?start=0&limit=100&category=tv&type=tv",
+		"https://movie.douban.com/tv/",
+		"tv",
+		"", // 使用items.type
+	); err != nil {
+		zap.L().Error("获取电视列表失败", zap.Error(err))
+	}
+
+	// 3. 动画列表
+	if err := s.fetchAndSaveList(
+		"https://m.douban.com/rexxar/api/v2/subject/recent_hot/tv?start=0&limit=200&category=tv&type=tv_animation",
+		"https://movie.douban.com/tv/",
+		"anime",
+		"anime", // 固定为anime
+	); err != nil {
+		zap.L().Error("获取动画列表失败", zap.Error(err))
+	}
+
+	// 4. 纪录片列表
+	if err := s.fetchAndSaveList(
+		"https://m.douban.com/rexxar/api/v2/subject/recent_hot/tv?start=0&limit=200&category=tv&type=tv_documentary",
+		"https://movie.douban.com/tv/",
+		"anime",
+		"anime", // 固定为anime（按需求）
+	); err != nil {
+		zap.L().Error("获取纪录片列表失败", zap.Error(err))
+	}
+
+	// 5. 综艺列表
+	if err := s.fetchAndSaveList(
+		"https://m.douban.com/rexxar/api/v2/subject/recent_hot/tv?start=0&limit=200&category=show&type=show",
+		"https://movie.douban.com/tv/",
+		"tvshow",
+		"tvshow", // 固定为tvshow
+	); err != nil {
+		zap.L().Error("获取综艺列表失败", zap.Error(err))
+	}
+
+	return nil
+}
+
+// fetchAndSaveList 获取并保存单个列表
+func (s *DoubanSyncService) fetchAndSaveList(url, referer, defaultType, fixedType string) error {
 	// 创建HTTP请求
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -83,8 +156,17 @@ func (s *DoubanSyncService) fetchAndSaveMovieList() error {
 	req.Header.Set("accept", "application/json, text/plain, */*")
 	req.Header.Set("accept-language", "zh-CN,zh;q=0.9,en;q=0.8")
 	req.Header.Set("cache-control", "no-cache")
+	req.Header.Set("dnt", "1")
 	req.Header.Set("origin", "https://movie.douban.com")
-	req.Header.Set("referer", "https://movie.douban.com/explore")
+	req.Header.Set("pragma", "no-cache")
+	req.Header.Set("priority", "u=1, i")
+	req.Header.Set("referer", referer)
+	req.Header.Set("sec-ch-ua", `"Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"`)
+	req.Header.Set("sec-ch-ua-mobile", "?0")
+	req.Header.Set("sec-ch-ua-platform", `"macOS"`)
+	req.Header.Set("sec-fetch-dest", "empty")
+	req.Header.Set("sec-fetch-mode", "cors")
+	req.Header.Set("sec-fetch-site", "same-site")
 	req.Header.Set("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36")
 
 	// 发送请求
@@ -102,20 +184,20 @@ func (s *DoubanSyncService) fetchAndSaveMovieList() error {
 	}
 
 	// 解析JSON
-	var movieList DoubanMovieListResponse
-	if err := json.Unmarshal(body, &movieList); err != nil {
+	var listResponse DoubanListResponse
+	if err := json.Unmarshal(body, &listResponse); err != nil {
 		return fmt.Errorf("解析JSON失败: %w", err)
 	}
 
-	zap.L().Info("获取到电影列表", zap.Int("count", len(movieList.Items)))
+	zap.L().Info("获取到列表", zap.String("type", defaultType), zap.Int("count", len(listResponse.Items)))
 
-	// 遍历电影列表，保存不存在的电影
+	// 遍历列表，保存不存在的项
 	savedCount := 0
-	for _, item := range movieList.Items {
+	for _, item := range listResponse.Items {
 		// 将字符串ID转换为整数
 		sourceID, err := strconv.Atoi(item.ID)
 		if err != nil {
-			zap.L().Warn("无效的电影ID", zap.String("id", item.ID))
+			zap.L().Warn("无效的ID", zap.String("id", item.ID))
 			continue
 		}
 
@@ -130,13 +212,19 @@ func (s *DoubanSyncService) fetchAndSaveMovieList() error {
 			continue
 		}
 
+		// 确定type值
+		videoType := fixedType
+		if videoType == "" {
+			videoType = item.Type
+		}
+
 		// 创建新视频记录
 		video := &model.Video{
 			ID:           utils.GenerateUserID(), // 使用雪花算法生成ID
 			SourceID:     sourceID,
 			Source:       "douban",
 			Title:        item.Title,
-			Type:         item.Type,
+			Type:         videoType,
 			CoverURL:     item.Pic.Normal,
 			Rating:       fmt.Sprintf("%.1f", item.Rating.Value),
 			EpisodeCount: 0,
@@ -150,19 +238,19 @@ func (s *DoubanSyncService) fetchAndSaveMovieList() error {
 		}
 
 		savedCount++
-		zap.L().Info("保存新电影", zap.String("title", item.Title), zap.Int("source_id", sourceID))
+		zap.L().Info("保存新视频", zap.String("title", item.Title), zap.Int("source_id", sourceID), zap.String("type", videoType))
 	}
 
-	zap.L().Info("电影列表同步完成", zap.Int("saved_count", savedCount))
+	zap.L().Info("列表同步完成", zap.String("type", defaultType), zap.Int("saved_count", savedCount))
 	return nil
 }
 
 // fetchAndUpdateMovieDetails 获取并更新电影详情
 func (s *DoubanSyncService) fetchAndUpdateMovieDetails() error {
-	// 查找需要补充详情的视频（每次处理10条）
-	videos, err := s.videoRepo.FindNeedDetailVideos(10)
+	// 查找需要补充详情的电影（每次处理10条）
+	videos, err := s.videoRepo.FindNeedDetailVideosByType("movie", 10)
 	if err != nil {
-		return fmt.Errorf("查询需要更新的视频失败: %w", err)
+		return fmt.Errorf("查询需要更新的电影失败: %w", err)
 	}
 
 	if len(videos) == 0 {
@@ -186,6 +274,152 @@ func (s *DoubanSyncService) fetchAndUpdateMovieDetails() error {
 	return nil
 }
 
+// fetchAndUpdateTVDetails 获取并更新电视详情
+func (s *DoubanSyncService) fetchAndUpdateTVDetails() error {
+	// 查找需要补充详情的电视（每次处理10条）
+	videos, err := s.videoRepo.FindNeedDetailVideosByType("tv", 10)
+	if err != nil {
+		return fmt.Errorf("查询需要更新的电视失败: %w", err)
+	}
+
+	if len(videos) == 0 {
+		zap.L().Info("没有需要更新详情的电视")
+		return nil
+	}
+
+	zap.L().Info("找到需要更新详情的电视", zap.Int("count", len(videos)))
+
+	// 遍历每个视频，获取详情
+	for _, video := range videos {
+		if err := s.fetchAndUpdateSingleTVDetail(video); err != nil {
+			zap.L().Error("更新电视详情失败", zap.Error(err), zap.String("title", video.Title))
+			continue
+		}
+
+		// 避免请求过快，休眠2秒
+		time.Sleep(2 * time.Second)
+	}
+
+	return nil
+}
+
+// fetchAndUpdateAnimeDetails 获取并更新动漫详情
+func (s *DoubanSyncService) fetchAndUpdateAnimeDetails() error {
+	// 查找需要补充详情的动漫（type=tv且year和country都为空，每次处理10条）
+	// 注意：按需求，从type=tv的数据中查找
+	videos, err := s.videoRepo.FindNeedDetailVideosByType("tv", 10)
+	if err != nil {
+		return fmt.Errorf("查询需要更新的动漫失败: %w", err)
+	}
+
+	if len(videos) == 0 {
+		zap.L().Info("没有需要更新详情的动漫")
+		return nil
+	}
+
+	zap.L().Info("找到需要更新详情的动漫", zap.Int("count", len(videos)))
+
+	// 遍历每个视频，获取详情
+	for _, video := range videos {
+		if err := s.fetchAndUpdateSingleTVDetail(video); err != nil {
+			zap.L().Error("更新动漫详情失败", zap.Error(err), zap.String("title", video.Title))
+			continue
+		}
+
+		// 更新type为anime
+		video.Type = "anime"
+		video.CreatedAt = time.Now()
+
+		if err := s.videoRepo.Update(video); err != nil {
+			zap.L().Error("更新动漫详情失败", zap.Error(err), zap.String("title", video.Title))
+			continue
+		}
+
+		// 避免请求过快，休眠2秒
+		time.Sleep(2 * time.Second)
+	}
+
+	return nil
+}
+
+// fetchAndUpdateShowDetails 获取并更新综艺详情
+func (s *DoubanSyncService) fetchAndUpdateShowDetails() error {
+	// 查找需要补充详情的综艺（type=tv且year和country都为空，每次处理10条）
+	// 注意：按需求，从type=tv的数据中查找
+	videos, err := s.videoRepo.FindNeedDetailVideosByType("tv", 10)
+	if err != nil {
+		return fmt.Errorf("查询需要更新的综艺失败: %w", err)
+	}
+
+	if len(videos) == 0 {
+		zap.L().Info("没有需要更新详情的综艺")
+		return nil
+	}
+
+	zap.L().Info("找到需要更新详情的综艺", zap.Int("count", len(videos)))
+
+	// 遍历每个视频，获取详情
+	for _, video := range videos {
+		if err := s.fetchAndUpdateSingleShowDetail(video); err != nil {
+			zap.L().Error("更新综艺详情失败", zap.Error(err), zap.String("title", video.Title))
+			continue
+		}
+
+		// 更新type为tvshow
+		video.Type = "tvshow"
+		video.CreatedAt = time.Now()
+
+		if err := s.videoRepo.Update(video); err != nil {
+			zap.L().Error("更新综艺详情失败", zap.Error(err), zap.String("title", video.Title))
+			continue
+		}
+
+		// 避免请求过快，休眠2秒
+		time.Sleep(2 * time.Second)
+	}
+
+	return nil
+}
+
+// fetchAndUpdateDocDetails 获取并更新纪录片详情
+func (s *DoubanSyncService) fetchAndUpdateDocDetails() error {
+	// 查找需要补充详情的纪录片（type=tv且year和country都为空，每次处理10条）
+	// 注意：按需求，从type=tv的数据中查找
+	videos, err := s.videoRepo.FindNeedDetailVideosByType("tv", 10)
+	if err != nil {
+		return fmt.Errorf("查询需要更新的纪录片失败: %w", err)
+	}
+
+	if len(videos) == 0 {
+		zap.L().Info("没有需要更新详情的纪录片")
+		return nil
+	}
+
+	zap.L().Info("找到需要更新详情的纪录片", zap.Int("count", len(videos)))
+
+	// 遍历每个视频，获取详情
+	for _, video := range videos {
+		if err := s.fetchAndUpdateSingleDocDetail(video); err != nil {
+			zap.L().Error("更新纪录片详情失败", zap.Error(err), zap.String("title", video.Title))
+			continue
+		}
+
+		// 更新type为doc
+		video.Type = "doc"
+		video.CreatedAt = time.Now()
+
+		if err := s.videoRepo.Update(video); err != nil {
+			zap.L().Error("更新纪录片详情失败", zap.Error(err), zap.String("title", video.Title))
+			continue
+		}
+
+		// 避免请求过快，休眠2秒
+		time.Sleep(2 * time.Second)
+	}
+
+	return nil
+}
+
 // fetchAndUpdateSingleMovieDetail 获取并更新单个电影详情
 func (s *DoubanSyncService) fetchAndUpdateSingleMovieDetail(video *model.Video) error {
 	url := fmt.Sprintf("https://movie.douban.com/subject/%d/", video.SourceID)
@@ -197,10 +431,21 @@ func (s *DoubanSyncService) fetchAndUpdateSingleMovieDetail(video *model.Video) 
 	}
 
 	// 设置请求头
-	req.Header.Set("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8")
+	req.Header.Set("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
 	req.Header.Set("accept-language", "zh-CN,zh;q=0.9,en;q=0.8")
 	req.Header.Set("cache-control", "no-cache")
-	req.Header.Set("referer", "https://movie.douban.com/explore")
+	req.Header.Set("dnt", "1")
+	req.Header.Set("pragma", "no-cache")
+	req.Header.Set("priority", "u=0, i")
+	req.Header.Set("referer", "https://movie.douban.com/explore?support_type=movie&is_all=false&category=%E8%B1%86%E7%93%A3%E9%AB%98%E5%88%86&type=%E5%85%A8%E9%83%A8")
+	req.Header.Set("sec-ch-ua", `"Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"`)
+	req.Header.Set("sec-ch-ua-mobile", "?0")
+	req.Header.Set("sec-ch-ua-platform", `"macOS"`)
+	req.Header.Set("sec-fetch-dest", "document")
+	req.Header.Set("sec-fetch-mode", "navigate")
+	req.Header.Set("sec-fetch-site", "same-origin")
+	req.Header.Set("sec-fetch-user", "?1")
+	req.Header.Set("upgrade-insecure-requests", "1")
 	req.Header.Set("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36")
 
 	// 发送请求
@@ -225,8 +470,9 @@ func (s *DoubanSyncService) fetchAndUpdateSingleMovieDetail(video *model.Video) 
 	video.Tags = extractGenres(html)
 	video.Country = extractField(html, `<span class="pl">制片国家/地区:</span>`, `<br`)
 
-	// 提取上映日期（完整日期格式 YYYY-MM-DD）
-	video.Year = extractReleaseDate(html)
+	// 提取上映日期（只保留数字）
+	yearStr := extractField(html, `<span class="pl">上映日期:</span>`, `<br`)
+	video.Year = extractYearNumber(yearStr)
 
 	// 提取片长（只保留数字）
 	runtimeStr := extractField(html, `<span class="pl">片长:</span>`, `<br`)
@@ -240,20 +486,11 @@ func (s *DoubanSyncService) fetchAndUpdateSingleMovieDetail(video *model.Video) 
 	// 提取简介
 	video.Description = extractDescription(html)
 
-	// 记录提取到的信息（调试用）
-	zap.L().Debug("提取电影详情",
-		zap.String("title", video.Title),
-		zap.String("director", video.Director),
-		zap.String("actors", video.Actors),
-		zap.String("tags", video.Tags),
-		zap.String("country", video.Country),
-		zap.String("year", video.Year),
-		zap.Int("runtime", video.Runtime),
-		zap.String("imdb_id", video.IMDbID),
-		zap.Int("desc_len", len(video.Description)))
-
 	// 设置集数为0（电影）
 	video.EpisodeCount = 0
+
+	// 设置创建时间
+	video.CreatedAt = time.Now()
 
 	// 更新时间
 	video.UpdatedAt = time.Now()
@@ -264,6 +501,240 @@ func (s *DoubanSyncService) fetchAndUpdateSingleMovieDetail(video *model.Video) 
 	}
 
 	zap.L().Info("更新电影详情成功", zap.String("title", video.Title), zap.Int("source_id", video.SourceID))
+	return nil
+}
+
+// fetchAndUpdateSingleTVDetail 获取并更新单个电视详情
+func (s *DoubanSyncService) fetchAndUpdateSingleTVDetail(video *model.Video) error {
+	url := fmt.Sprintf("https://movie.douban.com/subject/%d/", video.SourceID)
+
+	// 创建HTTP请求
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return fmt.Errorf("创建请求失败: %w", err)
+	}
+
+	// 设置请求头（与电影详情相同）
+	req.Header.Set("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
+	req.Header.Set("accept-language", "zh-CN,zh;q=0.9,en;q=0.8")
+	req.Header.Set("cache-control", "no-cache")
+	req.Header.Set("dnt", "1")
+	req.Header.Set("pragma", "no-cache")
+	req.Header.Set("priority", "u=0, i")
+	req.Header.Set("referer", "https://movie.douban.com/tv/")
+	req.Header.Set("sec-ch-ua", `"Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"`)
+	req.Header.Set("sec-ch-ua-mobile", "?0")
+	req.Header.Set("sec-ch-ua-platform", `"macOS"`)
+	req.Header.Set("sec-fetch-dest", "document")
+	req.Header.Set("sec-fetch-mode", "navigate")
+	req.Header.Set("sec-fetch-site", "same-origin")
+	req.Header.Set("sec-fetch-user", "?1")
+	req.Header.Set("upgrade-insecure-requests", "1")
+	req.Header.Set("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36")
+
+	// 发送请求
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("请求失败: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// 读取响应
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("读取响应失败: %w", err)
+	}
+
+	html := string(body)
+
+	// 解析HTML，提取信息
+	video.Director = extractFieldWithAttrs(html, "导演")
+	video.Actors = extractFieldWithAttrs(html, "主演")
+	video.Tags = extractGenres(html)
+	video.Country = extractField(html, `<span class="pl">制片国家/地区:</span>`, `<br`)
+
+	// 提取首播日期（只保留数字）
+	yearStr := extractField(html, `<span class="pl">首播:</span>`, `<br`)
+	video.Year = extractYearNumber(yearStr)
+
+	// 提取集数（只保留数字）
+	episodeStr := extractField(html, `<span class="pl">集数:</span>`, `<br`)
+	if episodeStr != "" {
+		video.EpisodeCount = extractNumber(episodeStr)
+	}
+
+	// 提取IMDb ID
+	video.IMDbID = extractIMDbID(html)
+
+	// 提取简介
+	video.Description = extractDescription(html)
+
+	// 设置创建时间
+	video.CreatedAt = time.Now()
+
+	// 更新时间
+	video.UpdatedAt = time.Now()
+
+	// 保存到数据库
+	if err := s.videoRepo.Update(video); err != nil {
+		return fmt.Errorf("更新数据库失败: %w", err)
+	}
+
+	zap.L().Info("更新电视详情成功", zap.String("title", video.Title), zap.Int("source_id", video.SourceID))
+	return nil
+}
+
+// fetchAndUpdateSingleShowDetail 获取并更新单个综艺详情
+func (s *DoubanSyncService) fetchAndUpdateSingleShowDetail(video *model.Video) error {
+	url := fmt.Sprintf("https://movie.douban.com/subject/%d/", video.SourceID)
+
+	// 创建HTTP请求
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return fmt.Errorf("创建请求失败: %w", err)
+	}
+
+	// 设置请求头（与电视详情相同）
+	req.Header.Set("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
+	req.Header.Set("accept-language", "zh-CN,zh;q=0.9,en;q=0.8")
+	req.Header.Set("cache-control", "no-cache")
+	req.Header.Set("dnt", "1")
+	req.Header.Set("pragma", "no-cache")
+	req.Header.Set("priority", "u=0, i")
+	req.Header.Set("referer", "https://movie.douban.com/tv/")
+	req.Header.Set("sec-ch-ua", `"Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"`)
+	req.Header.Set("sec-ch-ua-mobile", "?0")
+	req.Header.Set("sec-ch-ua-platform", `"macOS"`)
+	req.Header.Set("sec-fetch-dest", "document")
+	req.Header.Set("sec-fetch-mode", "navigate")
+	req.Header.Set("sec-fetch-site", "same-origin")
+	req.Header.Set("sec-fetch-user", "?1")
+	req.Header.Set("upgrade-insecure-requests", "1")
+	req.Header.Set("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36")
+
+	// 发送请求
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("请求失败: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// 读取响应
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("读取响应失败: %w", err)
+	}
+
+	html := string(body)
+
+	// 解析HTML，提取信息（综艺没有导演）
+	video.Actors = extractFieldWithAttrs(html, "主演")
+	video.Tags = extractGenres(html)
+	video.Country = extractField(html, `<span class="pl">制片国家/地区:</span>`, `<br`)
+
+	// 提取首播日期（只保留数字）
+	yearStr := extractField(html, `<span class="pl">首播:</span>`, `<br`)
+	video.Year = extractYearNumber(yearStr)
+
+	// 提取集数（只保留数字）
+	episodeStr := extractField(html, `<span class="pl">集数:</span>`, `<br`)
+	if episodeStr != "" {
+		video.EpisodeCount = extractNumber(episodeStr)
+	}
+
+	// 提取简介
+	video.Description = extractDescription(html)
+
+	// 设置创建时间
+	video.CreatedAt = time.Now()
+
+	// 更新时间
+	video.UpdatedAt = time.Now()
+
+	// 保存到数据库
+	if err := s.videoRepo.Update(video); err != nil {
+		return fmt.Errorf("更新数据库失败: %w", err)
+	}
+
+	zap.L().Info("更新综艺详情成功", zap.String("title", video.Title), zap.Int("source_id", video.SourceID))
+	return nil
+}
+
+// fetchAndUpdateSingleDocDetail 获取并更新单个纪录片详情
+func (s *DoubanSyncService) fetchAndUpdateSingleDocDetail(video *model.Video) error {
+	url := fmt.Sprintf("https://movie.douban.com/subject/%d/", video.SourceID)
+
+	// 创建HTTP请求
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return fmt.Errorf("创建请求失败: %w", err)
+	}
+
+	// 设置请求头（与电视详情相同）
+	req.Header.Set("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
+	req.Header.Set("accept-language", "zh-CN,zh;q=0.9,en;q=0.8")
+	req.Header.Set("cache-control", "no-cache")
+	req.Header.Set("dnt", "1")
+	req.Header.Set("pragma", "no-cache")
+	req.Header.Set("priority", "u=0, i")
+	req.Header.Set("referer", "https://movie.douban.com/tv/")
+	req.Header.Set("sec-ch-ua", `"Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"`)
+	req.Header.Set("sec-ch-ua-mobile", "?0")
+	req.Header.Set("sec-ch-ua-platform", `"macOS"`)
+	req.Header.Set("sec-fetch-dest", "document")
+	req.Header.Set("sec-fetch-mode", "navigate")
+	req.Header.Set("sec-fetch-site", "same-origin")
+	req.Header.Set("sec-fetch-user", "?1")
+	req.Header.Set("upgrade-insecure-requests", "1")
+	req.Header.Set("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36")
+
+	// 发送请求
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("请求失败: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// 读取响应
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("读取响应失败: %w", err)
+	}
+
+	html := string(body)
+
+	// 解析HTML，提取信息（纪录片没有导演和主演）
+	video.Tags = extractGenres(html)
+	video.Country = extractField(html, `<span class="pl">制片国家/地区:</span>`, `<br`)
+
+	// 提取首播日期（只保留数字）
+	yearStr := extractField(html, `<span class="pl">首播:</span>`, `<br`)
+	video.Year = extractYearNumber(yearStr)
+
+	// 提取集数（只保留数字）
+	episodeStr := extractField(html, `<span class="pl">集数:</span>`, `<br`)
+	if episodeStr != "" {
+		video.EpisodeCount = extractNumber(episodeStr)
+	}
+
+	// 提取简介
+	video.Description = extractDescription(html)
+
+	// 设置创建时间
+	video.CreatedAt = time.Now()
+
+	// 更新时间
+	video.UpdatedAt = time.Now()
+
+	// 保存到数据库
+	if err := s.videoRepo.Update(video); err != nil {
+		return fmt.Errorf("更新数据库失败: %w", err)
+	}
+
+	zap.L().Info("更新纪录片详情成功", zap.String("title", video.Title), zap.Int("source_id", video.SourceID))
 	return nil
 }
 
@@ -335,27 +806,18 @@ func extractIMDbID(html string) string {
 	return ""
 }
 
-// extractReleaseDate 提取上映日期（完整日期格式 YYYY-MM-DD）
-func extractReleaseDate(html string) string {
-	// 优先从 content 属性提取：<span property="v:initialReleaseDate" content="2025-11-15(中国大陆)">
-	re := regexp.MustCompile(`<span property="v:initialReleaseDate" content="([0-9]{4}-[0-9]{2}-[0-9]{2})`)
-	matches := re.FindStringSubmatch(html)
+// extractYearNumber 从字符串中提取年份数字（只保留数字）
+func extractYearNumber(str string) string {
+	// 使用正则提取4位数字（年份）
+	re := regexp.MustCompile(`(\d{4})`)
+	matches := re.FindStringSubmatch(str)
 	if len(matches) > 1 {
 		return matches[1]
 	}
-
-	// 如果没有找到，尝试从显示文本中提取日期格式
-	// 例如：<span class="pl">上映日期:</span> <span>2025-11-15(中国大陆)</span>
-	re2 := regexp.MustCompile(`<span class="pl">上映日期:</span>.*?([0-9]{4}-[0-9]{2}-[0-9]{2})`)
-	matches2 := re2.FindStringSubmatch(html)
-	if len(matches2) > 1 {
-		return matches2[1]
-	}
-
 	return ""
 }
 
-// extractDescription 提取电影简介
+// extractDescription 提取简介
 func extractDescription(html string) string {
 	// 查找 <span property="v:summary" class="">...</span>
 	re := regexp.MustCompile(`<span property="v:summary"[^>]*>([\s\S]*?)</span>`)

@@ -19,6 +19,9 @@ type VideoRepository interface {
 
 	// FindNeedDetailVideos 查找需要补充详情的视频（source_id不为空且year和country都为空）
 	FindNeedDetailVideos(limit int) ([]*model.Video, error)
+
+	// FindNeedDetailVideosByType 根据类型查找需要补充详情的视频（source_id不为空且year和country都为空）
+	FindNeedDetailVideosByType(videoType string, limit int) ([]*model.Video, error)
 }
 
 // videoRepository 视频仓库实现
@@ -54,6 +57,19 @@ func (r *videoRepository) Update(video *model.Video) error {
 func (r *videoRepository) FindNeedDetailVideos(limit int) ([]*model.Video, error) {
 	var videos []*model.Video
 	err := database.DB.Where("source_id IS NOT NULL AND source_id != 0 AND (country IS NULL OR country = '')").
+		Limit(limit).
+		Find(&videos).Error
+	if err != nil {
+		return nil, err
+	}
+	return videos, nil
+}
+
+// FindNeedDetailVideosByType 根据类型查找需要补充详情的视频
+// 条件：source_id不为空且year和country都为空
+func (r *videoRepository) FindNeedDetailVideosByType(videoType string, limit int) ([]*model.Video, error) {
+	var videos []*model.Video
+	err := database.DB.Where("source_id IS NOT NULL AND source_id != 0 AND type = ? AND (year IS NULL OR year = '') AND (country IS NULL OR country = '')", videoType).
 		Limit(limit).
 		Find(&videos).Error
 	if err != nil {
