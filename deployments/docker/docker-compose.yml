@@ -3,7 +3,7 @@ services:
     image: sily1/sync_service:latest
     container_name: SyncService
     ports:
-      - "5550:5550"
+      - "6661:6661"
     environment:
       - TZ=Asia/Shanghai
     depends_on:

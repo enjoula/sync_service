@@ -1,5 +1,5 @@
 server:
-  addr: ":5550"
+  addr: ":6661"
 mysql:
   dsn: "root:123456@tcp(mysql:3306)/video_service?charset=utf8mb4&parseTime=True&loc=Local"
 redis:
@@ -14,4 +14,4 @@ prometheus:
     - job_name: 'sync_service'
       metrics_path: /metrics
       static_configs:
-        - targets: ['sync_service:5550']
+        - targets: ['sync_service:6661']

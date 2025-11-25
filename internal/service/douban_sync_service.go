@@ -125,8 +125,8 @@ func (s *DoubanSyncService) fetchAndSaveAllLists() error {
 	if err := s.fetchAndSaveList(
 		"https://m.douban.com/rexxar/api/v2/subject/recent_hot/tv?start=0&limit=200&category=tv&type=tv_documentary",
 		"https://movie.douban.com/tv/",
-		"anime",
-		"anime", // 固定为anime（按需求）
+		"doc",
+		"doc", // 固定为doc，便于第二步区分
 	); err != nil {
 		zap.L().Error("获取纪录片列表失败", zap.Error(err))
 	}
@@ -247,8 +247,8 @@ func (s *DoubanSyncService) fetchAndSaveList(url, referer, defaultType, fixedTyp
 
 // fetchAndUpdateMovieDetails 获取并更新电影详情
 func (s *DoubanSyncService) fetchAndUpdateMovieDetails() error {
-	// 查找需要补充详情的电影（每次处理10条）
-	videos, err := s.videoRepo.FindNeedDetailVideosByType("movie", 10)
+	// 查找需要补充详情的电影（每次处理100条）
+	videos, err := s.videoRepo.FindNeedDetailVideosByType("movie", 100)
 	if err != nil {
 		return fmt.Errorf("查询需要更新的电影失败: %w", err)
 	}
@@ -267,8 +267,8 @@ func (s *DoubanSyncService) fetchAndUpdateMovieDetails() error {
 			continue
 		}
 
-		// 避免请求过快，休眠2秒
-		time.Sleep(2 * time.Second)
+		// 避免请求过快，休眠4秒
+		time.Sleep(4 * time.Second)
 	}
 
 	return nil
@@ -276,8 +276,8 @@ func (s *DoubanSyncService) fetchAndUpdateMovieDetails() error {
 
 // fetchAndUpdateTVDetails 获取并更新电视详情
 func (s *DoubanSyncService) fetchAndUpdateTVDetails() error {
-	// 查找需要补充详情的电视（每次处理10条）
-	videos, err := s.videoRepo.FindNeedDetailVideosByType("tv", 10)
+	// 查找需要补充详情的电视（每次处理100条）
+	videos, err := s.videoRepo.FindNeedDetailVideosByType("tv", 100)
 	if err != nil {
 		return fmt.Errorf("查询需要更新的电视失败: %w", err)
 	}
@@ -296,8 +296,8 @@ func (s *DoubanSyncService) fetchAndUpdateTVDetails() error {
 			continue
 		}
 
-		// 避免请求过快，休眠2秒
-		time.Sleep(2 * time.Second)
+		// 避免请求过快，休眠4秒
+		time.Sleep(4 * time.Second)
 	}
 
 	return nil
@@ -305,9 +305,9 @@ func (s *DoubanSyncService) fetchAndUpdateTVDetails() error {
 
 // fetchAndUpdateAnimeDetails 获取并更新动漫详情
 func (s *DoubanSyncService) fetchAndUpdateAnimeDetails() error {
-	// 查找需要补充详情的动漫（type=tv且year和country都为空，每次处理10条）
-	// 注意：按需求，从type=tv的数据中查找
-	videos, err := s.videoRepo.FindNeedDetailVideosByType("tv", 10)
+	// 查找需要补充详情的动漫（type=anime且year和country都为空，每次处理100条）
+	// 注意：第一步调用3时已经保存为type=anime，所以这里从anime查找
+	videos, err := s.videoRepo.FindNeedDetailVideosByType("anime", 100)
 	if err != nil {
 		return fmt.Errorf("查询需要更新的动漫失败: %w", err)
 	}
@@ -326,8 +326,7 @@ func (s *DoubanSyncService) fetchAndUpdateAnimeDetails() error {
 			continue
 		}
 
-		// 更新type为anime
-		video.Type = "anime"
+		// type已经是anime，不需要更新
 		video.CreatedAt = time.Now()
 
 		if err := s.videoRepo.Update(video); err != nil {
@@ -335,8 +334,8 @@ func (s *DoubanSyncService) fetchAndUpdateAnimeDetails() error {
 			continue
 		}
 
-		// 避免请求过快，休眠2秒
-		time.Sleep(2 * time.Second)
+		// 避免请求过快，休眠4秒
+		time.Sleep(4 * time.Second)
 	}
 
 	return nil
@@ -344,9 +343,9 @@ func (s *DoubanSyncService) fetchAndUpdateAnimeDetails() error {
 
 // fetchAndUpdateShowDetails 获取并更新综艺详情
 func (s *DoubanSyncService) fetchAndUpdateShowDetails() error {
-	// 查找需要补充详情的综艺（type=tv且year和country都为空，每次处理10条）
-	// 注意：按需求，从type=tv的数据中查找
-	videos, err := s.videoRepo.FindNeedDetailVideosByType("tv", 10)
+	// 查找需要补充详情的综艺（type=tvshow且year和country都为空，每次处理100条）
+	// 注意：第一步调用5时已经保存为type=tvshow，所以这里从tvshow查找
+	videos, err := s.videoRepo.FindNeedDetailVideosByType("tvshow", 100)
 	if err != nil {
 		return fmt.Errorf("查询需要更新的综艺失败: %w", err)
 	}
@@ -365,8 +364,7 @@ func (s *DoubanSyncService) fetchAndUpdateShowDetails() error {
 			continue
 		}
 
-		// 更新type为tvshow
-		video.Type = "tvshow"
+		// type已经是tvshow，不需要更新
 		video.CreatedAt = time.Now()
 
 		if err := s.videoRepo.Update(video); err != nil {
@@ -374,8 +372,8 @@ func (s *DoubanSyncService) fetchAndUpdateShowDetails() error {
 			continue
 		}
 
-		// 避免请求过快，休眠2秒
-		time.Sleep(2 * time.Second)
+		// 避免请求过快，休眠4秒
+		time.Sleep(4 * time.Second)
 	}
 
 	return nil
@@ -383,9 +381,9 @@ func (s *DoubanSyncService) fetchAndUpdateShowDetails() error {
 
 // fetchAndUpdateDocDetails 获取并更新纪录片详情
 func (s *DoubanSyncService) fetchAndUpdateDocDetails() error {
-	// 查找需要补充详情的纪录片（type=tv且year和country都为空，每次处理10条）
-	// 注意：按需求，从type=tv的数据中查找
-	videos, err := s.videoRepo.FindNeedDetailVideosByType("tv", 10)
+	// 查找需要补充详情的纪录片（type=doc且year和country都为空，每次处理100条）
+	// 注意：第一步调用4时已经保存为type=doc，所以这里从doc查找
+	videos, err := s.videoRepo.FindNeedDetailVideosByType("doc", 100)
 	if err != nil {
 		return fmt.Errorf("查询需要更新的纪录片失败: %w", err)
 	}
@@ -404,8 +402,7 @@ func (s *DoubanSyncService) fetchAndUpdateDocDetails() error {
 			continue
 		}
 
-		// 更新type为doc
-		video.Type = "doc"
+		// type已经是doc，不需要更新
 		video.CreatedAt = time.Now()
 
 		if err := s.videoRepo.Update(video); err != nil {
@@ -413,8 +410,8 @@ func (s *DoubanSyncService) fetchAndUpdateDocDetails() error {
 			continue
 		}
 
-		// 避免请求过快，休眠2秒
-		time.Sleep(2 * time.Second)
+		// 避免请求过快，休眠4秒
+		time.Sleep(4 * time.Second)
 	}
 
 	return nil
