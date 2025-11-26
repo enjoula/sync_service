@@ -2,6 +2,12 @@
 
 一个基于 Golang + Gin + GORM + Redis + Prometheus 的视频数据同步服务，支持从豆瓣等多个数据源自动同步影视信息，包含定时任务、JWT 认证、TraceID 链路追踪、日志系统等完整功能。
 
+
+cd /Users/sily/Desktop/WorkSpace/IdeaProjects/GolandProjects/sync_service && docker build -f deployments/docker/Dockerfile -t sync_service:latest .
+
+docker tag sync_service:latest sily1/sync_service:latest
+docker push sily1/sync_service:latest
+
 ## ✨ 核心功能
 
 - 🎯 **豆瓣电影同步**：自动同步最新电影信息（每8小时）

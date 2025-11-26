@@ -32,7 +32,7 @@ func InitCron() {
 	if err != nil {
 		zap.L().Error("添加豆瓣同步定时任务失败", zap.Error(err))
 	} else {
-		zap.L().Info("豆瓣同步定时任务已添加", zap.String("schedule", "每8小时执行一次"))
+		zap.L().Info("豆瓣同步定时任务已添加", zap.String("schedule", "6,14,22,每8小时执行一次"))
 	}
 
 	// 启动调度器

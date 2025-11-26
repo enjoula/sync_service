@@ -195,11 +195,12 @@ func (s *DoubanSyncService) fetchAndSaveList(url, referer, defaultType, fixedTyp
 	savedCount := 0
 	for _, item := range listResponse.Items {
 		// 将字符串ID转换为整数
-		sourceID, err := strconv.Atoi(item.ID)
+		sourceIDInt, err := strconv.Atoi(item.ID)
 		if err != nil {
 			zap.L().Warn("无效的ID", zap.String("id", item.ID))
 			continue
 		}
+		sourceID := int64(sourceIDInt)
 
 		// 检查是否已存在
 		_, err = s.videoRepo.FindBySourceID(sourceID)
@@ -219,17 +220,17 @@ func (s *DoubanSyncService) fetchAndSaveList(url, referer, defaultType, fixedTyp
 		}
 
 		// 创建新视频记录
+		score := item.Rating.Value
 		video := &model.Video{
-			ID:           utils.GenerateUserID(), // 使用雪花算法生成ID
-			SourceID:     sourceID,
-			Source:       "douban",
-			Title:        item.Title,
-			Type:         videoType,
-			CoverURL:     item.Pic.Normal,
-			Rating:       fmt.Sprintf("%.1f", item.Rating.Value),
-			EpisodeCount: 0,
-			CreatedAt:    time.Now(),
-			UpdatedAt:    time.Now(),
+			ID:        utils.GenerateUserID(), // 使用雪花算法生成ID
+			SourceID:  sourceID,
+			Source:    "douban",
+			Title:     item.Title,
+			Type:      videoType,
+			CoverURL:  item.Pic.Normal,
+			Score:     &score,
+			CreatedAt: time.Now(),
+			UpdatedAt: time.Now(),
 		}
 
 		if err := s.videoRepo.Create(video); err != nil {
@@ -238,7 +239,7 @@ func (s *DoubanSyncService) fetchAndSaveList(url, referer, defaultType, fixedTyp
 		}
 
 		savedCount++
-		zap.L().Info("保存新视频", zap.String("title", item.Title), zap.Int("source_id", sourceID), zap.String("type", videoType))
+		zap.L().Info("保存新视频", zap.String("title", item.Title), zap.Int64("source_id", sourceID), zap.String("type", videoType))
 	}
 
 	zap.L().Info("列表同步完成", zap.String("type", defaultType), zap.Int("saved_count", savedCount))
@@ -305,7 +306,7 @@ func (s *DoubanSyncService) fetchAndUpdateTVDetails() error {
 
 // fetchAndUpdateAnimeDetails 获取并更新动漫详情
 func (s *DoubanSyncService) fetchAndUpdateAnimeDetails() error {
-	// 查找需要补充详情的动漫（type=anime且year和country都为空，每次处理100条）
+	// 查找需要补充详情的动漫（type=anime且release_date和country_json都为空，每次处理100条）
 	// 注意：第一步调用3时已经保存为type=anime，所以这里从anime查找
 	videos, err := s.videoRepo.FindNeedDetailVideosByType("anime", 100)
 	if err != nil {
@@ -343,7 +344,7 @@ func (s *DoubanSyncService) fetchAndUpdateAnimeDetails() error {
 
 // fetchAndUpdateShowDetails 获取并更新综艺详情
 func (s *DoubanSyncService) fetchAndUpdateShowDetails() error {
-	// 查找需要补充详情的综艺（type=tvshow且year和country都为空，每次处理100条）
+	// 查找需要补充详情的综艺（type=tvshow且release_date和country_json都为空，每次处理100条）
 	// 注意：第一步调用5时已经保存为type=tvshow，所以这里从tvshow查找
 	videos, err := s.videoRepo.FindNeedDetailVideosByType("tvshow", 100)
 	if err != nil {
@@ -381,7 +382,7 @@ func (s *DoubanSyncService) fetchAndUpdateShowDetails() error {
 
 // fetchAndUpdateDocDetails 获取并更新纪录片详情
 func (s *DoubanSyncService) fetchAndUpdateDocDetails() error {
-	// 查找需要补充详情的纪录片（type=doc且year和country都为空，每次处理100条）
+	// 查找需要补充详情的纪录片（type=doc且release_date和country_json都为空，每次处理100条）
 	// 注意：第一步调用4时已经保存为type=doc，所以这里从doc查找
 	videos, err := s.videoRepo.FindNeedDetailVideosByType("doc", 100)
 	if err != nil {
@@ -462,19 +463,39 @@ func (s *DoubanSyncService) fetchAndUpdateSingleMovieDetail(video *model.Video) 
 	html := string(body)
 
 	// 解析HTML，提取信息
-	video.Director = extractFieldWithAttrs(html, "导演")
-	video.Actors = extractFieldWithAttrs(html, "主演")
-	video.Tags = extractGenres(html)
-	video.Country = extractField(html, `<span class="pl">制片国家/地区:</span>`, `<br`)
+	directorStr := extractFieldWithAttrs(html, "导演")
+	actorsStr := extractFieldWithAttrs(html, "主演")
+	tagsStr := extractGenres(html)
+	countryStr := extractField(html, `<span class="pl">制片国家/地区:</span>`, `<br`)
 
-	// 提取上映日期（只保留数字）
-	yearStr := extractField(html, `<span class="pl">上映日期:</span>`, `<br`)
-	video.Year = extractYearNumber(yearStr)
+	// 转换为JSON数组
+	if directorJSON, err := stringToJSONArray(directorStr); err == nil {
+		video.DirectorJSON = directorJSON
+	}
+	if actorsJSON, err := stringToJSONArray(actorsStr); err == nil {
+		video.ActorsJSON = actorsJSON
+	}
+	if tagsJSON, err := stringToJSONArray(tagsStr); err == nil {
+		video.TagsJSON = tagsJSON
+	}
+	if countryJSON, err := stringToJSONArray(countryStr); err == nil {
+		video.CountryJSON = countryJSON
+	}
+
+	// 提取评分
+	if score := extractScore(html); score != nil {
+		video.Score = score
+	}
+
+	// 提取上映日期（完整日期）
+	dateStr := extractField(html, `<span class="pl">上映日期:</span>`, `<br`)
+	video.ReleaseDate = parseDateString(dateStr)
 
 	// 提取片长（只保留数字）
 	runtimeStr := extractField(html, `<span class="pl">片长:</span>`, `<br`)
 	if runtimeStr != "" {
-		video.Runtime = extractNumber(runtimeStr)
+		runtime := int64(extractNumber(runtimeStr))
+		video.Runtime = &runtime
 	}
 
 	// 提取IMDb ID
@@ -484,7 +505,8 @@ func (s *DoubanSyncService) fetchAndUpdateSingleMovieDetail(video *model.Video) 
 	video.Description = extractDescription(html)
 
 	// 设置集数为0（电影）
-	video.EpisodeCount = 0
+	episodeCount := int64(0)
+	video.EpisodeCount = &episodeCount
 
 	// 设置创建时间
 	video.CreatedAt = time.Now()
@@ -497,7 +519,7 @@ func (s *DoubanSyncService) fetchAndUpdateSingleMovieDetail(video *model.Video) 
 		return fmt.Errorf("更新数据库失败: %w", err)
 	}
 
-	zap.L().Info("更新电影详情成功", zap.String("title", video.Title), zap.Int("source_id", video.SourceID))
+	zap.L().Info("更新电影详情成功", zap.String("title", video.Title), zap.Int64("source_id", video.SourceID))
 	return nil
 }
 
@@ -546,19 +568,39 @@ func (s *DoubanSyncService) fetchAndUpdateSingleTVDetail(video *model.Video) err
 	html := string(body)
 
 	// 解析HTML，提取信息
-	video.Director = extractFieldWithAttrs(html, "导演")
-	video.Actors = extractFieldWithAttrs(html, "主演")
-	video.Tags = extractGenres(html)
-	video.Country = extractField(html, `<span class="pl">制片国家/地区:</span>`, `<br`)
+	directorStr := extractFieldWithAttrs(html, "导演")
+	actorsStr := extractFieldWithAttrs(html, "主演")
+	tagsStr := extractGenres(html)
+	countryStr := extractField(html, `<span class="pl">制片国家/地区:</span>`, `<br`)
 
-	// 提取首播日期（只保留数字）
-	yearStr := extractField(html, `<span class="pl">首播:</span>`, `<br`)
-	video.Year = extractYearNumber(yearStr)
+	// 转换为JSON数组
+	if directorJSON, err := stringToJSONArray(directorStr); err == nil {
+		video.DirectorJSON = directorJSON
+	}
+	if actorsJSON, err := stringToJSONArray(actorsStr); err == nil {
+		video.ActorsJSON = actorsJSON
+	}
+	if tagsJSON, err := stringToJSONArray(tagsStr); err == nil {
+		video.TagsJSON = tagsJSON
+	}
+	if countryJSON, err := stringToJSONArray(countryStr); err == nil {
+		video.CountryJSON = countryJSON
+	}
+
+	// 提取评分
+	if score := extractScore(html); score != nil {
+		video.Score = score
+	}
+
+	// 提取首播日期（完整日期）
+	dateStr := extractField(html, `<span class="pl">首播:</span>`, `<br`)
+	video.ReleaseDate = parseDateString(dateStr)
 
 	// 提取集数（只保留数字）
 	episodeStr := extractField(html, `<span class="pl">集数:</span>`, `<br`)
 	if episodeStr != "" {
-		video.EpisodeCount = extractNumber(episodeStr)
+		episodeCount := int64(extractNumber(episodeStr))
+		video.EpisodeCount = &episodeCount
 	}
 
 	// 提取IMDb ID
@@ -578,7 +620,7 @@ func (s *DoubanSyncService) fetchAndUpdateSingleTVDetail(video *model.Video) err
 		return fmt.Errorf("更新数据库失败: %w", err)
 	}
 
-	zap.L().Info("更新电视详情成功", zap.String("title", video.Title), zap.Int("source_id", video.SourceID))
+	zap.L().Info("更新电视详情成功", zap.String("title", video.Title), zap.Int64("source_id", video.SourceID))
 	return nil
 }
 
@@ -627,18 +669,35 @@ func (s *DoubanSyncService) fetchAndUpdateSingleShowDetail(video *model.Video) e
 	html := string(body)
 
 	// 解析HTML，提取信息（综艺没有导演）
-	video.Actors = extractFieldWithAttrs(html, "主演")
-	video.Tags = extractGenres(html)
-	video.Country = extractField(html, `<span class="pl">制片国家/地区:</span>`, `<br`)
+	actorsStr := extractFieldWithAttrs(html, "主演")
+	tagsStr := extractGenres(html)
+	countryStr := extractField(html, `<span class="pl">制片国家/地区:</span>`, `<br`)
 
-	// 提取首播日期（只保留数字）
-	yearStr := extractField(html, `<span class="pl">首播:</span>`, `<br`)
-	video.Year = extractYearNumber(yearStr)
+	// 转换为JSON数组
+	if actorsJSON, err := stringToJSONArray(actorsStr); err == nil {
+		video.ActorsJSON = actorsJSON
+	}
+	if tagsJSON, err := stringToJSONArray(tagsStr); err == nil {
+		video.TagsJSON = tagsJSON
+	}
+	if countryJSON, err := stringToJSONArray(countryStr); err == nil {
+		video.CountryJSON = countryJSON
+	}
+
+	// 提取评分
+	if score := extractScore(html); score != nil {
+		video.Score = score
+	}
+
+	// 提取首播日期（完整日期）
+	dateStr := extractField(html, `<span class="pl">首播:</span>`, `<br`)
+	video.ReleaseDate = parseDateString(dateStr)
 
 	// 提取集数（只保留数字）
 	episodeStr := extractField(html, `<span class="pl">集数:</span>`, `<br`)
 	if episodeStr != "" {
-		video.EpisodeCount = extractNumber(episodeStr)
+		episodeCount := int64(extractNumber(episodeStr))
+		video.EpisodeCount = &episodeCount
 	}
 
 	// 提取简介
@@ -655,7 +714,7 @@ func (s *DoubanSyncService) fetchAndUpdateSingleShowDetail(video *model.Video) e
 		return fmt.Errorf("更新数据库失败: %w", err)
 	}
 
-	zap.L().Info("更新综艺详情成功", zap.String("title", video.Title), zap.Int("source_id", video.SourceID))
+	zap.L().Info("更新综艺详情成功", zap.String("title", video.Title), zap.Int64("source_id", video.SourceID))
 	return nil
 }
 
@@ -704,17 +763,31 @@ func (s *DoubanSyncService) fetchAndUpdateSingleDocDetail(video *model.Video) er
 	html := string(body)
 
 	// 解析HTML，提取信息（纪录片没有导演和主演）
-	video.Tags = extractGenres(html)
-	video.Country = extractField(html, `<span class="pl">制片国家/地区:</span>`, `<br`)
+	tagsStr := extractGenres(html)
+	countryStr := extractField(html, `<span class="pl">制片国家/地区:</span>`, `<br`)
 
-	// 提取首播日期（只保留数字）
-	yearStr := extractField(html, `<span class="pl">首播:</span>`, `<br`)
-	video.Year = extractYearNumber(yearStr)
+	// 转换为JSON数组
+	if tagsJSON, err := stringToJSONArray(tagsStr); err == nil {
+		video.TagsJSON = tagsJSON
+	}
+	if countryJSON, err := stringToJSONArray(countryStr); err == nil {
+		video.CountryJSON = countryJSON
+	}
+
+	// 提取评分
+	if score := extractScore(html); score != nil {
+		video.Score = score
+	}
+
+	// 提取首播日期（完整日期）
+	dateStr := extractField(html, `<span class="pl">首播:</span>`, `<br`)
+	video.ReleaseDate = parseDateString(dateStr)
 
 	// 提取集数（只保留数字）
 	episodeStr := extractField(html, `<span class="pl">集数:</span>`, `<br`)
 	if episodeStr != "" {
-		video.EpisodeCount = extractNumber(episodeStr)
+		episodeCount := int64(extractNumber(episodeStr))
+		video.EpisodeCount = &episodeCount
 	}
 
 	// 提取简介
@@ -731,7 +804,7 @@ func (s *DoubanSyncService) fetchAndUpdateSingleDocDetail(video *model.Video) er
 		return fmt.Errorf("更新数据库失败: %w", err)
 	}
 
-	zap.L().Info("更新纪录片详情成功", zap.String("title", video.Title), zap.Int("source_id", video.SourceID))
+	zap.L().Info("更新纪录片详情成功", zap.String("title", video.Title), zap.Int64("source_id", video.SourceID))
 	return nil
 }
 
@@ -803,15 +876,88 @@ func extractIMDbID(html string) string {
 	return ""
 }
 
-// extractYearNumber 从字符串中提取年份数字（只保留数字）
-func extractYearNumber(str string) string {
-	// 使用正则提取4位数字（年份）
-	re := regexp.MustCompile(`(\d{4})`)
-	matches := re.FindStringSubmatch(str)
-	if len(matches) > 1 {
-		return matches[1]
+// extractScore 提取评分
+func extractScore(html string) *float64 {
+	// 查找 <strong class="ll rating_num" property="v:average">9.7</strong>
+	// 或者 <span class="rating_num">9.7</span>
+	patterns := []string{
+		`<strong[^>]*class="[^"]*rating_num[^"]*"[^>]*property="v:average"[^>]*>([0-9.]+)</strong>`,
+		`<span[^>]*class="[^"]*rating_num[^"]*"[^>]*>([0-9.]+)</span>`,
+		`property="v:average"[^>]*>([0-9.]+)</strong>`,
 	}
-	return ""
+
+	for _, pattern := range patterns {
+		re := regexp.MustCompile(pattern)
+		matches := re.FindStringSubmatch(html)
+		if len(matches) > 1 {
+			scoreStr := strings.TrimSpace(matches[1])
+			if score, err := strconv.ParseFloat(scoreStr, 64); err == nil && score >= 0 && score <= 10 {
+				return &score
+			}
+		}
+	}
+	return nil
+}
+
+// parseDateString 解析日期字符串，支持多种格式
+// 支持的格式：
+// - "2025-01-07"
+// - "2025-01-07(中国大陆)"
+// - "2025年1月7日"
+// - "2025-1-7"
+// - "2025年01月07日"
+// - "2025" (仅年份，转换为该年1月1日)
+func parseDateString(dateStr string) *time.Time {
+	if dateStr == "" {
+		return nil
+	}
+
+	// 清理字符串，移除HTML标签和多余空白
+	dateStr = removeHTMLTags(dateStr)
+	dateStr = strings.TrimSpace(dateStr)
+
+	// 如果包含括号，提取括号前的内容（例如："2025-01-07(中国大陆)" -> "2025-01-07"）
+	if idx := strings.Index(dateStr, "("); idx != -1 {
+		dateStr = strings.TrimSpace(dateStr[:idx])
+	}
+
+	// 尝试解析各种日期格式
+	dateFormats := []string{
+		"2006-01-02",           // 标准格式：2025-01-07
+		"2006-1-2",             // 无前导零：2025-1-7
+		"2006年01月02日",        // 中文格式：2025年01月07日
+		"2006年1月2日",          // 中文格式无前导零：2025年1月7日
+		"2006年01月2日",         // 混合格式
+		"2006年1月02日",         // 混合格式
+		"2006",                 // 仅年份
+	}
+
+	for _, format := range dateFormats {
+		if t, err := time.Parse(format, dateStr); err == nil {
+			// 如果只解析到年份，设置为该年1月1日
+			if format == "2006" {
+				t = time.Date(t.Year(), 1, 1, 0, 0, 0, 0, time.UTC)
+			}
+			// 验证日期范围合理
+			if t.Year() >= 1900 && t.Year() <= 2100 {
+				return &t
+			}
+		}
+	}
+
+	// 如果所有格式都失败，尝试提取年份
+	re := regexp.MustCompile(`(\d{4})`)
+	matches := re.FindStringSubmatch(dateStr)
+	if len(matches) > 1 {
+		if year, err := strconv.Atoi(matches[1]); err == nil {
+			if year >= 1900 && year <= 2100 {
+				date := time.Date(year, 1, 1, 0, 0, 0, 0, time.UTC)
+				return &date
+			}
+		}
+	}
+
+	return nil
 }
 
 // extractDescription 提取简介
@@ -855,3 +1001,21 @@ func removeHTMLTags(html string) string {
 
 	return content
 }
+
+// stringToJSONArray 将逗号分隔的字符串转换为JSON数组
+func stringToJSONArray(str string) ([]byte, error) {
+	if str == "" {
+		return []byte("[]"), nil
+	}
+	// 分割字符串并清理空白
+	parts := strings.Split(str, ",")
+	var items []string
+	for _, part := range parts {
+		trimmed := strings.TrimSpace(part)
+		if trimmed != "" {
+			items = append(items, trimmed)
+		}
+	}
+	return json.Marshal(items)
+}
+

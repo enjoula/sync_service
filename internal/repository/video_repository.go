@@ -9,7 +9,7 @@ import (
 // VideoRepository 视频仓库接口
 type VideoRepository interface {
 	// FindBySourceID 根据来源ID查找视频
-	FindBySourceID(sourceID int) (*model.Video, error)
+	FindBySourceID(sourceID int64) (*model.Video, error)
 
 	// Create 创建视频记录
 	Create(video *model.Video) error
@@ -17,10 +17,10 @@ type VideoRepository interface {
 	// Update 更新视频记录
 	Update(video *model.Video) error
 
-	// FindNeedDetailVideos 查找需要补充详情的视频（source_id不为空且year和country都为空）
+	// FindNeedDetailVideos 查找需要补充详情的视频（source_id不为空且release_date和country_json都为空）
 	FindNeedDetailVideos(limit int) ([]*model.Video, error)
 
-	// FindNeedDetailVideosByType 根据类型查找需要补充详情的视频（source_id不为空且year和country都为空）
+	// FindNeedDetailVideosByType 根据类型查找需要补充详情的视频（source_id不为空且release_date和country_json都为空）
 	FindNeedDetailVideosByType(videoType string, limit int) ([]*model.Video, error)
 }
 
@@ -33,7 +33,7 @@ func NewVideoRepository() VideoRepository {
 }
 
 // FindBySourceID 根据来源ID查找视频
-func (r *videoRepository) FindBySourceID(sourceID int) (*model.Video, error) {
+func (r *videoRepository) FindBySourceID(sourceID int64) (*model.Video, error) {
 	var video model.Video
 	err := database.DB.Where("source_id = ?", sourceID).First(&video).Error
 	if err != nil {
@@ -53,10 +53,10 @@ func (r *videoRepository) Update(video *model.Video) error {
 }
 
 // FindNeedDetailVideos 查找需要补充详情的视频
-// 条件：source_id不为空且country为空（country为空说明详情未获取）
+// 条件：source_id不为空且country_json为空（country_json为空说明详情未获取）
 func (r *videoRepository) FindNeedDetailVideos(limit int) ([]*model.Video, error) {
 	var videos []*model.Video
-	err := database.DB.Where("source_id IS NOT NULL AND source_id != 0 AND (country IS NULL OR country = '')").
+	err := database.DB.Where("source_id IS NOT NULL AND source_id != 0 AND (country_json IS NULL OR country_json = '[]')").
 		Limit(limit).
 		Find(&videos).Error
 	if err != nil {
@@ -66,10 +66,10 @@ func (r *videoRepository) FindNeedDetailVideos(limit int) ([]*model.Video, error
 }
 
 // FindNeedDetailVideosByType 根据类型查找需要补充详情的视频
-// 条件：source_id不为空且year和country都为空
+// 条件：source_id不为空且release_date和country_json都为空
 func (r *videoRepository) FindNeedDetailVideosByType(videoType string, limit int) ([]*model.Video, error) {
 	var videos []*model.Video
-	err := database.DB.Where("source_id IS NOT NULL AND source_id != 0 AND type = ? AND (year IS NULL OR year = '') AND (country IS NULL OR country = '')", videoType).
+	err := database.DB.Where("source_id IS NOT NULL AND source_id != 0 AND type = ? AND (release_date IS NULL) AND (country_json IS NULL OR country_json = '[]')", videoType).
 		Limit(limit).
 		Find(&videos).Error
 	if err != nil {
