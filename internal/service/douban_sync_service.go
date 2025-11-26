@@ -2,10 +2,12 @@
 package service
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strconv"
 	"strings"
@@ -16,6 +18,7 @@ import (
 	"video-service/internal/repository"
 
 	"go.uber.org/zap"
+	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
 
@@ -37,15 +40,29 @@ type DoubanListResponse struct {
 	Items []DoubanItem `json:"items"`
 }
 
+// SearchResponse 搜索播放地址响应
+type SearchResponse struct {
+	Results []SearchResult `json:"results"`
+}
+
+// SearchResult 搜索结果
+type SearchResult struct {
+	Title      string   `json:"title"`
+	SourceName string   `json:"source_name"`
+	Episodes   []string `json:"episodes"`
+}
+
 // DoubanSyncService 豆瓣同步服务
 type DoubanSyncService struct {
-	videoRepo repository.VideoRepository
+	videoRepo   repository.VideoRepository
+	episodeRepo repository.EpisodeRepository
 }
 
 // NewDoubanSyncService 创建豆瓣同步服务实例
 func NewDoubanSyncService() *DoubanSyncService {
 	return &DoubanSyncService{
-		videoRepo: repository.NewVideoRepository(),
+		videoRepo:   repository.NewVideoRepository(),
+		episodeRepo: repository.NewEpisodeRepository(),
 	}
 }
 
@@ -83,6 +100,11 @@ func (s *DoubanSyncService) SyncAll() error {
 	// e. 更新纪录片详细信息（b执行完才能执行）
 	if err := s.fetchAndUpdateDocDetails(); err != nil {
 		zap.L().Error("更新纪录片详情失败", zap.Error(err))
+	}
+
+	// 第三步：搜索播放地址并插入episodes表
+	if err := s.searchAndSavePlayURLs(); err != nil {
+		zap.L().Error("搜索播放地址失败", zap.Error(err))
 	}
 
 	zap.L().Info("豆瓣数据同步完成")
@@ -468,18 +490,18 @@ func (s *DoubanSyncService) fetchAndUpdateSingleMovieDetail(video *model.Video) 
 	tagsStr := extractGenres(html)
 	countryStr := extractField(html, `<span class="pl">制片国家/地区:</span>`, `<br`)
 
-	// 转换为JSON数组
+	// 转换为JSON数组并截断到512字节以内
 	if directorJSON, err := stringToJSONArray(directorStr); err == nil {
-		video.DirectorJSON = directorJSON
+		video.DirectorJSON = truncateJSONArray(directorJSON)
 	}
 	if actorsJSON, err := stringToJSONArray(actorsStr); err == nil {
-		video.ActorsJSON = actorsJSON
+		video.ActorsJSON = truncateJSONArray(actorsJSON)
 	}
 	if tagsJSON, err := stringToJSONArray(tagsStr); err == nil {
-		video.TagsJSON = tagsJSON
+		video.TagsJSON = truncateJSONArray(tagsJSON)
 	}
-	if countryJSON, err := stringToJSONArray(countryStr); err == nil {
-		video.CountryJSON = countryJSON
+	if countryJSON, err := stringToCountryJSONArray(countryStr); err == nil {
+		video.CountryJSON = truncateJSONArray(countryJSON)
 	}
 
 	// 提取评分
@@ -573,18 +595,18 @@ func (s *DoubanSyncService) fetchAndUpdateSingleTVDetail(video *model.Video) err
 	tagsStr := extractGenres(html)
 	countryStr := extractField(html, `<span class="pl">制片国家/地区:</span>`, `<br`)
 
-	// 转换为JSON数组
+	// 转换为JSON数组并截断到512字节以内
 	if directorJSON, err := stringToJSONArray(directorStr); err == nil {
-		video.DirectorJSON = directorJSON
+		video.DirectorJSON = truncateJSONArray(directorJSON)
 	}
 	if actorsJSON, err := stringToJSONArray(actorsStr); err == nil {
-		video.ActorsJSON = actorsJSON
+		video.ActorsJSON = truncateJSONArray(actorsJSON)
 	}
 	if tagsJSON, err := stringToJSONArray(tagsStr); err == nil {
-		video.TagsJSON = tagsJSON
+		video.TagsJSON = truncateJSONArray(tagsJSON)
 	}
-	if countryJSON, err := stringToJSONArray(countryStr); err == nil {
-		video.CountryJSON = countryJSON
+	if countryJSON, err := stringToCountryJSONArray(countryStr); err == nil {
+		video.CountryJSON = truncateJSONArray(countryJSON)
 	}
 
 	// 提取评分
@@ -673,15 +695,15 @@ func (s *DoubanSyncService) fetchAndUpdateSingleShowDetail(video *model.Video) e
 	tagsStr := extractGenres(html)
 	countryStr := extractField(html, `<span class="pl">制片国家/地区:</span>`, `<br`)
 
-	// 转换为JSON数组
+	// 转换为JSON数组并截断到512字节以内
 	if actorsJSON, err := stringToJSONArray(actorsStr); err == nil {
-		video.ActorsJSON = actorsJSON
+		video.ActorsJSON = truncateJSONArray(actorsJSON)
 	}
 	if tagsJSON, err := stringToJSONArray(tagsStr); err == nil {
-		video.TagsJSON = tagsJSON
+		video.TagsJSON = truncateJSONArray(tagsJSON)
 	}
-	if countryJSON, err := stringToJSONArray(countryStr); err == nil {
-		video.CountryJSON = countryJSON
+	if countryJSON, err := stringToCountryJSONArray(countryStr); err == nil {
+		video.CountryJSON = truncateJSONArray(countryJSON)
 	}
 
 	// 提取评分
@@ -766,12 +788,12 @@ func (s *DoubanSyncService) fetchAndUpdateSingleDocDetail(video *model.Video) er
 	tagsStr := extractGenres(html)
 	countryStr := extractField(html, `<span class="pl">制片国家/地区:</span>`, `<br`)
 
-	// 转换为JSON数组
+	// 转换为JSON数组并截断到512字节以内
 	if tagsJSON, err := stringToJSONArray(tagsStr); err == nil {
-		video.TagsJSON = tagsJSON
+		video.TagsJSON = truncateJSONArray(tagsJSON)
 	}
-	if countryJSON, err := stringToJSONArray(countryStr); err == nil {
-		video.CountryJSON = countryJSON
+	if countryJSON, err := stringToCountryJSONArray(countryStr); err == nil {
+		video.CountryJSON = truncateJSONArray(countryJSON)
 	}
 
 	// 提取评分
@@ -923,13 +945,13 @@ func parseDateString(dateStr string) *time.Time {
 
 	// 尝试解析各种日期格式
 	dateFormats := []string{
-		"2006-01-02",           // 标准格式：2025-01-07
-		"2006-1-2",             // 无前导零：2025-1-7
-		"2006年01月02日",        // 中文格式：2025年01月07日
-		"2006年1月2日",          // 中文格式无前导零：2025年1月7日
-		"2006年01月2日",         // 混合格式
-		"2006年1月02日",         // 混合格式
-		"2006",                 // 仅年份
+		"2006-01-02",  // 标准格式：2025-01-07
+		"2006-1-2",    // 无前导零：2025-1-7
+		"2006年01月02日", // 中文格式：2025年01月07日
+		"2006年1月2日",   // 中文格式无前导零：2025年1月7日
+		"2006年01月2日",  // 混合格式
+		"2006年1月02日",  // 混合格式
+		"2006",        // 仅年份
 	}
 
 	for _, format := range dateFormats {
@@ -1019,3 +1041,225 @@ func stringToJSONArray(str string) ([]byte, error) {
 	return json.Marshal(items)
 }
 
+// stringToCountryJSONArray 将国家/地区字符串转换为JSON数组
+// 支持多种分隔符：", "、","、" / "、"/"
+// 每个国家作为一个独立的JSON值存储，如：["中国大陆","美国"]
+func stringToCountryJSONArray(str string) ([]byte, error) {
+	if str == "" {
+		return []byte("[]"), nil
+	}
+
+	// 先替换 " / " 为 ", "，统一分隔符
+	str = strings.ReplaceAll(str, " / ", ", ")
+	str = strings.ReplaceAll(str, "/", ",")
+
+	// 分割字符串并清理空白
+	parts := strings.Split(str, ",")
+	var items []string
+	for _, part := range parts {
+		trimmed := strings.TrimSpace(part)
+		if trimmed != "" {
+			items = append(items, trimmed)
+		}
+	}
+	return json.Marshal(items)
+}
+
+// truncateJSONArray 截断JSON数组，确保不超过512字节
+// 如果超过512字节，循环删除最后一个元素，直到长度低于512字节
+func truncateJSONArray(jsonData []byte) []byte {
+	const maxSize = 512
+
+	// 如果已经小于等于512字节，直接返回
+	if len(jsonData) <= maxSize {
+		return jsonData
+	}
+
+	// 解析JSON数组
+	var items []string
+	if err := json.Unmarshal(jsonData, &items); err != nil {
+		// 如果解析失败，返回空数组
+		return []byte("[]")
+	}
+
+	// 循环删除最后一个元素，直到长度低于512字节
+	for len(items) > 0 {
+		// 重新序列化
+		truncated, err := json.Marshal(items)
+		if err != nil {
+			// 如果序列化失败，返回空数组
+			return []byte("[]")
+		}
+
+		// 如果长度符合要求，返回
+		if len(truncated) <= maxSize {
+			return truncated
+		}
+
+		// 删除最后一个元素
+		items = items[:len(items)-1]
+	}
+
+	// 如果所有元素都被删除，返回空数组
+	return []byte("[]")
+}
+
+// searchAndSavePlayURLs 搜索播放地址并保存到episodes表
+func (s *DoubanSyncService) searchAndSavePlayURLs() error {
+	zap.L().Info("开始搜索播放地址")
+
+	// 查询所有视频的 id 和 title
+	videos, err := s.videoRepo.FindAllVideos()
+	if err != nil {
+		return fmt.Errorf("查询视频列表失败: %w", err)
+	}
+
+	if len(videos) == 0 {
+		zap.L().Info("没有需要搜索播放地址的视频")
+		return nil
+	}
+
+	zap.L().Info("找到需要搜索播放地址的视频", zap.Int("count", len(videos)))
+
+	// 遍历每个视频，搜索播放地址
+	for _, video := range videos {
+		if video.Title == "" {
+			continue
+		}
+
+		if err := s.searchAndSavePlayURLsForVideo(video); err != nil {
+			zap.L().Error("搜索播放地址失败", zap.Error(err), zap.String("title", video.Title), zap.Int64("id", video.ID))
+			continue
+		}
+
+		// 避免请求过快，休眠1秒
+		time.Sleep(1 * time.Second)
+	}
+
+	zap.L().Info("播放地址搜索完成")
+	return nil
+}
+
+// searchAndSavePlayURLsForVideo 为单个视频搜索播放地址并保存
+func (s *DoubanSyncService) searchAndSavePlayURLsForVideo(video *model.Video) error {
+	// 构建搜索URL，使用title替换q参数
+	searchURL := fmt.Sprintf("http://124.222.196.128:3000/api/search?q=%s", url.QueryEscape(video.Title))
+
+	// 创建HTTP请求
+	req, err := http.NewRequest("GET", searchURL, nil)
+	if err != nil {
+		return fmt.Errorf("创建请求失败: %w", err)
+	}
+
+	// 设置请求头
+	req.Header.Set("accept", "application/json, text/plain, */*")
+	req.Header.Set("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36")
+
+	// 设置Cookie
+	req.Header.Set("Cookie", "auth=%257B%2522role%2522%253A%2522user%2522%252C%2522password%2522%253A%252212345%2522%257D")
+
+	// 创建HTTP客户端（跳过SSL验证）
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		},
+	}
+
+	// 发送请求
+	resp, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("请求失败: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// 读取响应
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("读取响应失败: %w", err)
+	}
+
+	// 解析JSON响应
+	var searchResponse SearchResponse
+	if err := json.Unmarshal(body, &searchResponse); err != nil {
+		return fmt.Errorf("解析JSON失败: %w", err)
+	}
+
+	// 遍历搜索结果，只处理第一个匹配的 result
+	for _, result := range searchResponse.Results {
+		// 判断 results.title = videos.title
+		if result.Title != video.Title {
+			continue
+		}
+
+		// 获取 results.episodes 中第一个包含 "vip" 的项
+		var vipEpisode string
+		found := false
+		for _, episode := range result.Episodes {
+			if strings.Contains(strings.ToLower(episode), "vip") {
+				vipEpisode = episode
+				found = true
+				break // 找到第一个包含vip的项就停止
+			}
+		}
+
+		// 如果没有包含vip的项，跳过
+		if !found {
+			continue
+		}
+
+		// 只取第一个包含 vip 的 episode 的第一行
+		// 将episode值按行分割（支持\n和\r\n）
+		lines := strings.Split(strings.ReplaceAll(vipEpisode, "\r\n", "\n"), "\n")
+		
+		// 找到第一个非空行
+		var firstLine string
+		for _, line := range lines {
+			line = strings.TrimSpace(line)
+			if line != "" {
+				firstLine = line
+				break
+			}
+		}
+
+		// 如果没有找到有效行，跳过
+		if firstLine == "" {
+			continue
+		}
+
+		// 将第一行的值转换为JSON字符串格式
+		playURLsJSON, err := json.Marshal(firstLine)
+		if err != nil {
+			zap.L().Error("序列化播放地址失败", zap.Error(err), zap.String("line", firstLine))
+			return nil
+		}
+
+		// 创建episode记录
+		episodeNumber := int64(1)
+		episode := &model.Episode{
+			Channel:         result.SourceName,
+			ChannelID:       nil, // channel_id 为 null
+			VideoID:         video.ID,
+			EpisodeNumber:   &episodeNumber,
+			Name:            result.Title,
+			PlayURLs:        datatypes.JSON(playURLsJSON),
+			DurationSeconds: nil, // duration_seconds 为 null
+			SubtitleURLs:    nil, // subtitle_urls 为 null
+			CreatedAt:       time.Now(),
+			UpdatedAt:       time.Now(),
+		}
+
+		// 插入到数据库
+		if err := s.episodeRepo.Create(episode); err != nil {
+			zap.L().Error("插入episode失败", zap.Error(err), zap.String("title", result.Title), zap.Int64("video_id", video.ID))
+			return nil
+		}
+
+		zap.L().Info("插入episode成功", zap.String("title", result.Title), zap.Int64("video_id", video.ID), zap.Int64("episode_number", episodeNumber), zap.String("play_url", firstLine))
+		
+		// 只处理第一个匹配的 result，处理完就退出
+		break
+	}
+
+	return nil
+}

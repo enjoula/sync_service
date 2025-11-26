@@ -22,6 +22,9 @@ type VideoRepository interface {
 
 	// FindNeedDetailVideosByType 根据类型查找需要补充详情的视频（source_id不为空且release_date和country_json都为空）
 	FindNeedDetailVideosByType(videoType string, limit int) ([]*model.Video, error)
+
+	// FindAllVideos 查找所有视频（仅返回 id 和 title）
+	FindAllVideos() ([]*model.Video, error)
 }
 
 // videoRepository 视频仓库实现
@@ -72,6 +75,16 @@ func (r *videoRepository) FindNeedDetailVideosByType(videoType string, limit int
 	err := database.DB.Where("source_id IS NOT NULL AND source_id != 0 AND type = ? AND (release_date IS NULL) AND (country_json IS NULL OR country_json = '[]')", videoType).
 		Limit(limit).
 		Find(&videos).Error
+	if err != nil {
+		return nil, err
+	}
+	return videos, nil
+}
+
+// FindAllVideos 查找所有视频（仅返回 id 和 title）
+func (r *videoRepository) FindAllVideos() ([]*model.Video, error) {
+	var videos []*model.Video
+	err := database.DB.Select("id", "title").Find(&videos).Error
 	if err != nil {
 		return nil, err
 	}
