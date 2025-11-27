@@ -67,7 +67,7 @@ CREATE TABLE `episodes` (
   `video_id` bigint NOT NULL COMMENT '所属视频ID',
   `episode_number` bigint DEFAULT '1' COMMENT '集数编号',
   `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '剧集名称',
-  `play_urls` json NOT NULL COMMENT '播放地址列表(JSON格式)',
+  `play_urls` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '播放地址',
   `duration_seconds` bigint DEFAULT NULL COMMENT '时长(秒)',
   `subtitle_urls` json DEFAULT NULL COMMENT '字幕地址列表(JSON格式)',
   `created_at` datetime(3) DEFAULT NULL COMMENT '创建时间',

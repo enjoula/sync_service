@@ -18,7 +18,6 @@ import (
 	"video-service/internal/repository"
 
 	"go.uber.org/zap"
-	"gorm.io/datatypes"
 	"gorm.io/gorm"
 )
 
@@ -1227,11 +1226,11 @@ func (s *DoubanSyncService) searchAndSavePlayURLsForVideo(video *model.Video) er
 			continue
 		}
 
-		// 将第一行的值转换为JSON字符串格式
-		playURLsJSON, err := json.Marshal(firstLine)
-		if err != nil {
-			zap.L().Error("序列化播放地址失败", zap.Error(err), zap.String("line", firstLine))
-			return nil
+		// 限制播放地址长度不超过255字符
+		playURL := firstLine
+		if len(playURL) > 255 {
+			playURL = playURL[:255]
+			zap.L().Warn("播放地址长度超过255字符，已截断", zap.String("original", firstLine), zap.String("truncated", playURL))
 		}
 
 		// 创建episode记录
@@ -1242,7 +1241,7 @@ func (s *DoubanSyncService) searchAndSavePlayURLsForVideo(video *model.Video) er
 			VideoID:         video.ID,
 			EpisodeNumber:   &episodeNumber,
 			Name:            result.Title,
-			PlayURLs:        datatypes.JSON(playURLsJSON),
+			PlayURLs:        playURL,
 			DurationSeconds: nil, // duration_seconds 为 null
 			SubtitleURLs:    nil, // subtitle_urls 为 null
 			CreatedAt:       time.Now(),

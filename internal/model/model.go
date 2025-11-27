@@ -73,7 +73,7 @@ type Episode struct {
 	VideoID         int64          `gorm:"column:video_id;index;not null;comment:所属视频ID" json:"video_id"`
 	EpisodeNumber   *int64         `gorm:"column:episode_number;default:1;comment:集数编号" json:"episode_number"`
 	Name            string         `gorm:"size:255;comment:剧集名称" json:"name"`
-	PlayURLs        datatypes.JSON `gorm:"column:play_urls;type:json;not null;comment:播放地址列表(JSON格式)" json:"play_urls"`
+	PlayURLs        string         `gorm:"column:play_urls;size:255;not null;comment:播放地址" json:"play_urls"`
 	DurationSeconds *int64         `gorm:"column:duration_seconds;comment:时长(秒)" json:"duration_seconds"`
 	SubtitleURLs    datatypes.JSON `gorm:"column:subtitle_urls;type:json;comment:字幕地址列表(JSON格式)" json:"subtitle_urls"`
 	CreatedAt       time.Time      `gorm:"autoCreateTime;comment:创建时间" json:"created_at"`
