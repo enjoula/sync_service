@@ -1279,23 +1279,17 @@ func (s *DoubanSyncService) searchAndSavePlayURLsForVideo(video *model.Video) er
 
 			zap.L().Info("插入episode成功", zap.String("title", result.Title), zap.Int64("video_id", video.ID), zap.Int64("episode_number", episodeNumber), zap.String("play_url", firstLine))
 		} else {
-			// 非 movie 类型：优先获取包含 "vip" 的项，如果没有则获取包含 "ryplay7" 的项，如果都没有则按顺序取第一个
-			// 找到匹配的 episode 后，如果该 episode 是数组，则数组的每个值保存一行
+			// 非 movie 类型：episodes 本身就是一个字符串数组
+			// 1. 找到匹配的 episode（优先包含 "vip"，其次 "ryplay7"，否则取第一个）
+			// 2. 直接使用 result.Episodes 数组，遍历每个元素，数组下标+1 作为 episode_number
 			var selectedEpisodes []string
 			found := false
 
 			// 1. 优先查找包含 "vip" 的项
 			for _, episode := range result.Episodes {
 				if strings.Contains(strings.ToLower(episode), "vip") {
-					// 尝试解析 episode 是否为 JSON 数组
-					var episodeArray []string
-					if err := json.Unmarshal([]byte(episode), &episodeArray); err == nil {
-						// 是 JSON 数组，使用数组中的值
-						selectedEpisodes = episodeArray
-					} else {
-						// 不是 JSON 数组，直接使用该字符串
-						selectedEpisodes = []string{episode}
-					}
+					// episodes 本身就是数组，直接使用整个数组
+					selectedEpisodes = result.Episodes
 					found = true
 					break
 				}
@@ -1305,33 +1299,17 @@ func (s *DoubanSyncService) searchAndSavePlayURLsForVideo(video *model.Video) er
 			if !found {
 				for _, episode := range result.Episodes {
 					if strings.Contains(strings.ToLower(episode), "ryplay7") {
-						// 尝试解析 episode 是否为 JSON 数组
-						var episodeArray []string
-						if err := json.Unmarshal([]byte(episode), &episodeArray); err == nil {
-							// 是 JSON 数组，使用数组中的值
-							selectedEpisodes = episodeArray
-						} else {
-							// 不是 JSON 数组，直接使用该字符串
-							selectedEpisodes = []string{episode}
-						}
+						// episodes 本身就是数组，直接使用整个数组
+						selectedEpisodes = result.Episodes
 						found = true
 						break
 					}
 				}
 			}
 
-			// 3. 如果都没有，按顺序取第一个
+			// 3. 如果都没有，按顺序取第一个（使用整个数组）
 			if !found && len(result.Episodes) > 0 {
-				episode := result.Episodes[0]
-				// 尝试解析 episode 是否为 JSON 数组
-				var episodeArray []string
-				if err := json.Unmarshal([]byte(episode), &episodeArray); err == nil {
-					// 是 JSON 数组，使用数组中的值
-					selectedEpisodes = episodeArray
-				} else {
-					// 不是 JSON 数组，直接使用该字符串
-					selectedEpisodes = []string{episode}
-				}
+				selectedEpisodes = result.Episodes
 				found = true
 			}
 
@@ -1340,9 +1318,8 @@ func (s *DoubanSyncService) searchAndSavePlayURLsForVideo(video *model.Video) er
 				continue
 			}
 
-			// 遍历数组的每个值，每个值保存一行
-			episodeIndex := 0
-			for _, episodeValue := range selectedEpisodes {
+			// 遍历数组的每个值，每个值保存一行，数组下标+1 作为 episode_number
+			for index, episodeValue := range selectedEpisodes {
 				episodeValue = strings.TrimSpace(episodeValue)
 				if episodeValue == "" {
 					continue
@@ -1355,9 +1332,8 @@ func (s *DoubanSyncService) searchAndSavePlayURLsForVideo(video *model.Video) er
 					zap.L().Warn("播放地址长度超过255字符，已截断", zap.String("original", episodeValue), zap.String("truncated", playURL))
 				}
 
-				// 创建episode记录
-				episodeIndex++
-				episodeNumber := int64(episodeIndex)
+				// 创建episode记录，数组下标+1 作为 episode_number
+				episodeNumber := int64(index + 1)
 				episode := &model.Episode{
 					Channel:         result.SourceName,
 					ChannelID:       nil, // channel_id 为 null
