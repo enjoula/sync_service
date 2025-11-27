@@ -106,6 +106,11 @@ func (s *DoubanSyncService) SyncAll() error {
 		zap.L().Error("搜索播放地址失败", zap.Error(err))
 	}
 
+	// 第四步：更新存在 episodes 记录的 videos 的 status 为 1
+	if err := s.updateVideosStatusByEpisodes(); err != nil {
+		zap.L().Error("更新视频状态失败", zap.Error(err))
+	}
+
 	zap.L().Info("豆瓣数据同步完成")
 	return nil
 }
@@ -1107,8 +1112,8 @@ func truncateJSONArray(jsonData []byte) []byte {
 func (s *DoubanSyncService) searchAndSavePlayURLs() error {
 	zap.L().Info("开始搜索播放地址")
 
-	// 查询所有视频的 id 和 title
-	videos, err := s.videoRepo.FindAllVideos()
+	// 查询 status 不等于 1 的视频的 id、type、title
+	videos, err := s.videoRepo.FindVideosByStatusNotEqual("1")
 	if err != nil {
 		return fmt.Errorf("查询视频列表失败: %w", err)
 	}
@@ -1191,74 +1196,146 @@ func (s *DoubanSyncService) searchAndSavePlayURLsForVideo(video *model.Video) er
 			continue
 		}
 
-		// 获取 results.episodes 中第一个包含 "vip" 的项
-		var vipEpisode string
+		// 优先获取包含 "vip" 的项，如果没有则获取包含 "ryplay7" 的项，如果都没有则按顺序取第一个
+		var selectedEpisode string
 		found := false
+
+		// 1. 优先查找包含 "vip" 的项
 		for _, episode := range result.Episodes {
 			if strings.Contains(strings.ToLower(episode), "vip") {
-				vipEpisode = episode
+				selectedEpisode = episode
 				found = true
-				break // 找到第一个包含vip的项就停止
-			}
-		}
-
-		// 如果没有包含vip的项，跳过
-		if !found {
-			continue
-		}
-
-		// 只取第一个包含 vip 的 episode 的第一行
-		// 将episode值按行分割（支持\n和\r\n）
-		lines := strings.Split(strings.ReplaceAll(vipEpisode, "\r\n", "\n"), "\n")
-		
-		// 找到第一个非空行
-		var firstLine string
-		for _, line := range lines {
-			line = strings.TrimSpace(line)
-			if line != "" {
-				firstLine = line
 				break
 			}
 		}
 
-		// 如果没有找到有效行，跳过
-		if firstLine == "" {
+		// 2. 如果没有找到 vip，查找包含 "ryplay7" 的项
+		if !found {
+			for _, episode := range result.Episodes {
+				if strings.Contains(strings.ToLower(episode), "ryplay7") {
+					selectedEpisode = episode
+					found = true
+					break
+				}
+			}
+		}
+
+		// 3. 如果都没有，按顺序取第一个
+		if !found && len(result.Episodes) > 0 {
+			selectedEpisode = result.Episodes[0]
+			found = true
+		}
+
+		// 如果没有找到任何项，跳过
+		if !found {
 			continue
 		}
 
-		// 限制播放地址长度不超过255字符
-		playURL := firstLine
-		if len(playURL) > 255 {
-			playURL = playURL[:255]
-			zap.L().Warn("播放地址长度超过255字符，已截断", zap.String("original", firstLine), zap.String("truncated", playURL))
+		// 将episode值按行分割（支持\n和\r\n）
+		lines := strings.Split(strings.ReplaceAll(selectedEpisode, "\r\n", "\n"), "\n")
+
+		// 根据 type 区分处理逻辑
+		if video.Type == "movie" {
+			// movie 类型：只取第一行
+			var firstLine string
+			for _, line := range lines {
+				line = strings.TrimSpace(line)
+				if line != "" {
+					firstLine = line
+					break
+				}
+			}
+
+			if firstLine == "" {
+				continue
+			}
+
+			// 限制播放地址长度不超过255字符
+			playURL := firstLine
+			if len(playURL) > 255 {
+				playURL = playURL[:255]
+				zap.L().Warn("播放地址长度超过255字符，已截断", zap.String("original", firstLine), zap.String("truncated", playURL))
+			}
+
+			// 创建episode记录
+			episodeNumber := int64(1)
+			episode := &model.Episode{
+				Channel:         result.SourceName,
+				ChannelID:       nil, // channel_id 为 null
+				VideoID:         video.ID,
+				EpisodeNumber:   &episodeNumber,
+				Name:            result.Title,
+				PlayURLs:        playURL,
+				DurationSeconds: nil, // duration_seconds 为 null
+				SubtitleURLs:    nil, // subtitle_urls 为 null
+				CreatedAt:       time.Now(),
+				UpdatedAt:       time.Now(),
+			}
+
+			// 插入到数据库
+			if err := s.episodeRepo.Create(episode); err != nil {
+				zap.L().Error("插入episode失败", zap.Error(err), zap.String("title", result.Title), zap.Int64("video_id", video.ID))
+				return nil
+			}
+
+			zap.L().Info("插入episode成功", zap.String("title", result.Title), zap.Int64("video_id", video.ID), zap.Int64("episode_number", episodeNumber), zap.String("play_url", firstLine))
+		} else {
+			// 非 movie 类型：取所有行
+			episodeIndex := 0
+			for _, line := range lines {
+				line = strings.TrimSpace(line)
+				if line == "" {
+					continue
+				}
+
+				// 限制播放地址长度不超过255字符
+				playURL := line
+				if len(playURL) > 255 {
+					playURL = playURL[:255]
+					zap.L().Warn("播放地址长度超过255字符，已截断", zap.String("original", line), zap.String("truncated", playURL))
+				}
+
+				// 创建episode记录
+				episodeIndex++
+				episodeNumber := int64(episodeIndex)
+				episode := &model.Episode{
+					Channel:         result.SourceName,
+					ChannelID:       nil, // channel_id 为 null
+					VideoID:         video.ID,
+					EpisodeNumber:   &episodeNumber,
+					Name:            result.Title,
+					PlayURLs:        playURL,
+					DurationSeconds: nil, // duration_seconds 为 null
+					SubtitleURLs:    nil, // subtitle_urls 为 null
+					CreatedAt:       time.Now(),
+					UpdatedAt:       time.Now(),
+				}
+
+				// 插入到数据库
+				if err := s.episodeRepo.Create(episode); err != nil {
+					zap.L().Error("插入episode失败", zap.Error(err), zap.String("title", result.Title), zap.Int64("video_id", video.ID), zap.Int64("episode_number", episodeNumber))
+					continue
+				}
+
+				zap.L().Info("插入episode成功", zap.String("title", result.Title), zap.Int64("video_id", video.ID), zap.Int64("episode_number", episodeNumber), zap.String("play_url", line))
+			}
 		}
 
-		// 创建episode记录
-		episodeNumber := int64(1)
-		episode := &model.Episode{
-			Channel:         result.SourceName,
-			ChannelID:       nil, // channel_id 为 null
-			VideoID:         video.ID,
-			EpisodeNumber:   &episodeNumber,
-			Name:            result.Title,
-			PlayURLs:        playURL,
-			DurationSeconds: nil, // duration_seconds 为 null
-			SubtitleURLs:    nil, // subtitle_urls 为 null
-			CreatedAt:       time.Now(),
-			UpdatedAt:       time.Now(),
-		}
-
-		// 插入到数据库
-		if err := s.episodeRepo.Create(episode); err != nil {
-			zap.L().Error("插入episode失败", zap.Error(err), zap.String("title", result.Title), zap.Int64("video_id", video.ID))
-			return nil
-		}
-
-		zap.L().Info("插入episode成功", zap.String("title", result.Title), zap.Int64("video_id", video.ID), zap.Int64("episode_number", episodeNumber), zap.String("play_url", firstLine))
-		
 		// 只处理第一个匹配的 result，处理完就退出
 		break
 	}
 
+	return nil
+}
+
+// updateVideosStatusByEpisodes 更新存在 episodes 记录的 videos 的 status 为 1
+func (s *DoubanSyncService) updateVideosStatusByEpisodes() error {
+	zap.L().Info("开始更新视频状态")
+
+	if err := s.videoRepo.UpdateVideosStatusByEpisodes("1"); err != nil {
+		return fmt.Errorf("更新视频状态失败: %w", err)
+	}
+
+	zap.L().Info("视频状态更新完成")
 	return nil
 }

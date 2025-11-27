@@ -25,6 +25,12 @@ type VideoRepository interface {
 
 	// FindAllVideos 查找所有视频（仅返回 id 和 title）
 	FindAllVideos() ([]*model.Video, error)
+
+	// FindVideosByStatusNotEqual 查找 status 不等于指定值的视频（返回 id、type、title）
+	FindVideosByStatusNotEqual(status string) ([]*model.Video, error)
+
+	// UpdateVideosStatusByEpisodes 更新存在 episodes 记录的 videos 的 status
+	UpdateVideosStatusByEpisodes(status string) error
 }
 
 // videoRepository 视频仓库实现
@@ -89,4 +95,31 @@ func (r *videoRepository) FindAllVideos() ([]*model.Video, error) {
 		return nil, err
 	}
 	return videos, nil
+}
+
+// FindVideosByStatusNotEqual 查找 status 不等于指定值的视频（返回 id、type、title）
+func (r *videoRepository) FindVideosByStatusNotEqual(status string) ([]*model.Video, error) {
+	var videos []*model.Video
+	err := database.DB.Select("id", "type", "title").
+		Where("status != ? OR status IS NULL", status).
+		Find(&videos).Error
+	if err != nil {
+		return nil, err
+	}
+	return videos, nil
+}
+
+// UpdateVideosStatusByEpisodes 更新存在 episodes 记录的 videos 的 status
+func (r *videoRepository) UpdateVideosStatusByEpisodes(status string) error {
+	// 执行 SQL: UPDATE videos v JOIN (SELECT DISTINCT video_id FROM episodes) e ON v.id = e.video_id SET v.status = ? WHERE v.status IS NULL
+	err := database.DB.Exec(`
+		UPDATE videos v
+		JOIN (
+			SELECT DISTINCT video_id
+			FROM episodes
+		) e ON v.id = e.video_id
+		SET v.status = ?
+		WHERE v.status IS NULL
+	`, status).Error
+	return err
 }
