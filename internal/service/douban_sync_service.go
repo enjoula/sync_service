@@ -1196,46 +1196,45 @@ func (s *DoubanSyncService) searchAndSavePlayURLsForVideo(video *model.Video) er
 			continue
 		}
 
-		// 优先获取包含 "vip" 的项，如果没有则获取包含 "ryplay7" 的项，如果都没有则按顺序取第一个
-		var selectedEpisode string
-		found := false
+		// 根据 type 区分处理逻辑
+		if video.Type == "movie" {
+			// movie 类型：优先获取包含 "vip" 的项，如果没有则获取包含 "ryplay7" 的项，如果都没有则按顺序取第一个，只取第一行
+			var selectedEpisode string
+			found := false
 
-		// 1. 优先查找包含 "vip" 的项
-		for _, episode := range result.Episodes {
-			if strings.Contains(strings.ToLower(episode), "vip") {
-				selectedEpisode = episode
-				found = true
-				break
-			}
-		}
-
-		// 2. 如果没有找到 vip，查找包含 "ryplay7" 的项
-		if !found {
+			// 1. 优先查找包含 "vip" 的项
 			for _, episode := range result.Episodes {
-				if strings.Contains(strings.ToLower(episode), "ryplay7") {
+				if strings.Contains(strings.ToLower(episode), "vip") {
 					selectedEpisode = episode
 					found = true
 					break
 				}
 			}
-		}
 
-		// 3. 如果都没有，按顺序取第一个
-		if !found && len(result.Episodes) > 0 {
-			selectedEpisode = result.Episodes[0]
-			found = true
-		}
+			// 2. 如果没有找到 vip，查找包含 "ryplay7" 的项
+			if !found {
+				for _, episode := range result.Episodes {
+					if strings.Contains(strings.ToLower(episode), "ryplay7") {
+						selectedEpisode = episode
+						found = true
+						break
+					}
+				}
+			}
 
-		// 如果没有找到任何项，跳过
-		if !found {
-			continue
-		}
+			// 3. 如果都没有，按顺序取第一个
+			if !found && len(result.Episodes) > 0 {
+				selectedEpisode = result.Episodes[0]
+				found = true
+			}
 
-		// 将episode值按行分割（支持\n和\r\n）
-		lines := strings.Split(strings.ReplaceAll(selectedEpisode, "\r\n", "\n"), "\n")
+			// 如果没有找到任何项，跳过
+			if !found {
+				continue
+			}
 
-		// 根据 type 区分处理逻辑
-		if video.Type == "movie" {
+			// 将episode值按行分割（支持\n和\r\n）
+			lines := strings.Split(strings.ReplaceAll(selectedEpisode, "\r\n", "\n"), "\n")
 			// movie 类型：只取第一行
 			var firstLine string
 			for _, line := range lines {
@@ -1280,19 +1279,80 @@ func (s *DoubanSyncService) searchAndSavePlayURLsForVideo(video *model.Video) er
 
 			zap.L().Info("插入episode成功", zap.String("title", result.Title), zap.Int64("video_id", video.ID), zap.Int64("episode_number", episodeNumber), zap.String("play_url", firstLine))
 		} else {
-			// 非 movie 类型：取所有行
+			// 非 movie 类型：优先获取包含 "vip" 的项，如果没有则获取包含 "ryplay7" 的项，如果都没有则按顺序取第一个
+			// 找到匹配的 episode 后，如果该 episode 是数组，则数组的每个值保存一行
+			var selectedEpisodes []string
+			found := false
+
+			// 1. 优先查找包含 "vip" 的项
+			for _, episode := range result.Episodes {
+				if strings.Contains(strings.ToLower(episode), "vip") {
+					// 尝试解析 episode 是否为 JSON 数组
+					var episodeArray []string
+					if err := json.Unmarshal([]byte(episode), &episodeArray); err == nil {
+						// 是 JSON 数组，使用数组中的值
+						selectedEpisodes = episodeArray
+					} else {
+						// 不是 JSON 数组，直接使用该字符串
+						selectedEpisodes = []string{episode}
+					}
+					found = true
+					break
+				}
+			}
+
+			// 2. 如果没有找到 vip，查找包含 "ryplay7" 的项
+			if !found {
+				for _, episode := range result.Episodes {
+					if strings.Contains(strings.ToLower(episode), "ryplay7") {
+						// 尝试解析 episode 是否为 JSON 数组
+						var episodeArray []string
+						if err := json.Unmarshal([]byte(episode), &episodeArray); err == nil {
+							// 是 JSON 数组，使用数组中的值
+							selectedEpisodes = episodeArray
+						} else {
+							// 不是 JSON 数组，直接使用该字符串
+							selectedEpisodes = []string{episode}
+						}
+						found = true
+						break
+					}
+				}
+			}
+
+			// 3. 如果都没有，按顺序取第一个
+			if !found && len(result.Episodes) > 0 {
+				episode := result.Episodes[0]
+				// 尝试解析 episode 是否为 JSON 数组
+				var episodeArray []string
+				if err := json.Unmarshal([]byte(episode), &episodeArray); err == nil {
+					// 是 JSON 数组，使用数组中的值
+					selectedEpisodes = episodeArray
+				} else {
+					// 不是 JSON 数组，直接使用该字符串
+					selectedEpisodes = []string{episode}
+				}
+				found = true
+			}
+
+			// 如果没有找到任何项，跳过
+			if !found || len(selectedEpisodes) == 0 {
+				continue
+			}
+
+			// 遍历数组的每个值，每个值保存一行
 			episodeIndex := 0
-			for _, line := range lines {
-				line = strings.TrimSpace(line)
-				if line == "" {
+			for _, episodeValue := range selectedEpisodes {
+				episodeValue = strings.TrimSpace(episodeValue)
+				if episodeValue == "" {
 					continue
 				}
 
 				// 限制播放地址长度不超过255字符
-				playURL := line
+				playURL := episodeValue
 				if len(playURL) > 255 {
 					playURL = playURL[:255]
-					zap.L().Warn("播放地址长度超过255字符，已截断", zap.String("original", line), zap.String("truncated", playURL))
+					zap.L().Warn("播放地址长度超过255字符，已截断", zap.String("original", episodeValue), zap.String("truncated", playURL))
 				}
 
 				// 创建episode记录
@@ -1317,7 +1377,7 @@ func (s *DoubanSyncService) searchAndSavePlayURLsForVideo(video *model.Video) er
 					continue
 				}
 
-				zap.L().Info("插入episode成功", zap.String("title", result.Title), zap.Int64("video_id", video.ID), zap.Int64("episode_number", episodeNumber), zap.String("play_url", line))
+				zap.L().Info("插入episode成功", zap.String("title", result.Title), zap.Int64("video_id", video.ID), zap.Int64("episode_number", episodeNumber), zap.String("play_url", episodeValue))
 			}
 		}
 
