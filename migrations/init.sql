@@ -5,7 +5,7 @@
  Source Server Type    : MySQL
  Source Server Version : 80405 (8.4.5)
  Source Host           : localhost:6600
- Source Schema         : sync_service
+ Source Schema         : video_service
 
  Target Server Type    : MySQL
  Target Server Version : 80405 (8.4.5)
@@ -167,6 +167,7 @@ CREATE TABLE `videos` (
   `resolution` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '清晰度',
   `episode_count` bigint DEFAULT NULL COMMENT '集数',
   `is_completed` tinyint(1) DEFAULT '0' COMMENT '是否完结(0:未完结,1:已完结)',
+  `is_update` tinyint(1) DEFAULT '0' COMMENT '是否有更新(0:无更新,1:有更新)',
   `created_at` datetime(3) DEFAULT NULL COMMENT '创建时间',
   `updated_at` datetime(3) DEFAULT NULL COMMENT '更新时间',
   PRIMARY KEY (`id`),

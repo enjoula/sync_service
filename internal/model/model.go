@@ -60,6 +60,7 @@ type Video struct {
 	Resolution    string         `gorm:"size:20;comment:清晰度" json:"resolution"`
 	EpisodeCount  *int64         `gorm:"column:episode_count;comment:集数" json:"episode_count"`
 	IsCompleted   bool           `gorm:"column:is_completed;default:0;comment:是否完结(0:未完结,1:已完结)" json:"is_completed"`
+	IsUpdate      bool           `gorm:"column:is_update;default:0;comment:是否有更新(0:无更新,1:有更新)" json:"is_update"`
 	CreatedAt     time.Time      `gorm:"autoCreateTime;comment:创建时间" json:"created_at"`
 	UpdatedAt     time.Time      `gorm:"autoUpdateTime;comment:更新时间" json:"updated_at"`
 }
