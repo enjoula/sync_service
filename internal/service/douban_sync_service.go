@@ -1274,7 +1274,7 @@ func (s *DoubanSyncService) searchAndSavePlayURLsForVideo(video *model.Video) er
 			// 插入到数据库
 			if err := s.episodeRepo.Create(episode); err != nil {
 				zap.L().Error("插入episode失败", zap.Error(err), zap.String("title", result.Title), zap.Int64("video_id", video.ID))
-				return nil
+				return fmt.Errorf("插入episode失败: %w", err)
 			}
 
 			zap.L().Info("插入episode成功", zap.String("title", result.Title), zap.Int64("video_id", video.ID), zap.Int64("episode_number", episodeNumber), zap.String("play_url", firstLine))

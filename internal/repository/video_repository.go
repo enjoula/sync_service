@@ -111,7 +111,8 @@ func (r *videoRepository) FindVideosByStatusNotEqual(status string) ([]*model.Vi
 
 // UpdateVideosStatusByEpisodes 更新存在 episodes 记录的 videos 的 status
 func (r *videoRepository) UpdateVideosStatusByEpisodes(status string) error {
-	// 执行 SQL: UPDATE videos v JOIN (SELECT DISTINCT video_id FROM episodes) e ON v.id = e.video_id SET v.status = ? WHERE v.status IS NULL
+	// 执行 SQL: UPDATE videos v JOIN (SELECT DISTINCT video_id FROM episodes) e ON v.id = e.video_id SET v.status = ? WHERE v.status != ? OR v.status IS NULL
+	// 更新所有 status 不等于目标值的视频（包括 NULL 和其他非目标值）
 	err := database.DB.Exec(`
 		UPDATE videos v
 		JOIN (
@@ -119,7 +120,7 @@ func (r *videoRepository) UpdateVideosStatusByEpisodes(status string) error {
 			FROM episodes
 		) e ON v.id = e.video_id
 		SET v.status = ?
-		WHERE v.status IS NULL
-	`, status).Error
+		WHERE v.status != ? OR v.status IS NULL
+	`, status, status).Error
 	return err
 }
