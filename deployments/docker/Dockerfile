@@ -25,7 +25,7 @@ RUN CGO_ENABLED=0 GOOS=${TARGETOS} GOARCH=${TARGETARCH} go build -o /app/server 
 
 # 多阶段构建：运行阶段
 # 使用alpine作为运行时镜像（体积小）
-FROM --platform=$TARGETPLATFORM alpine:3.18
+FROM alpine:3.18
 
 # 安装CA证书（用于HTTPS连接）和时区数据
 RUN apk add --no-cache ca-certificates tzdata

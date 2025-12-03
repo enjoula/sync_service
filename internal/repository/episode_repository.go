@@ -2,8 +2,11 @@
 package repository
 
 import (
+	"time"
 	"video-service/internal/model"
 	"video-service/pkg/infrastructure/database"
+
+	"gorm.io/gorm"
 )
 
 // EpisodeRepository 剧集仓库接口
@@ -23,9 +26,24 @@ func NewEpisodeRepository() EpisodeRepository {
 	return &episodeRepository{}
 }
 
-// Create 创建剧集记录
+// Create 创建剧集记录，同时更新对应视频的updated_at字段
 func (r *episodeRepository) Create(episode *model.Episode) error {
-	return database.DB.Create(episode).Error
+	// 使用事务确保原子性
+	return database.DB.Transaction(func(tx *gorm.DB) error {
+		// 1. 插入episode记录
+		if err := tx.Create(episode).Error; err != nil {
+			return err
+		}
+
+		// 2. 更新对应video的updated_at字段为当前时间
+		if err := tx.Model(&model.Video{}).
+			Where("id = ?", episode.VideoID).
+			Update("updated_at", time.Now()).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
 }
 
 // FindByVideoID 根据视频ID查找所有剧集
