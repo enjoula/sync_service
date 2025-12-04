@@ -101,7 +101,7 @@ func (r *videoRepository) FindAllVideos() ([]*model.Video, error) {
 func (r *videoRepository) FindVideosByStatusNotEqual(status string) ([]*model.Video, error) {
 	var videos []*model.Video
 	err := database.DB.Select("id", "type", "title").
-		Where("status != ? OR status IS NULL", status).
+		Where("(status != ? OR status IS NULL) AND source = ?", status, "douban").
 		Find(&videos).Error
 	if err != nil {
 		return nil, err
@@ -120,7 +120,7 @@ func (r *videoRepository) UpdateVideosStatusByEpisodes(status string) error {
 			FROM episodes
 		) e ON v.id = e.video_id
 		SET v.status = ?
-		WHERE v.status != ? OR v.status IS NULL
+		WHERE (v.status != ? OR v.status IS NULL) AND v.source = 'douban'
 	`, status, status).Error
 	return err
 }
