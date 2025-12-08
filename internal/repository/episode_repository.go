@@ -16,6 +16,15 @@ type EpisodeRepository interface {
 
 	// FindByVideoID 根据视频ID查找所有剧集
 	FindByVideoID(videoID int64) ([]*model.Episode, error)
+
+	// CountByVideoID 根据视频ID统计episode数量
+	CountByVideoID(videoID int64) (int64, error)
+
+	// FindLastByVideoID 根据视频ID查找最后一条episode记录（按created_at降序）
+	FindLastByVideoID(videoID int64) (*model.Episode, error)
+
+	// ExistsByVideoID 检查视频ID是否存在episode记录
+	ExistsByVideoID(videoID int64) (bool, error)
 }
 
 // episodeRepository 剧集仓库实现
@@ -54,5 +63,41 @@ func (r *episodeRepository) FindByVideoID(videoID int64) ([]*model.Episode, erro
 		return nil, err
 	}
 	return episodes, nil
+}
+
+// CountByVideoID 根据视频ID统计episode数量
+func (r *episodeRepository) CountByVideoID(videoID int64) (int64, error) {
+	var count int64
+	err := database.DB.Model(&model.Episode{}).
+		Where("video_id = ?", videoID).
+		Count(&count).Error
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
+// FindLastByVideoID 根据视频ID查找最后一条episode记录（按created_at降序）
+func (r *episodeRepository) FindLastByVideoID(videoID int64) (*model.Episode, error) {
+	var episode model.Episode
+	err := database.DB.Where("video_id = ?", videoID).
+		Order("created_at DESC").
+		First(&episode).Error
+	if err != nil {
+		return nil, err
+	}
+	return &episode, nil
+}
+
+// ExistsByVideoID 检查视频ID是否存在episode记录
+func (r *episodeRepository) ExistsByVideoID(videoID int64) (bool, error) {
+	var count int64
+	err := database.DB.Model(&model.Episode{}).
+		Where("video_id = ?", videoID).
+		Count(&count).Error
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
 }
 

@@ -29,8 +29,23 @@ type VideoRepository interface {
 	// FindVideosByStatusNotEqual 查找 status 不等于指定值的视频（返回 id、type、title）
 	FindVideosByStatusNotEqual(status string) ([]*model.Video, error)
 
+	// FindVideosNeedUpdateEpisodes 查找需要更新episodes的视频（status不等于0和1，返回 id、type、title）
+	FindVideosNeedUpdateEpisodes() ([]*model.Video, error)
+
 	// UpdateVideosStatusByEpisodes 更新存在 episodes 记录的 videos 的 status
 	UpdateVideosStatusByEpisodes(status string) error
+
+	// UpdateVideoStatus 更新指定视频的status
+	UpdateVideoStatus(videoID int64, status string) error
+
+	// UpdateVideoIsUpdate 更新指定视频的is_update字段
+	UpdateVideoIsUpdate(videoID int64, isUpdate bool) error
+
+	// UpdateVideoIsCompleted 更新指定视频的is_completed字段
+	UpdateVideoIsCompleted(videoID int64, isCompleted bool) error
+
+	// FindByID 根据ID查找视频（返回完整信息）
+	FindByID(videoID int64) (*model.Video, error)
 }
 
 // videoRepository 视频仓库实现
@@ -101,7 +116,20 @@ func (r *videoRepository) FindAllVideos() ([]*model.Video, error) {
 func (r *videoRepository) FindVideosByStatusNotEqual(status string) ([]*model.Video, error) {
 	var videos []*model.Video
 	err := database.DB.Select("id", "type", "title").
-		Where("(status != ? OR status IS NULL) AND source = ?", status, "douban").
+		Where("status != ? OR status IS NULL", status).
+		Find(&videos).Error
+	if err != nil {
+		return nil, err
+	}
+	return videos, nil
+}
+
+// FindVideosNeedUpdateEpisodes 查找需要更新episodes的视频（is_completed不等于1且status不等于0，返回 id、type、title）
+func (r *videoRepository) FindVideosNeedUpdateEpisodes() ([]*model.Video, error) {
+	var videos []*model.Video
+	// 查询条件：is_completed != 1 且 status != '0'（包括status为NULL的情况）
+	err := database.DB.Select("id", "type", "title").
+		Where("is_completed != ? AND (status IS NULL OR status != ?)", true, "0").
 		Find(&videos).Error
 	if err != nil {
 		return nil, err
@@ -120,7 +148,38 @@ func (r *videoRepository) UpdateVideosStatusByEpisodes(status string) error {
 			FROM episodes
 		) e ON v.id = e.video_id
 		SET v.status = ?
-		WHERE (v.status != ? OR v.status IS NULL) AND v.source = 'douban'
+		WHERE v.status != ? OR v.status IS NULL
 	`, status, status).Error
 	return err
+}
+
+// UpdateVideoStatus 更新指定视频的status
+func (r *videoRepository) UpdateVideoStatus(videoID int64, status string) error {
+	return database.DB.Model(&model.Video{}).
+		Where("id = ?", videoID).
+		Update("status", status).Error
+}
+
+// UpdateVideoIsUpdate 更新指定视频的is_update字段
+func (r *videoRepository) UpdateVideoIsUpdate(videoID int64, isUpdate bool) error {
+	return database.DB.Model(&model.Video{}).
+		Where("id = ?", videoID).
+		Update("is_update", isUpdate).Error
+}
+
+// UpdateVideoIsCompleted 更新指定视频的is_completed字段
+func (r *videoRepository) UpdateVideoIsCompleted(videoID int64, isCompleted bool) error {
+	return database.DB.Model(&model.Video{}).
+		Where("id = ?", videoID).
+		Update("is_completed", isCompleted).Error
+}
+
+// FindByID 根据ID查找视频（返回完整信息）
+func (r *videoRepository) FindByID(videoID int64) (*model.Video, error) {
+	var video model.Video
+	err := database.DB.Where("id = ?", videoID).First(&video).Error
+	if err != nil {
+		return nil, err
+	}
+	return &video, nil
 }
