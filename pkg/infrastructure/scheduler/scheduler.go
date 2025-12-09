@@ -18,10 +18,10 @@ var (
 func InitCron() {
 	cronScheduler = cron.New(cron.WithSeconds())
 
-	// 添加豆瓣同步任务：每天1:30、9:30、17:30执行
-	// Cron表达式: 0 30 1,9,17 * * * (每天3次)
+	// 添加豆瓣同步任务：每天02:30、10:30、20:30执行
+	// Cron表达式: 0 30 2,10,20 * * * (每天3次)
 	doubanSyncService := service.NewDoubanSyncService()
-	_, err := cronScheduler.AddFunc("0 30 1,9,17 * * *", func() {
+	_, err := cronScheduler.AddFunc("0 30 2,10,20 * * *", func() {
 		zap.L().Info("开始执行豆瓣同步任务")
 		if err := doubanSyncService.SyncAll(); err != nil {
 			zap.L().Error("豆瓣同步任务执行失败", zap.Error(err))
@@ -32,7 +32,7 @@ func InitCron() {
 	if err != nil {
 		zap.L().Error("添加豆瓣同步定时任务失败", zap.Error(err))
 	} else {
-		zap.L().Info("豆瓣同步定时任务已添加", zap.String("schedule", "每天1:30、9:30、17:30执行"))
+		zap.L().Info("豆瓣同步定时任务已添加", zap.String("schedule", "每天02:30、10:30、20:30执行"))
 	}
 
 	// 启动调度器
