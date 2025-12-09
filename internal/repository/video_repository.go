@@ -124,12 +124,13 @@ func (r *videoRepository) FindVideosByStatusNotEqual(status string) ([]*model.Vi
 	return videos, nil
 }
 
-// FindVideosNeedUpdateEpisodes 查找需要更新episodes的视频（is_completed不等于1且status不等于0，返回 id、type、title）
+// FindVideosNeedUpdateEpisodes 查找需要更新episodes的视频（status不等于0且is_completed不等于1，返回 id、type、title）
 func (r *videoRepository) FindVideosNeedUpdateEpisodes() ([]*model.Video, error) {
 	var videos []*model.Video
-	// 查询条件：is_completed != 1 且 status != '0'（包括status为NULL的情况）
+	// 查询条件：status != '0'（包括NULL）且 is_completed != 1（包括NULL）
+	// 明确处理NULL值，确保查询结果一致
 	err := database.DB.Select("id", "type", "title").
-		Where("is_completed != ? AND (status IS NULL OR status != ?)", true, "0").
+		Where("(status IS NULL OR status != ?) AND (is_completed IS NULL OR is_completed != ?)", "0", true).
 		Find(&videos).Error
 	if err != nil {
 		return nil, err

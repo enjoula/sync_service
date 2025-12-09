@@ -11,6 +11,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"video-service/internal/model"
@@ -1109,7 +1110,7 @@ func truncateJSONArray(jsonData []byte) []byte {
 	return []byte("[]")
 }
 
-// searchAndSavePlayURLs 搜索播放地址并保存到episodes表
+// searchAndSavePlayURLs 搜索播放地址并保存到episodes表（多线程并发执行）
 func (s *DoubanSyncService) searchAndSavePlayURLs() error {
 	zap.L().Info("开始搜索播放地址")
 
@@ -1126,22 +1127,81 @@ func (s *DoubanSyncService) searchAndSavePlayURLs() error {
 
 	zap.L().Info("找到需要搜索播放地址的视频", zap.Int("count", len(videos)))
 
-	// 遍历每个视频，搜索播放地址
+	// 过滤掉title为空的视频
+	validVideos := make([]*model.Video, 0, len(videos))
 	for _, video := range videos {
-		if video.Title == "" {
-			continue
+		if video.Title != "" {
+			validVideos = append(validVideos, video)
 		}
-
-		if err := s.searchAndSavePlayURLsForVideo(video); err != nil {
-			zap.L().Error("搜索播放地址失败", zap.Error(err), zap.String("title", video.Title), zap.Int64("id", video.ID))
-			continue
-		}
-
-		// 避免请求过快，休眠1秒
-		time.Sleep(1 * time.Second)
 	}
 
-	zap.L().Info("播放地址搜索完成")
+	if len(validVideos) == 0 {
+		zap.L().Info("没有有效的视频需要搜索播放地址")
+		return nil
+	}
+
+	// 设置并发数量（可以根据实际情况调整）
+	workerCount := 5
+	if len(validVideos) < workerCount {
+		workerCount = len(validVideos)
+	}
+
+	// 创建任务channel
+	videoChan := make(chan *model.Video, len(validVideos))
+
+	// 将视频放入channel
+	for _, video := range validVideos {
+		videoChan <- video
+	}
+	close(videoChan)
+
+	// 使用WaitGroup等待所有goroutine完成
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	successCount := 0
+	failCount := 0
+
+	// 启动worker goroutines
+	for i := 0; i < workerCount; i++ {
+		wg.Add(1)
+		go func(workerID int) {
+			defer wg.Done()
+
+			for video := range videoChan {
+				if err := s.searchAndSavePlayURLsForVideo(video); err != nil {
+					zap.L().Error("搜索播放地址失败",
+						zap.Error(err),
+						zap.String("title", video.Title),
+						zap.Int64("id", video.ID),
+						zap.Int("worker_id", workerID))
+
+					mu.Lock()
+					failCount++
+					mu.Unlock()
+				} else {
+					mu.Lock()
+					successCount++
+					mu.Unlock()
+
+					zap.L().Info("搜索播放地址成功",
+						zap.String("title", video.Title),
+						zap.Int64("id", video.ID),
+						zap.Int("worker_id", workerID))
+				}
+
+				// 避免请求过快，每个worker处理完一个任务后休眠
+				time.Sleep(1000 * time.Millisecond)
+			}
+		}(i)
+	}
+
+	// 等待所有goroutine完成
+	wg.Wait()
+
+	zap.L().Info("播放地址搜索完成",
+		zap.Int("total", len(validVideos)),
+		zap.Int("success", successCount),
+		zap.Int("failed", failCount))
 	return nil
 }
 
@@ -1279,6 +1339,23 @@ func (s *DoubanSyncService) searchAndSavePlayURLsForVideo(video *model.Video) er
 			}
 
 			zap.L().Info("插入episode成功", zap.String("title", result.Title), zap.Int64("video_id", video.ID), zap.Int64("episode_number", episodeNumber), zap.String("play_url", firstLine))
+
+			// movie类型：检查videos.id在episodes表的video_id是否存在，如果存在则更新status
+			if video.Type != "movie" {
+				// 非movie类型的status更新在else分支中处理
+			} else {
+				exists, err := s.episodeRepo.ExistsByVideoID(video.ID)
+				if err != nil {
+					zap.L().Error("检查episode是否存在失败", zap.Error(err), zap.Int64("video_id", video.ID), zap.String("title", video.Title))
+				} else if exists {
+					// 如果存在，更新videos表status的值为1
+					if err := s.videoRepo.UpdateVideoStatus(video.ID, "1"); err != nil {
+						zap.L().Error("更新视频status失败", zap.Error(err), zap.Int64("video_id", video.ID), zap.String("title", video.Title))
+					} else {
+						zap.L().Info("更新视频status为1", zap.Int64("video_id", video.ID), zap.String("title", video.Title))
+					}
+				}
+			}
 		} else {
 			// 非 movie 类型：episodes 本身就是一个字符串数组
 			// 1. 找到匹配的 episode（优先包含 "vip"，其次 "ryplay7"，否则取第一个）
@@ -1322,13 +1399,13 @@ func (s *DoubanSyncService) searchAndSavePlayURLsForVideo(video *model.Video) er
 			// 检查videos.id在episodes表的video_id是否存在
 			exists, err := s.episodeRepo.ExistsByVideoID(video.ID)
 			if err != nil {
-				zap.L().Error("检查episode是否存在失败", zap.Error(err), zap.Int64("video_id", video.ID))
+				zap.L().Error("检查episode是否存在失败", zap.Error(err), zap.Int64("video_id", video.ID), zap.String("title", video.Title))
 			} else if exists {
 				// 如果存在，更新videos表status的值为1
 				if err := s.videoRepo.UpdateVideoStatus(video.ID, "1"); err != nil {
-					zap.L().Error("更新视频status失败", zap.Error(err), zap.Int64("video_id", video.ID))
+					zap.L().Error("更新视频status失败", zap.Error(err), zap.Int64("video_id", video.ID), zap.String("title", video.Title))
 				} else {
-					zap.L().Info("更新视频status为1", zap.Int64("video_id", video.ID))
+					zap.L().Info("更新视频status为1", zap.Int64("video_id", video.ID), zap.String("title", video.Title))
 				}
 			}
 
@@ -1396,36 +1473,38 @@ func (s *DoubanSyncService) searchAndSavePlayURLsForVideo(video *model.Video) er
 				}
 			}
 
-			// 检查最后一条episode记录的created_at是否为最近三天
-			lastEpisode, err := s.episodeRepo.FindLastByVideoID(video.ID)
-			var isUpdate bool
-			if err == nil && lastEpisode != nil {
-				threeDaysAgo := time.Now().AddDate(0, 0, -3)
-				isUpdate = lastEpisode.CreatedAt.After(threeDaysAgo)
-			} else {
-				// 如果没有episode记录，is_update设为false
-				isUpdate = false
-			}
-			// 更新is_update字段
-			if err := s.videoRepo.UpdateVideoIsUpdate(video.ID, isUpdate); err != nil {
-				zap.L().Error("更新视频is_update失败", zap.Error(err), zap.Int64("video_id", video.ID))
-			} else {
-				zap.L().Info("更新视频is_update", zap.Int64("video_id", video.ID), zap.Bool("is_update", isUpdate))
-			}
+		}
 
-			// 获取视频完整信息，检查episode_count
-			videoInfo, err := s.videoRepo.FindByID(video.ID)
-			if err == nil && videoInfo != nil {
-				// 获取当前episodes总数
-				currentCount, err := s.episodeRepo.CountByVideoID(video.ID)
-				if err == nil && videoInfo.EpisodeCount != nil {
-					// 如果episodes总数等于episode_count，则is_completed为1
-					isCompleted := currentCount == *videoInfo.EpisodeCount
-					if err := s.videoRepo.UpdateVideoIsCompleted(video.ID, isCompleted); err != nil {
-						zap.L().Error("更新视频is_completed失败", zap.Error(err), zap.Int64("video_id", video.ID))
-					} else {
-						zap.L().Info("更新视频is_completed", zap.Int64("video_id", video.ID), zap.Bool("is_completed", isCompleted), zap.Int64("current_count", currentCount), zap.Int64("episode_count", *videoInfo.EpisodeCount))
-					}
+		// 所有类型都需要更新is_update和is_completed（在if-else块外统一处理）
+		// 检查最后一条episode记录的created_at是否为最近三天
+		lastEpisode, err := s.episodeRepo.FindLastByVideoID(video.ID)
+		var isUpdate bool
+		if err == nil && lastEpisode != nil {
+			threeDaysAgo := time.Now().AddDate(0, 0, -3)
+			isUpdate = lastEpisode.CreatedAt.After(threeDaysAgo)
+		} else {
+			// 如果没有episode记录，is_update设为false
+			isUpdate = false
+		}
+		// 更新is_update字段
+		if err := s.videoRepo.UpdateVideoIsUpdate(video.ID, isUpdate); err != nil {
+			zap.L().Error("更新视频is_update失败", zap.Error(err), zap.Int64("video_id", video.ID), zap.String("title", video.Title))
+		} else {
+			zap.L().Info("更新视频is_update", zap.Int64("video_id", video.ID), zap.String("title", video.Title), zap.Bool("is_update", isUpdate))
+		}
+
+		// 获取视频完整信息，检查episode_count
+		videoInfo, err := s.videoRepo.FindByID(video.ID)
+		if err == nil && videoInfo != nil {
+			// 获取当前episodes总数
+			currentCount, err := s.episodeRepo.CountByVideoID(video.ID)
+			if err == nil && videoInfo.EpisodeCount != nil {
+				// 如果episodes总数等于episode_count，则is_completed为1
+				isCompleted := currentCount == *videoInfo.EpisodeCount
+				if err := s.videoRepo.UpdateVideoIsCompleted(video.ID, isCompleted); err != nil {
+					zap.L().Error("更新视频is_completed失败", zap.Error(err), zap.Int64("video_id", video.ID), zap.String("title", video.Title))
+				} else {
+					zap.L().Info("更新视频is_completed", zap.Int64("video_id", video.ID), zap.String("title", video.Title), zap.Bool("is_completed", isCompleted), zap.Int64("current_count", currentCount), zap.Int64("episode_count", *videoInfo.EpisodeCount))
 				}
 			}
 		}
