@@ -100,4 +100,3 @@ func (r *episodeRepository) ExistsByVideoID(videoID int64) (bool, error) {
 	}
 	return count > 0, nil
 }
-

@@ -251,14 +251,14 @@ func (s *DoubanSyncService) fetchAndSaveList(url, referer, defaultType, fixedTyp
 		score := item.Rating.Value
 		video := &model.Video{
 			ID:        utils.GenerateUserID(), // 使用雪花算法生成ID
-			SourceID:  sourceID,
+			SourceID:  &sourceID,
 			Source:    "douban",
 			Title:     item.Title,
 			Type:      videoType,
 			CoverURL:  item.Pic.Normal,
 			Score:     &score,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
+			CreatedAt: &time.Time{},
+			UpdatedAt: &time.Time{},
 		}
 
 		if err := s.videoRepo.Create(video); err != nil {
@@ -356,7 +356,8 @@ func (s *DoubanSyncService) fetchAndUpdateAnimeDetails() error {
 		}
 
 		// type已经是anime，不需要更新
-		video.CreatedAt = time.Now()
+		now := time.Now()
+		video.CreatedAt = &now
 
 		if err := s.videoRepo.Update(video); err != nil {
 			zap.L().Error("更新动漫详情失败", zap.Error(err), zap.String("title", video.Title))
@@ -394,7 +395,8 @@ func (s *DoubanSyncService) fetchAndUpdateShowDetails() error {
 		}
 
 		// type已经是tvshow，不需要更新
-		video.CreatedAt = time.Now()
+		now := time.Now()
+		video.CreatedAt = &now
 
 		if err := s.videoRepo.Update(video); err != nil {
 			zap.L().Error("更新综艺详情失败", zap.Error(err), zap.String("title", video.Title))
@@ -432,7 +434,8 @@ func (s *DoubanSyncService) fetchAndUpdateDocDetails() error {
 		}
 
 		// type已经是doc，不需要更新
-		video.CreatedAt = time.Now()
+		now := time.Now()
+		video.CreatedAt = &now
 
 		if err := s.videoRepo.Update(video); err != nil {
 			zap.L().Error("更新纪录片详情失败", zap.Error(err), zap.String("title", video.Title))
@@ -537,17 +540,18 @@ func (s *DoubanSyncService) fetchAndUpdateSingleMovieDetail(video *model.Video) 
 	video.EpisodeCount = &episodeCount
 
 	// 设置创建时间
-	video.CreatedAt = time.Now()
+	now := time.Now()
+	video.CreatedAt = &now
 
 	// 更新时间
-	video.UpdatedAt = time.Now()
+	video.UpdatedAt = &now
 
 	// 保存到数据库
 	if err := s.videoRepo.Update(video); err != nil {
 		return fmt.Errorf("更新数据库失败: %w", err)
 	}
 
-	zap.L().Info("更新电影详情成功", zap.String("title", video.Title), zap.Int64("source_id", video.SourceID))
+	zap.L().Info("更新电影详情成功", zap.String("title", video.Title), zap.Int64("source_id", *video.SourceID))
 	return nil
 }
 
@@ -638,17 +642,18 @@ func (s *DoubanSyncService) fetchAndUpdateSingleTVDetail(video *model.Video) err
 	video.Description = extractDescription(html)
 
 	// 设置创建时间
-	video.CreatedAt = time.Now()
+	now := time.Now()
+	video.CreatedAt = &now
 
 	// 更新时间
-	video.UpdatedAt = time.Now()
+	video.UpdatedAt = &now
 
 	// 保存到数据库
 	if err := s.videoRepo.Update(video); err != nil {
 		return fmt.Errorf("更新数据库失败: %w", err)
 	}
 
-	zap.L().Info("更新电视详情成功", zap.String("title", video.Title), zap.Int64("source_id", video.SourceID))
+	zap.L().Info("更新电视详情成功", zap.String("title", video.Title), zap.Int64("source_id", *video.SourceID))
 	return nil
 }
 
@@ -732,17 +737,18 @@ func (s *DoubanSyncService) fetchAndUpdateSingleShowDetail(video *model.Video) e
 	video.Description = extractDescription(html)
 
 	// 设置创建时间
-	video.CreatedAt = time.Now()
+	now := time.Now()
+	video.CreatedAt = &now
 
 	// 更新时间
-	video.UpdatedAt = time.Now()
+	video.UpdatedAt = &now
 
 	// 保存到数据库
 	if err := s.videoRepo.Update(video); err != nil {
 		return fmt.Errorf("更新数据库失败: %w", err)
 	}
 
-	zap.L().Info("更新综艺详情成功", zap.String("title", video.Title), zap.Int64("source_id", video.SourceID))
+	zap.L().Info("更新综艺详情成功", zap.String("title", video.Title), zap.Int64("source_id", *video.SourceID))
 	return nil
 }
 
@@ -822,17 +828,18 @@ func (s *DoubanSyncService) fetchAndUpdateSingleDocDetail(video *model.Video) er
 	video.Description = extractDescription(html)
 
 	// 设置创建时间
-	video.CreatedAt = time.Now()
+	now := time.Now()
+	video.CreatedAt = &now
 
 	// 更新时间
-	video.UpdatedAt = time.Now()
+	video.UpdatedAt = &now
 
 	// 保存到数据库
 	if err := s.videoRepo.Update(video); err != nil {
 		return fmt.Errorf("更新数据库失败: %w", err)
 	}
 
-	zap.L().Info("更新纪录片详情成功", zap.String("title", video.Title), zap.Int64("source_id", video.SourceID))
+	zap.L().Info("更新纪录片详情成功", zap.String("title", video.Title), zap.Int64("source_id", *video.SourceID))
 	return nil
 }
 
@@ -1319,6 +1326,7 @@ func (s *DoubanSyncService) searchAndSavePlayURLsForVideo(video *model.Video) er
 
 			// 创建episode记录
 			episodeNumber := int64(1)
+			now := time.Now()
 			episode := &model.Episode{
 				Channel:         result.SourceName,
 				ChannelID:       nil, // channel_id 为 null
@@ -1328,8 +1336,8 @@ func (s *DoubanSyncService) searchAndSavePlayURLsForVideo(video *model.Video) er
 				PlayURLs:        playURL,
 				DurationSeconds: nil, // duration_seconds 为 null
 				SubtitleURLs:    nil, // subtitle_urls 为 null
-				CreatedAt:       time.Now(),
-				UpdatedAt:       time.Now(),
+				CreatedAt:       &now,
+				UpdatedAt:       &now,
 			}
 
 			// 插入到数据库
@@ -1444,6 +1452,7 @@ func (s *DoubanSyncService) searchAndSavePlayURLsForVideo(video *model.Video) er
 
 					// 创建episode记录，episode_number从existingCount+1开始
 					episodeNumber := int64(i + 1)
+					now := time.Now()
 					episode := &model.Episode{
 						Channel:         result.SourceName,
 						ChannelID:       nil, // channel_id 为 null
@@ -1453,8 +1462,8 @@ func (s *DoubanSyncService) searchAndSavePlayURLsForVideo(video *model.Video) er
 						PlayURLs:        playURL,
 						DurationSeconds: nil, // duration_seconds 为 null
 						SubtitleURLs:    nil, // subtitle_urls 为 null
-						CreatedAt:       time.Now(),
-						UpdatedAt:       time.Now(),
+						CreatedAt:       &now,
+						UpdatedAt:       &now,
 					}
 
 					// 插入到数据库
