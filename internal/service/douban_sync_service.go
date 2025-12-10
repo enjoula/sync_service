@@ -1148,7 +1148,7 @@ func (s *DoubanSyncService) searchAndSavePlayURLs() error {
 	}
 
 	// 设置并发数量（可以根据实际情况调整）
-	workerCount := 3
+	workerCount := 2
 	if len(validVideos) < workerCount {
 		workerCount = len(validVideos)
 	}
@@ -1506,18 +1506,20 @@ func (s *DoubanSyncService) searchAndSavePlayURLsForVideo(video *model.Video) er
 			zap.L().Info("更新视频is_update", zap.Int64("video_id", video.ID), zap.String("title", video.Title), zap.Bool("is_update", isUpdate))
 		}
 
-		// 获取视频完整信息，检查episode_count
-		videoInfo, err := s.videoRepo.FindByID(video.ID)
-		if err == nil && videoInfo != nil {
-			// 获取当前episodes总数
-			currentCount, err := s.episodeRepo.CountByVideoID(video.ID)
-			if err == nil && videoInfo.EpisodeCount != nil {
-				// 如果episodes总数等于episode_count，则is_completed为1
-				isCompleted := currentCount == *videoInfo.EpisodeCount
-				if err := s.videoRepo.UpdateVideoIsCompleted(video.ID, isCompleted); err != nil {
-					zap.L().Error("更新视频is_completed失败", zap.Error(err), zap.Int64("video_id", video.ID), zap.String("title", video.Title))
-				} else {
-					zap.L().Info("更新视频is_completed", zap.Int64("video_id", video.ID), zap.String("title", video.Title), zap.Bool("is_completed", isCompleted), zap.Int64("current_count", currentCount), zap.Int64("episode_count", *videoInfo.EpisodeCount))
+		// 获取视频完整信息，检查episode_count（movie类型已在分支中处理，这里只处理非movie类型）
+		if video.Type != "movie" {
+			videoInfo, err := s.videoRepo.FindByID(video.ID)
+			if err == nil && videoInfo != nil {
+				// 获取当前episodes总数
+				currentCount, err := s.episodeRepo.CountByVideoID(video.ID)
+				if err == nil && videoInfo.EpisodeCount != nil {
+					// 如果episodes总数等于episode_count，则is_completed为1
+					isCompleted := currentCount == *videoInfo.EpisodeCount
+					if err := s.videoRepo.UpdateVideoIsCompleted(video.ID, isCompleted); err != nil {
+						zap.L().Error("更新视频is_completed失败", zap.Error(err), zap.Int64("video_id", video.ID), zap.String("title", video.Title))
+					} else {
+						zap.L().Info("更新视频is_completed", zap.Int64("video_id", video.ID), zap.String("title", video.Title), zap.Bool("is_completed", isCompleted), zap.Int64("current_count", currentCount), zap.Int64("episode_count", *videoInfo.EpisodeCount))
+					}
 				}
 			}
 		}
