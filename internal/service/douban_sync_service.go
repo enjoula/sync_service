@@ -354,15 +354,7 @@ func (s *DoubanSyncService) fetchAndUpdateAnimeDetails() error {
 			continue
 		}
 
-		// type已经是anime，不需要更新
-		now := time.Now()
-		video.CreatedAt = &now
-
-		if err := s.videoRepo.Update(video); err != nil {
-			zap.L().Error("更新动漫详情失败", zap.Error(err), zap.String("title", video.Title))
-			continue
-		}
-
+		// fetchAndUpdateSingleTVDetail 内部已经更新了数据库，这里不需要再次更新
 		// 避免请求过快，休眠4秒
 		time.Sleep(4 * time.Second)
 	}
@@ -393,15 +385,7 @@ func (s *DoubanSyncService) fetchAndUpdateShowDetails() error {
 			continue
 		}
 
-		// type已经是tvshow，不需要更新
-		now := time.Now()
-		video.CreatedAt = &now
-
-		if err := s.videoRepo.Update(video); err != nil {
-			zap.L().Error("更新综艺详情失败", zap.Error(err), zap.String("title", video.Title))
-			continue
-		}
-
+		// fetchAndUpdateSingleShowDetail 内部已经更新了数据库，这里不需要再次更新
 		// 避免请求过快，休眠4秒
 		time.Sleep(4 * time.Second)
 	}
@@ -432,15 +416,7 @@ func (s *DoubanSyncService) fetchAndUpdateDocDetails() error {
 			continue
 		}
 
-		// type已经是doc，不需要更新
-		now := time.Now()
-		video.CreatedAt = &now
-
-		if err := s.videoRepo.Update(video); err != nil {
-			zap.L().Error("更新纪录片详情失败", zap.Error(err), zap.String("title", video.Title))
-			continue
-		}
-
+		// fetchAndUpdateSingleDocDetail 内部已经更新了数据库，这里不需要再次更新
 		// 避免请求过快，休眠4秒
 		time.Sleep(4 * time.Second)
 	}
@@ -450,7 +426,13 @@ func (s *DoubanSyncService) fetchAndUpdateDocDetails() error {
 
 // fetchAndUpdateSingleMovieDetail 获取并更新单个电影详情
 func (s *DoubanSyncService) fetchAndUpdateSingleMovieDetail(video *model.Video) error {
-	url := fmt.Sprintf("https://movie.douban.com/subject/%d/", video.SourceID)
+	// 检查 SourceID 是否存在
+	if video.SourceID == nil || *video.SourceID == 0 {
+		return fmt.Errorf("视频的 SourceID 为空或无效: title=%s, id=%d", video.Title, video.ID)
+	}
+
+	url := fmt.Sprintf("https://movie.douban.com/subject/%d/", *video.SourceID)
+	zap.L().Info("准备请求豆瓣详情页", zap.String("title", video.Title), zap.Int64("source_id", *video.SourceID), zap.String("url", url))
 
 	// 创建HTTP请求
 	req, err := http.NewRequest("GET", url, nil)
@@ -484,6 +466,11 @@ func (s *DoubanSyncService) fetchAndUpdateSingleMovieDetail(video *model.Video) 
 	}
 	defer resp.Body.Close()
 
+	// 检查响应状态码
+	if resp.StatusCode != http.StatusOK {
+		zap.L().Warn("HTTP请求返回非200状态码", zap.String("title", video.Title), zap.Int("status_code", resp.StatusCode), zap.String("url", url))
+	}
+
 	// 读取响应
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -492,24 +479,53 @@ func (s *DoubanSyncService) fetchAndUpdateSingleMovieDetail(video *model.Video) 
 
 	html := string(body)
 
+	// 检查HTML是否包含关键内容
+	if len(html) < 1000 {
+		zap.L().Warn("HTML内容过短，可能请求失败", zap.String("title", video.Title), zap.Int("html_length", len(html)), zap.String("url", url))
+	}
+
+	// 检查HTML是否包含关键标识
+	if !strings.Contains(html, "导演") && !strings.Contains(html, "主演") {
+		zap.L().Warn("HTML中未找到关键字段，可能页面结构变化", zap.String("title", video.Title), zap.String("url", url))
+	}
+
 	// 解析HTML，提取信息
 	directorStr := extractFieldWithAttrs(html, "导演")
 	actorsStr := extractFieldWithAttrs(html, "主演")
 	tagsStr := extractGenres(html)
 	countryStr := extractField(html, `<span class="pl">制片国家/地区:</span>`, `<br`)
 
+	// 添加调试日志，查看提取到的原始字符串
+	zap.L().Info("提取到的原始字段",
+		zap.String("title", video.Title),
+		zap.String("director_str", directorStr),
+		zap.String("actors_str", actorsStr),
+		zap.String("tags_str", tagsStr),
+		zap.String("country_str", countryStr),
+		zap.Int("html_length", len(html)),
+	)
+
 	// 转换为JSON数组并截断到512字节以内
+	// 如果提取失败，设置空数组，避免字段被清空
 	if directorJSON, err := stringToJSONArray(directorStr); err == nil {
 		video.DirectorJSON = truncateJSONArray(directorJSON)
+	} else {
+		video.DirectorJSON = []byte("[]")
 	}
 	if actorsJSON, err := stringToJSONArray(actorsStr); err == nil {
 		video.ActorsJSON = truncateJSONArray(actorsJSON)
+	} else {
+		video.ActorsJSON = []byte("[]")
 	}
 	if tagsJSON, err := stringToJSONArray(tagsStr); err == nil {
 		video.TagsJSON = truncateJSONArray(tagsJSON)
+	} else {
+		video.TagsJSON = []byte("[]")
 	}
 	if countryJSON, err := stringToCountryJSONArray(countryStr); err == nil {
 		video.CountryJSON = truncateJSONArray(countryJSON)
+	} else {
+		video.CountryJSON = []byte("[]")
 	}
 
 	// 提取评分
@@ -534,19 +550,40 @@ func (s *DoubanSyncService) fetchAndUpdateSingleMovieDetail(video *model.Video) 
 	// 提取简介
 	video.Description = extractDescription(html)
 
+	// 添加更多调试日志
+	// zap.L().Debug("提取到的其他字段",
+	// 	zap.String("title", video.Title),
+	// 	zap.String("date_str", dateStr),
+	// 	zap.String("runtime_str", runtimeStr),
+	// 	zap.String("imdb_id", video.IMDbID),
+	// 	zap.String("description", video.Description),
+	// 	zap.Int("description_length", len(video.Description)),
+	// )
+
 	// 设置集数为0（电影）
 	episodeCount := int64(0)
 	video.EpisodeCount = &episodeCount
 
-	// 设置创建时间
+	// 更新时间（不修改CreatedAt，保持原始创建时间）
 	now := time.Now()
-	video.CreatedAt = &now
-
-	// 更新时间
 	video.UpdatedAt = &now
 
-	// 保存到数据库
-	if err := s.videoRepo.Update(video); err != nil {
+	// 添加调试日志
+	// zap.L().Info("准备更新电影详情",
+	// 	zap.String("title", video.Title),
+	// 	zap.Int64("id", video.ID),
+	// 	zap.String("description", video.Description),
+	// 	zap.Any("release_date", video.ReleaseDate),
+	// 	zap.String("country_json", string(video.CountryJSON)),
+	// 	zap.String("director_json", string(video.DirectorJSON)),
+	// 	zap.String("actors_json", string(video.ActorsJSON)),
+	// 	zap.String("tags_json", string(video.TagsJSON)),
+	// 	zap.String("imdb_id", video.IMDbID),
+	// 	zap.Any("runtime", video.Runtime),
+	// )
+
+	// 保存到数据库（只更新详情字段，不会覆盖其他字段）
+	if err := s.videoRepo.UpdateDetails(video); err != nil {
 		return fmt.Errorf("更新数据库失败: %w", err)
 	}
 
@@ -556,7 +593,13 @@ func (s *DoubanSyncService) fetchAndUpdateSingleMovieDetail(video *model.Video) 
 
 // fetchAndUpdateSingleTVDetail 获取并更新单个电视详情
 func (s *DoubanSyncService) fetchAndUpdateSingleTVDetail(video *model.Video) error {
-	url := fmt.Sprintf("https://movie.douban.com/subject/%d/", video.SourceID)
+	// 检查 SourceID 是否存在
+	if video.SourceID == nil || *video.SourceID == 0 {
+		return fmt.Errorf("视频的 SourceID 为空或无效: title=%s, id=%d", video.Title, video.ID)
+	}
+
+	url := fmt.Sprintf("https://movie.douban.com/subject/%d/", *video.SourceID)
+	zap.L().Info("准备请求豆瓣详情页", zap.String("title", video.Title), zap.Int64("source_id", *video.SourceID), zap.String("url", url))
 
 	// 创建HTTP请求
 	req, err := http.NewRequest("GET", url, nil)
@@ -605,17 +648,26 @@ func (s *DoubanSyncService) fetchAndUpdateSingleTVDetail(video *model.Video) err
 	countryStr := extractField(html, `<span class="pl">制片国家/地区:</span>`, `<br`)
 
 	// 转换为JSON数组并截断到512字节以内
+	// 如果提取失败，设置空数组，避免字段被清空
 	if directorJSON, err := stringToJSONArray(directorStr); err == nil {
 		video.DirectorJSON = truncateJSONArray(directorJSON)
+	} else {
+		video.DirectorJSON = []byte("[]")
 	}
 	if actorsJSON, err := stringToJSONArray(actorsStr); err == nil {
 		video.ActorsJSON = truncateJSONArray(actorsJSON)
+	} else {
+		video.ActorsJSON = []byte("[]")
 	}
 	if tagsJSON, err := stringToJSONArray(tagsStr); err == nil {
 		video.TagsJSON = truncateJSONArray(tagsJSON)
+	} else {
+		video.TagsJSON = []byte("[]")
 	}
 	if countryJSON, err := stringToCountryJSONArray(countryStr); err == nil {
 		video.CountryJSON = truncateJSONArray(countryJSON)
+	} else {
+		video.CountryJSON = []byte("[]")
 	}
 
 	// 提取评分
@@ -640,15 +692,12 @@ func (s *DoubanSyncService) fetchAndUpdateSingleTVDetail(video *model.Video) err
 	// 提取简介
 	video.Description = extractDescription(html)
 
-	// 设置创建时间
+	// 更新时间（不修改CreatedAt，保持原始创建时间）
 	now := time.Now()
-	video.CreatedAt = &now
-
-	// 更新时间
 	video.UpdatedAt = &now
 
-	// 保存到数据库
-	if err := s.videoRepo.Update(video); err != nil {
+	// 保存到数据库（只更新详情字段，不会覆盖其他字段）
+	if err := s.videoRepo.UpdateDetails(video); err != nil {
 		return fmt.Errorf("更新数据库失败: %w", err)
 	}
 
@@ -658,7 +707,13 @@ func (s *DoubanSyncService) fetchAndUpdateSingleTVDetail(video *model.Video) err
 
 // fetchAndUpdateSingleShowDetail 获取并更新单个综艺详情
 func (s *DoubanSyncService) fetchAndUpdateSingleShowDetail(video *model.Video) error {
-	url := fmt.Sprintf("https://movie.douban.com/subject/%d/", video.SourceID)
+	// 检查 SourceID 是否存在
+	if video.SourceID == nil || *video.SourceID == 0 {
+		return fmt.Errorf("视频的 SourceID 为空或无效: title=%s, id=%d", video.Title, video.ID)
+	}
+
+	url := fmt.Sprintf("https://movie.douban.com/subject/%d/", *video.SourceID)
+	zap.L().Info("准备请求豆瓣详情页", zap.String("title", video.Title), zap.Int64("source_id", *video.SourceID), zap.String("url", url))
 
 	// 创建HTTP请求
 	req, err := http.NewRequest("GET", url, nil)
@@ -735,15 +790,12 @@ func (s *DoubanSyncService) fetchAndUpdateSingleShowDetail(video *model.Video) e
 	// 提取简介
 	video.Description = extractDescription(html)
 
-	// 设置创建时间
+	// 更新时间（不修改CreatedAt，保持原始创建时间）
 	now := time.Now()
-	video.CreatedAt = &now
-
-	// 更新时间
 	video.UpdatedAt = &now
 
-	// 保存到数据库
-	if err := s.videoRepo.Update(video); err != nil {
+	// 保存到数据库（只更新详情字段，不会覆盖其他字段）
+	if err := s.videoRepo.UpdateDetails(video); err != nil {
 		return fmt.Errorf("更新数据库失败: %w", err)
 	}
 
@@ -753,7 +805,13 @@ func (s *DoubanSyncService) fetchAndUpdateSingleShowDetail(video *model.Video) e
 
 // fetchAndUpdateSingleDocDetail 获取并更新单个纪录片详情
 func (s *DoubanSyncService) fetchAndUpdateSingleDocDetail(video *model.Video) error {
-	url := fmt.Sprintf("https://movie.douban.com/subject/%d/", video.SourceID)
+	// 检查 SourceID 是否存在
+	if video.SourceID == nil || *video.SourceID == 0 {
+		return fmt.Errorf("视频的 SourceID 为空或无效: title=%s, id=%d", video.Title, video.ID)
+	}
+
+	url := fmt.Sprintf("https://movie.douban.com/subject/%d/", *video.SourceID)
+	zap.L().Info("准备请求豆瓣详情页", zap.String("title", video.Title), zap.Int64("source_id", *video.SourceID), zap.String("url", url))
 
 	// 创建HTTP请求
 	req, err := http.NewRequest("GET", url, nil)
@@ -826,15 +884,12 @@ func (s *DoubanSyncService) fetchAndUpdateSingleDocDetail(video *model.Video) er
 	// 提取简介
 	video.Description = extractDescription(html)
 
-	// 设置创建时间
+	// 更新时间（不修改CreatedAt，保持原始创建时间）
 	now := time.Now()
-	video.CreatedAt = &now
-
-	// 更新时间
 	video.UpdatedAt = &now
 
-	// 保存到数据库
-	if err := s.videoRepo.Update(video); err != nil {
+	// 保存到数据库（只更新详情字段，不会覆盖其他字段）
+	if err := s.videoRepo.UpdateDetails(video); err != nil {
 		return fmt.Errorf("更新数据库失败: %w", err)
 	}
 

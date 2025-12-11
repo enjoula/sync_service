@@ -17,6 +17,9 @@ type VideoRepository interface {
 	// Update 更新视频记录
 	Update(video *model.Video) error
 
+	// UpdateDetails 更新视频详情字段（只更新指定的详情字段，不会覆盖其他字段）
+	UpdateDetails(video *model.Video) error
+
 	// FindNeedDetailVideos 查找需要补充详情的视频（source_id不为空且release_date和country_json都为空）
 	FindNeedDetailVideos(limit int) ([]*model.Video, error)
 
@@ -71,9 +74,45 @@ func (r *videoRepository) Create(video *model.Video) error {
 	return database.DB.Create(video).Error
 }
 
-// Update 更新视频记录
+// Update 更新视频记录（更新所有字段）
 func (r *videoRepository) Update(video *model.Video) error {
 	return database.DB.Save(video).Error
+}
+
+// UpdateDetails 更新视频详情字段（只更新指定的详情字段，不会覆盖其他字段）
+func (r *videoRepository) UpdateDetails(video *model.Video) error {
+	// 使用 Select 配合 UpdateColumns 来更新指定字段
+	// UpdateColumns 会更新所有字段（包括零值），Select 确保只更新指定的字段
+	updates := map[string]interface{}{
+		"description":   video.Description,
+		"release_date":  video.ReleaseDate,
+		"country_json":  video.CountryJSON,
+		"director_json": video.DirectorJSON,
+		"actors_json":   video.ActorsJSON,
+		"tags_json":     video.TagsJSON,
+		"imdb_id":       video.IMDbID,
+		"runtime":       video.Runtime,
+		"score":         video.Score,
+		"episode_count": video.EpisodeCount,
+		"updated_at":    video.UpdatedAt,
+	}
+
+	return database.DB.Model(video).
+		Where("id = ?", video.ID).
+		Select(
+			"description",
+			"release_date",
+			"country_json",
+			"director_json",
+			"actors_json",
+			"tags_json",
+			"imdb_id",
+			"runtime",
+			"score",
+			"episode_count",
+			"updated_at",
+		).
+		UpdateColumns(updates).Error
 }
 
 // FindNeedDetailVideos 查找需要补充详情的视频
