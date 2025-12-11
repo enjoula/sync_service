@@ -250,15 +250,14 @@ func (s *DoubanSyncService) fetchAndSaveList(url, referer, defaultType, fixedTyp
 		// 创建新视频记录
 		score := item.Rating.Value
 		video := &model.Video{
-			ID:        utils.GenerateUserID(), // 使用雪花算法生成ID
-			SourceID:  &sourceID,
-			Source:    "douban",
-			Title:     item.Title,
-			Type:      videoType,
-			CoverURL:  item.Pic.Normal,
-			Score:     &score,
-			CreatedAt: &time.Time{},
-			UpdatedAt: &time.Time{},
+			ID:       utils.GenerateUserID(), // 使用雪花算法生成ID
+			SourceID: &sourceID,
+			Source:   "douban",
+			Title:    item.Title,
+			Type:     videoType,
+			CoverURL: item.Pic.Normal,
+			Score:    &score,
+			// CreatedAt 和 UpdatedAt 使用 GORM 的 autoCreateTime 和 autoUpdateTime 自动处理
 		}
 
 		if err := s.videoRepo.Create(video); err != nil {
