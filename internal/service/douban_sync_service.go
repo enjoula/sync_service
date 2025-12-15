@@ -561,12 +561,10 @@ func (s *DoubanSyncService) fetchAndUpdateSingleMovieDetail(video *model.Video) 
 	// )
 
 	// 设置集数为0（电影）
-	episodeCount := int64(0)
-	video.EpisodeCount = &episodeCount
+	video.EpisodeCount = 0
 
 	// 更新时间（不修改CreatedAt，保持原始创建时间）
-	now := time.Now()
-	video.UpdatedAt = &now
+	video.UpdatedAt = time.Now()
 
 	// 添加调试日志
 	// zap.L().Info("准备更新电影详情",
@@ -682,8 +680,7 @@ func (s *DoubanSyncService) fetchAndUpdateSingleTVDetail(video *model.Video) err
 	// 提取集数（只保留数字）
 	episodeStr := extractField(html, `<span class="pl">集数:</span>`, `<br`)
 	if episodeStr != "" {
-		episodeCount := int64(extractNumber(episodeStr))
-		video.EpisodeCount = &episodeCount
+		video.EpisodeCount = int64(extractNumber(episodeStr))
 	}
 
 	// 提取IMDb ID
@@ -693,8 +690,7 @@ func (s *DoubanSyncService) fetchAndUpdateSingleTVDetail(video *model.Video) err
 	video.Description = extractDescription(html)
 
 	// 更新时间（不修改CreatedAt，保持原始创建时间）
-	now := time.Now()
-	video.UpdatedAt = &now
+	video.UpdatedAt = time.Now()
 
 	// 保存到数据库（只更新详情字段，不会覆盖其他字段）
 	if err := s.videoRepo.UpdateDetails(video); err != nil {
@@ -783,16 +779,14 @@ func (s *DoubanSyncService) fetchAndUpdateSingleShowDetail(video *model.Video) e
 	// 提取集数（只保留数字）
 	episodeStr := extractField(html, `<span class="pl">集数:</span>`, `<br`)
 	if episodeStr != "" {
-		episodeCount := int64(extractNumber(episodeStr))
-		video.EpisodeCount = &episodeCount
+		video.EpisodeCount = int64(extractNumber(episodeStr))
 	}
 
 	// 提取简介
 	video.Description = extractDescription(html)
 
 	// 更新时间（不修改CreatedAt，保持原始创建时间）
-	now := time.Now()
-	video.UpdatedAt = &now
+	video.UpdatedAt = time.Now()
 
 	// 保存到数据库（只更新详情字段，不会覆盖其他字段）
 	if err := s.videoRepo.UpdateDetails(video); err != nil {
@@ -877,16 +871,14 @@ func (s *DoubanSyncService) fetchAndUpdateSingleDocDetail(video *model.Video) er
 	// 提取集数（只保留数字）
 	episodeStr := extractField(html, `<span class="pl">集数:</span>`, `<br`)
 	if episodeStr != "" {
-		episodeCount := int64(extractNumber(episodeStr))
-		video.EpisodeCount = &episodeCount
+		video.EpisodeCount = int64(extractNumber(episodeStr))
 	}
 
 	// 提取简介
 	video.Description = extractDescription(html)
 
 	// 更新时间（不修改CreatedAt，保持原始创建时间）
-	now := time.Now()
-	video.UpdatedAt = &now
+	video.UpdatedAt = time.Now()
 
 	// 保存到数据库（只更新详情字段，不会覆盖其他字段）
 	if err := s.videoRepo.UpdateDetails(video); err != nil {
@@ -1382,16 +1374,13 @@ func (s *DoubanSyncService) searchAndSavePlayURLsForVideo(video *model.Video) er
 			episodeNumber := int64(1)
 			now := time.Now()
 			episode := &model.Episode{
-				Channel:         result.SourceName,
-				ChannelID:       nil, // channel_id 为 null
-				VideoID:         video.ID,
-				EpisodeNumber:   &episodeNumber,
-				Name:            result.Title,
-				PlayURLs:        playURL,
-				DurationSeconds: nil, // duration_seconds 为 null
-				SubtitleURLs:    nil, // subtitle_urls 为 null
-				CreatedAt:       &now,
-				UpdatedAt:       &now,
+				Channel:       result.SourceName,
+				VideoID:       video.ID,
+				EpisodeNumber: episodeNumber,
+				Name:          result.Title,
+				PlayURLs:      playURL,
+				CreatedAt:     now,
+				UpdatedAt:     now,
 			}
 
 			// 插入到数据库
@@ -1508,16 +1497,13 @@ func (s *DoubanSyncService) searchAndSavePlayURLsForVideo(video *model.Video) er
 					episodeNumber := int64(i + 1)
 					now := time.Now()
 					episode := &model.Episode{
-						Channel:         result.SourceName,
-						ChannelID:       nil, // channel_id 为 null
-						VideoID:         video.ID,
-						EpisodeNumber:   &episodeNumber,
-						Name:            result.Title,
-						PlayURLs:        playURL,
-						DurationSeconds: nil, // duration_seconds 为 null
-						SubtitleURLs:    nil, // subtitle_urls 为 null
-						CreatedAt:       &now,
-						UpdatedAt:       &now,
+						Channel:       result.SourceName,
+						VideoID:       video.ID,
+						EpisodeNumber: episodeNumber,
+						Name:          result.Title,
+						PlayURLs:      playURL,
+						CreatedAt:     now,
+						UpdatedAt:     now,
 					}
 
 					// 插入到数据库
@@ -1566,13 +1552,13 @@ func (s *DoubanSyncService) searchAndSavePlayURLsForVideo(video *model.Video) er
 			if err == nil && videoInfo != nil {
 				// 获取当前episodes总数
 				currentCount, err := s.episodeRepo.CountByVideoID(video.ID)
-				if err == nil && videoInfo.EpisodeCount != nil {
+				if err == nil {
 					// 如果episodes总数等于episode_count，则is_completed为1
-					isCompleted := currentCount == *videoInfo.EpisodeCount
+					isCompleted := currentCount == videoInfo.EpisodeCount
 					if err := s.videoRepo.UpdateVideoIsCompleted(video.ID, isCompleted); err != nil {
 						zap.L().Error("更新视频is_completed失败", zap.Error(err), zap.Int64("video_id", video.ID), zap.String("title", video.Title))
 					} else {
-						zap.L().Info("更新视频is_completed", zap.Int64("video_id", video.ID), zap.String("title", video.Title), zap.Bool("is_completed", isCompleted), zap.Int64("current_count", currentCount), zap.Int64("episode_count", *videoInfo.EpisodeCount))
+						zap.L().Info("更新视频is_completed", zap.Int64("video_id", video.ID), zap.String("title", video.Title), zap.Bool("is_completed", isCompleted), zap.Int64("current_count", currentCount), zap.Int64("episode_count", videoInfo.EpisodeCount))
 					}
 				}
 			}

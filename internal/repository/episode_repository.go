@@ -37,10 +37,32 @@ func NewEpisodeRepository() EpisodeRepository {
 
 // Create 创建剧集记录，同时更新对应视频的updated_at字段
 func (r *episodeRepository) Create(episode *model.Episode) error {
+	// 根据零值收集需要省略的字段，避免写入空数据
+	omitFields := make([]string, 0, 5)
+	if episode.Channel == "" {
+		omitFields = append(omitFields, "Channel")
+	}
+	if episode.ChannelID == 0 {
+		omitFields = append(omitFields, "ChannelID")
+	}
+	if episode.Name == "" {
+		omitFields = append(omitFields, "Name")
+	}
+	if episode.DurationSeconds == 0 {
+		omitFields = append(omitFields, "DurationSeconds")
+	}
+	if len(episode.SubtitleURLs) == 0 || string(episode.SubtitleURLs) == "[]" {
+		omitFields = append(omitFields, "SubtitleURLs")
+	}
+
 	// 使用事务确保原子性
 	return database.DB.Transaction(func(tx *gorm.DB) error {
+		txCreate := tx
+		if len(omitFields) > 0 {
+			txCreate = txCreate.Omit(omitFields...)
+		}
 		// 1. 插入episode记录
-		if err := tx.Create(episode).Error; err != nil {
+		if err := txCreate.Create(episode).Error; err != nil {
 			return err
 		}
 

@@ -68,8 +68,12 @@ func InitMySQL() {
 		&model.Episode{},
 		&model.Danmaku{},
 		&model.UserFavorite{},
+		&model.UserWatchProgress{},
 		&model.FilterInfo{},
 		&model.AppVersion{},
+		&model.MembershipPlan{},
+		&model.UserMembership{},
+		&model.MembershipOrder{},
 	); err != nil {
 		zap.L().Error("auto migrate failed", zap.Error(err))
 	} else {
@@ -84,14 +88,18 @@ func InitMySQL() {
 // GORM 的 AutoMigrate 不会自动添加表注释，需要手动执行 SQL 语句
 func addTableComments() {
 	tableComments := map[string]string{
-		"users":          "用户表",
-		"user_tokens":   "用户登录控制表",
-		"videos":        "视频表",
-		"episodes":      "剧集表",
-		"danmakus":      "弹幕表",
-		"user_favorites": "用户收藏表",
-		"filter_info":   "视频表",
-		"app_versions":  "应用版本表",
+		"users":                 "用户表",
+		"user_tokens":           "用户登录控制表",
+		"videos":                "视频表",
+		"episodes":              "剧集表",
+		"danmakus":              "弹幕表",
+		"user_favorites":        "用户收藏表",
+		"user_watch_progresses": "用户观看进度表",
+		"filter_info":           "视频表",
+		"app_versions":          "应用版本表",
+		"membership_plans":      "会员套餐表",
+		"user_memberships":      "用户会员记录表",
+		"membership_orders":     "会员订单表",
 	}
 
 	for tableName, comment := range tableComments {
