@@ -17,6 +17,7 @@ import (
 	"video-service/internal/model"
 	"video-service/internal/pkg/utils"
 	"video-service/internal/repository"
+	"video-service/pkg/infrastructure/config"
 	"video-service/pkg/infrastructure/database"
 
 	"go.uber.org/zap"
@@ -1260,8 +1261,13 @@ func (s *DoubanSyncService) searchAndSavePlayURLs() error {
 
 // searchAndSavePlayURLsForVideo 为单个视频搜索播放地址并保存
 func (s *DoubanSyncService) searchAndSavePlayURLsForVideo(video *model.Video) error {
+	// 从配置读取搜索API地址，如果没有配置则使用默认值
+	baseURL := config.Cfg.GetString("search_api.base_url")
+	if baseURL == "" {
+		baseURL = "http://124.222.196.128:3000"
+	}
 	// 构建搜索URL，使用title替换q参数
-	searchURL := fmt.Sprintf("http://124.222.196.128:3000/api/search?q=%s", url.QueryEscape(video.Title))
+	searchURL := fmt.Sprintf("%s/api/search?q=%s", baseURL, url.QueryEscape(video.Title))
 
 	// 创建HTTP请求
 	req, err := http.NewRequest("GET", searchURL, nil)
