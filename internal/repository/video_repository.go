@@ -2,6 +2,7 @@
 package repository
 
 import (
+	"time"
 	"video-service/internal/model"
 	"video-service/pkg/infrastructure/database"
 )
@@ -49,6 +50,21 @@ type VideoRepository interface {
 
 	// FindByID 根据ID查找视频（返回完整信息）
 	FindByID(videoID int64) (*model.Video, error)
+
+	// FindVideosByIsUpdate 查找 is_update = 1 的视频（返回 id）
+	FindVideosByIsUpdate() ([]*model.Video, error)
+
+	// FindVideosWithEpisodes 查找所有有episode的视频（返回 id）
+	FindVideosWithEpisodes() ([]*model.Video, error)
+
+	// FindVideosWithEpisodesAndStatus1 查找 status=1 且有episode的视频（返回 id）
+	FindVideosWithEpisodesAndStatus1() ([]*model.Video, error)
+
+	// FindVideosWithEpisodesStatus1AndRecentRelease 查找 status=1、release_date在最近两个月内且有episode的视频（返回 id）
+	FindVideosWithEpisodesStatus1AndRecentRelease() ([]*model.Video, error)
+
+	// FindVideosStatus1AndRecentRelease 查找 status=1、release_date在最近两个月内的视频（返回 id）
+	FindVideosStatus1AndRecentRelease() ([]*model.Video, error)
 }
 
 // videoRepository 视频仓库实现
@@ -222,4 +238,87 @@ func (r *videoRepository) FindByID(videoID int64) (*model.Video, error) {
 		return nil, err
 	}
 	return &video, nil
+}
+
+// FindVideosByIsUpdate 查找 is_update = 1 的视频（返回 id）
+func (r *videoRepository) FindVideosByIsUpdate() ([]*model.Video, error) {
+	var videos []*model.Video
+	err := database.DB.Select("id").
+		Where("is_update = ?", true).
+		Find(&videos).Error
+	if err != nil {
+		return nil, err
+	}
+	return videos, nil
+}
+
+// FindVideosWithEpisodes 查找所有有episode的视频（返回 id）
+func (r *videoRepository) FindVideosWithEpisodes() ([]*model.Video, error) {
+	var videos []*model.Video
+	// 使用 DISTINCT 查询所有有episode的视频ID
+	err := database.DB.Table("videos").
+		Select("DISTINCT videos.id").
+		Joins("INNER JOIN episodes ON videos.id = episodes.video_id").
+		Find(&videos).Error
+	if err != nil {
+		return nil, err
+	}
+	return videos, nil
+}
+
+// FindVideosWithEpisodesAndStatus1 查找 status=1 且有episode的视频（返回 id）
+func (r *videoRepository) FindVideosWithEpisodesAndStatus1() ([]*model.Video, error) {
+	var videos []*model.Video
+	// 使用 DISTINCT 查询 status=1 且有episode的视频ID
+	err := database.DB.Table("videos").
+		Select("DISTINCT videos.id").
+		Joins("INNER JOIN episodes ON videos.id = episodes.video_id").
+		Where("videos.status = ?", "1").
+		Find(&videos).Error
+	if err != nil {
+		return nil, err
+	}
+	return videos, nil
+}
+
+// FindVideosWithEpisodesStatus1AndRecentRelease 查找 status=1、release_date在最近两个月内且有episode的视频（返回 id）
+func (r *videoRepository) FindVideosWithEpisodesStatus1AndRecentRelease() ([]*model.Video, error) {
+	var videos []*model.Video
+	// 计算两个月前的日期（只取日期部分，忽略时间）
+	now := time.Now()
+	twoMonthsAgo := time.Date(now.Year(), now.Month()-2, now.Day(), 0, 0, 0, 0, now.Location())
+
+	// 使用 DISTINCT 查询 status=1、release_date在最近两个月内且有episode的视频ID
+	// release_date IS NOT NULL 确保只处理有上映日期的视频
+	err := database.DB.Table("videos").
+		Select("DISTINCT videos.id").
+		Joins("INNER JOIN episodes ON videos.id = episodes.video_id").
+		Where("videos.status = ?", "1").
+		Where("videos.release_date IS NOT NULL").
+		Where("videos.release_date >= ?", twoMonthsAgo).
+		Find(&videos).Error
+	if err != nil {
+		return nil, err
+	}
+	return videos, nil
+}
+
+// FindVideosStatus1AndRecentRelease 查找 status=1、release_date在最近两个月内的视频（返回 id）
+func (r *videoRepository) FindVideosStatus1AndRecentRelease() ([]*model.Video, error) {
+	var videos []*model.Video
+	// 计算两个月前的日期（只取日期部分，忽略时间）
+	now := time.Now()
+	twoMonthsAgo := time.Date(now.Year(), now.Month()-2, now.Day(), 0, 0, 0, 0, now.Location())
+
+	// 查询 status=1、release_date在最近两个月内的视频ID
+	// release_date IS NOT NULL 确保只处理有上映日期的视频
+	err := database.DB.Select("id").
+		Where("status = ?", "1").
+		Where("release_date IS NOT NULL").
+		Where("release_date >= ?", twoMonthsAgo).
+		Find(&videos).Error
+	if err != nil {
+		return nil, err
+	}
+	return videos, nil
 }

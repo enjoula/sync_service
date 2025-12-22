@@ -103,15 +103,6 @@ type UserFavorite struct {
 	CreatedAt time.Time `gorm:"autoCreateTime;comment:收藏时间" json:"created_at"`         // 收藏时间，自动设置
 }
 
-// UserWatchProgress 用户观看进度模型
-// 记录用户观看每个剧集的进度信息，使用复合主键（UserID + EpisodeID）
-type UserWatchProgress struct {
-	UserID         int64     `gorm:"column:user_id;primaryKey" json:"user_id"`                  // 用户ID，复合主键
-	EpisodeID      int64     `gorm:"column:episode_id;primaryKey" json:"episode_id"`            // 剧集ID，复合主键
-	LastPositionMs int64     `gorm:"column:last_position_ms;default:0" json:"last_position_ms"` // 最后观看位置（毫秒），默认0
-	LastPlayedAt   time.Time `gorm:"column:last_played_at" json:"last_played_at"`               // 最后播放时间
-}
-
 // AppVersion 应用版本模型
 // 存储应用的版本信息和公告信息，通过Type字段区分（version:版本更新, announcement:公告）
 type AppVersion struct {

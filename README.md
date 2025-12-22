@@ -274,7 +274,6 @@ docker-compose -f deployments/docker/docker-compose.yml logs -f mysql
 - `episodes` - 剧集信息表
 - `danmakus` - 弹幕表
 - `user_favorites` - 用户收藏表
-- `user_watch_progress` - 观看进度表
 - `app_versions` - 应用版本表
 
 ### 手动初始化

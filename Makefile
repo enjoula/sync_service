@@ -1,17 +1,20 @@
-.PHONY: help build run test clean docker-build docker-up docker-down init lint
+.PHONY: help build run test clean docker-build docker-buildx-setup docker-buildx docker-buildx-push docker-up docker-down init lint
 
 # 默认目标
 help:
 	@echo "可用命令:"
-	@echo "  make build        - 编译应用程序"
-	@echo "  make run          - 运行应用程序"
-	@echo "  make test         - 运行测试"
-	@echo "  make clean        - 清理编译文件"
-	@echo "  make docker-build - 构建Docker镜像"
-	@echo "  make docker-up    - 启动Docker容器"
-	@echo "  make docker-down  - 停止Docker容器"
-	@echo "  make init         - 初始化Etcd配置"
-	@echo "  make lint         - 运行代码检查"
+	@echo "  make build              - 编译应用程序"
+	@echo "  make run                - 运行应用程序"
+	@echo "  make test               - 运行测试"
+	@echo "  make clean              - 清理编译文件"
+	@echo "  make docker-build       - 构建Docker镜像（单平台）"
+	@echo "  make docker-buildx-setup - 设置Docker Buildx多平台构建环境"
+	@echo "  make docker-buildx      - 构建多平台Docker镜像（不推送）"
+	@echo "  make docker-buildx-push - 构建并推送多平台Docker镜像"
+	@echo "  make docker-up          - 启动Docker容器"
+	@echo "  make docker-down        - 停止Docker容器"
+	@echo "  make init               - 初始化Etcd配置"
+	@echo "  make lint               - 运行代码检查"
 
 # 编译应用程序
 build:
@@ -36,11 +39,34 @@ clean:
 	@rm -rf logs/*.log
 	@echo "清理完成！"
 
-# 构建Docker镜像
+# 构建Docker镜像（单平台）
 docker-build:
 	@echo "正在构建Docker镜像..."
 	@docker build -t video-service:latest -f deployments/docker/Dockerfile .
 	@echo "Docker镜像构建完成！"
+
+# 设置 Docker Buildx 多平台构建环境
+docker-buildx-setup:
+	@echo "正在设置 Docker Buildx 多平台构建环境..."
+	@bash scripts/setup_buildx.sh
+
+# 构建多平台Docker镜像（不推送，仅本地构建）
+docker-buildx:
+	@echo "正在构建多平台Docker镜像（不推送）..."
+	@docker buildx build \
+		--platform linux/amd64,linux/arm64 \
+		-f deployments/docker/Dockerfile \
+		-t sily1/sync_service:latest \
+		--load \
+		.
+	@echo "多平台Docker镜像构建完成！"
+	@echo "注意: --load 只能加载一个平台，如需多平台请使用 docker-buildx-push"
+
+# 构建并推送多平台Docker镜像
+docker-buildx-push:
+	@echo "正在构建并推送多平台Docker镜像..."
+	@bash scripts/docker_buildx.sh
+	@echo "多平台Docker镜像构建并推送完成！"
 
 # 启动Docker容器
 docker-up:

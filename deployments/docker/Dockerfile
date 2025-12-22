@@ -2,6 +2,13 @@
 # 使用golang:1.21-alpine作为构建镜像
 FROM --platform=$BUILDPLATFORM golang:1.21-alpine AS builder
 
+# 获取构建参数（目标平台和架构）
+# 这些参数由 buildx 自动提供，需要在 FROM 之后立即声明
+ARG TARGETPLATFORM
+ARG BUILDPLATFORM
+ARG TARGETOS
+ARG TARGETARCH
+
 # 设置工作目录
 WORKDIR /app
 
@@ -13,10 +20,6 @@ RUN go mod download
 
 # 复制所有源代码
 COPY . .
-
-# 获取构建参数（目标平台和架构）
-ARG TARGETOS
-ARG TARGETARCH
 
 # 交叉编译：根据目标平台构建二进制文件
 # CGO_ENABLED=0 禁用CGO，生成静态链接的二进制文件，便于跨平台部署
