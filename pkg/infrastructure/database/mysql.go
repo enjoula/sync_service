@@ -3,7 +3,6 @@
 package database
 
 import (
-	"fmt"
 	"time"
 	"video-service/internal/model"
 	"video-service/pkg/infrastructure/config"
@@ -80,7 +79,7 @@ func InitMySQL() {
 	}
 
 	// 添加表注释（GORM AutoMigrate 不会自动添加表注释）
-	addTableComments()
+	// addTableComments()
 }
 
 // addTableComments 添加表注释
@@ -108,4 +107,3 @@ func InitMySQL() {
 // 		}
 // 	}
 // 	zap.L().Info("table comments applied")
-}

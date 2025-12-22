@@ -23,20 +23,26 @@ SET FOREIGN_KEY_CHECKS = 0;
 DROP TABLE IF EXISTS `app_versions`;
 CREATE TABLE `app_versions` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '版本ID',
-  `version_code` bigint NOT NULL COMMENT '版本号(数字)',
-  `version_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '版本名称',
+  `type` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT 'version' COMMENT '类型(version:版本更新,announcement:公告)',
+  `version_code` bigint DEFAULT NULL COMMENT '版本号(数字)',
+  `version_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '版本名称',
   `platform` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '平台类型(android/ios/web)',
+  `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci DEFAULT NULL COMMENT '公告标题',
+  `content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci COMMENT '公告内容',
   `download_url` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci COMMENT '下载链接',
   `update_content` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci COMMENT '更新内容描述',
   `is_force` tinyint(1) DEFAULT '0' COMMENT '是否强制更新(0:否,1:是)',
   `file_size` bigint DEFAULT NULL COMMENT '安装包大小(字节)',
+  `sort_order` int DEFAULT '0' COMMENT '排序顺序',
   `is_active` tinyint(1) DEFAULT '1' COMMENT '是否有效(0:无效,1:有效)',
   `created_at` datetime(3) DEFAULT NULL COMMENT '创建时间',
   `updated_at` datetime(3) DEFAULT NULL COMMENT '更新时间',
   PRIMARY KEY (`id`) USING BTREE,
   UNIQUE KEY `idx_app_versions_platform_version` (`platform`,`version_code`) USING BTREE,
-  KEY `idx_app_versions_platform` (`platform`) USING BTREE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci ROW_FORMAT=DYNAMIC COMMENT='应用版本表';
+  KEY `idx_app_versions_platform` (`platform`) USING BTREE,
+  KEY `idx_app_versions_type` (`type`) USING BTREE,
+  KEY `idx_app_versions_is_active` (`is_active`) USING BTREE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci ROW_FORMAT=DYNAMIC COMMENT='应用版本和公告表';
 
 -- ----------------------------
 -- Table structure for danmakus
