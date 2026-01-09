@@ -4,7 +4,6 @@ package database
 
 import (
 	"time"
-	"video-service/internal/model"
 	"video-service/pkg/infrastructure/config"
 
 	"go.uber.org/zap"
@@ -20,7 +19,7 @@ var DB *gorm.DB
 // 1. 从配置中获取数据库连接字符串（优先从Etcd获取）
 // 2. 建立数据库连接
 // 3. 配置连接池参数
-// 4. 执行自动迁移创建表结构
+// 注意：表结构需要通过 migrations/init.sql 手动初始化
 func InitMySQL() {
 	// 从配置中获取MySQL连接字符串
 	dsn := config.Cfg.GetString("mysql.dsn")
@@ -58,28 +57,9 @@ func InitMySQL() {
 
 	zap.L().Info("mysql connected")
 
-	// 执行自动迁移，创建或更新表结构
-	// 迁移所有定义的模型（以 migrations/init.sql 为准）
-	if err := DB.AutoMigrate(
-		&model.User{},
-		&model.UserToken{},
-		&model.Video{},
-		&model.Episode{},
-		&model.Danmaku{},
-		&model.UserFavorite{},
-		&model.FilterInfo{},
-		&model.AppVersion{},
-		&model.MembershipPlan{},
-		&model.UserMembership{},
-		&model.MembershipOrder{},
-	); err != nil {
-		zap.L().Error("auto migrate failed", zap.Error(err))
-	} else {
-		zap.L().Info("auto migrate applied")
-	}
-
-	// 添加表注释（GORM AutoMigrate 不会自动添加表注释）
-	// addTableComments()
+	// 注意：不再执行自动迁移
+	// 表结构需要通过执行 migrations/init.sql 文件手动初始化
+	// 这样可以更好地控制数据库结构变更，避免意外的表结构修改
 }
 
 // addTableComments 添加表注释

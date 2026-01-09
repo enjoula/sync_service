@@ -17,7 +17,7 @@ import (
 // 按照以下顺序初始化各个组件：
 // 1. 配置管理（支持本地配置文件和Etcd远程配置）
 // 2. 日志系统（文件和控制台双输出）
-// 3. 数据库连接（MySQL，包含自动迁移）
+// 3. 数据库连接（MySQL）
 // 4. 缓存连接（Redis）
 // 5. 监控指标（Prometheus）
 // 6. 定时任务调度器
@@ -30,7 +30,7 @@ func main() {
 	logger.InitLogger()
 	log := zap.L()
 
-	// 初始化MySQL数据库连接，并执行自动迁移创建表结构
+	// 初始化MySQL数据库连接
 	database.InitMySQL()
 
 	// 初始化Redis缓存连接

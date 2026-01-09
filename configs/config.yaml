@@ -9,7 +9,8 @@ etcd:
   
 # 搜索API配置
 search_api:
-  base_url: "http://124.222.196.128:3000"
+  # base_url: "http://124.222.196.128:3000"
+  base_url: "http://192.168.1.186:3000" 
   
 prometheus:
   global:

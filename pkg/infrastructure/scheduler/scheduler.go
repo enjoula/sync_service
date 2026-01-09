@@ -18,8 +18,8 @@ var (
 func InitCron() {
 	cronScheduler = cron.New(cron.WithSeconds())
 
-	// 添加豆瓣同步任务：每天05:30、14:30、20:30执行
-	// Cron表达式: 0 30 5,14,20 * * * (每天3次)
+	// 添加豆瓣同步任务：每天06:00、15:00、21:00执行
+	// Cron表达式: 0 0 6,15,21 * * * (每天3次)
 	doubanSyncService := service.NewDoubanSyncService()
 	_, err := cronScheduler.AddFunc("0 30 5,14,20 * * *", func() {
 		zap.L().Info("开始执行豆瓣同步任务")

@@ -1409,9 +1409,11 @@ func (s *DoubanSyncService) searchAndSavePlayURLsForVideo(video *model.Video) er
 					zap.L().Error("检查episode是否存在失败", zap.Error(err), zap.Int64("video_id", video.ID), zap.String("title", video.Title))
 				} else if exists {
 					// 更新videos表status的值为1
-					if err := s.videoRepo.UpdateVideoStatus(video.ID, "1"); err != nil {
+					updated, err := s.videoRepo.UpdateVideoStatus(video.ID, "1")
+					if err != nil {
 						zap.L().Error("更新视频status失败", zap.Error(err), zap.Int64("video_id", video.ID), zap.String("title", video.Title))
-					} else {
+					} else if updated {
+						// 只有真正执行了更新才打印日志
 						zap.L().Info("更新视频status为1", zap.Int64("video_id", video.ID), zap.String("title", video.Title))
 					}
 					// movie类型只有单集，直接标记is_completed为1
@@ -1468,9 +1470,11 @@ func (s *DoubanSyncService) searchAndSavePlayURLsForVideo(video *model.Video) er
 				zap.L().Error("检查episode是否存在失败", zap.Error(err), zap.Int64("video_id", video.ID), zap.String("title", video.Title))
 			} else if exists {
 				// 如果存在，更新videos表status的值为1
-				if err := s.videoRepo.UpdateVideoStatus(video.ID, "1"); err != nil {
+				updated, err := s.videoRepo.UpdateVideoStatus(video.ID, "1")
+				if err != nil {
 					zap.L().Error("更新视频status失败", zap.Error(err), zap.Int64("video_id", video.ID), zap.String("title", video.Title))
-				} else {
+				} else if updated {
+					// 只有真正执行了更新才打印日志
 					zap.L().Info("更新视频status为1", zap.Int64("video_id", video.ID), zap.String("title", video.Title))
 				}
 			}
@@ -1580,66 +1584,105 @@ func (s *DoubanSyncService) updateVideosStatusByEpisodes() error {
 }
 
 // updateIsUpdateByLastEpisode 根据最后一集视频的时间更新 is_update 字段
-// 查询 status=1、release_date在最近两个月内的视频，检查其最后一集视频的更新时间
-// 如果最后一集视频距当前时间未超过3天，则将 is_update 改为 1
-// 如果最后一集视频距当前时间超过3天，则将 is_update 改为 0
-// 如果没有episode记录，则将 is_update 改为 0
+// 查询 created_at在最近两个月内且(status=1或is_update=1)的视频，检查其最后一集视频的创建时间
+// 如果最后一集视频距当前时间未超过2天，则将 is_update 改为 1
+// 如果最后一集视频距当前时间超过2天，则将 is_update 改为 0
+// 如果没有episode记录，则将 status 设为空
 func (s *DoubanSyncService) updateIsUpdateByLastEpisode() error {
 	zap.L().Info("开始更新is_update字段")
 
-	// 查询 status=1、release_date在最近两个月内的视频
-	videos, err := s.videoRepo.FindVideosStatus1AndRecentRelease()
+	// 查询 created_at在最近两个月内且(status=1或is_update=1)的视频
+	videos, err := s.videoRepo.FindVideosStatus1OrIsUpdate1AndRecentCreated()
 	if err != nil {
-		return fmt.Errorf("查询status=1、release_date在最近两个月内的视频失败: %w", err)
+		return fmt.Errorf("查询created_at在最近两个月内且(status=1或is_update=1)的视频失败: %w", err)
 	}
 
 	if len(videos) == 0 {
-		zap.L().Info("没有status=1、release_date在最近两个月内的视频需要处理")
+		zap.L().Info("没有created_at在最近两个月内且(status=1或is_update=1)的视频需要处理")
 		return nil
 	}
 
 	zap.L().Info("找到需要检查的视频", zap.Int("count", len(videos)))
 
-	threeDaysAgo := time.Now().AddDate(0, 0, -3)
+	twoDaysAgo := time.Now().AddDate(0, 0, -2)
 	updatedTo1Count := 0
 	updatedTo0Count := 0
 	noChangeCount := 0
 
 	// 遍历每个视频，检查其最后一集视频的时间
 	for _, video := range videos {
+		// 先查询视频的完整信息，获取当前的 is_update 状态
+		videoInfo, err := s.videoRepo.FindByID(video.ID)
+		if err != nil {
+			zap.L().Error("查询视频信息失败", zap.Error(err), zap.Int64("video_id", video.ID))
+			continue
+		}
+
 		// 查询该视频的最后一集
 		lastEpisode, err := s.episodeRepo.FindLastByVideoID(video.ID)
 		if err != nil {
-			// 如果没有episode记录，将is_update改为0
-			if err := s.videoRepo.UpdateVideoIsUpdate(video.ID, false); err != nil {
-				zap.L().Error("更新视频is_update失败", zap.Error(err), zap.Int64("video_id", video.ID))
+			// 如果没有episode记录，将status设为空
+			if videoInfo.Status != "" {
+				updated, err := s.videoRepo.UpdateVideoStatus(video.ID, "")
+				if err != nil {
+					zap.L().Error("更新视频status失败", zap.Error(err), zap.Int64("video_id", video.ID))
+				} else if updated {
+					// 只有真正执行了更新才打印日志
+					updatedTo0Count++
+					zap.L().Info("视频没有episode记录，将status设为空", zap.Int64("video_id", video.ID))
+				} else {
+					// 值已经是目标值，不打印日志
+					noChangeCount++
+				}
 			} else {
-				updatedTo0Count++
-				zap.L().Info("视频没有episode记录，将is_update改为0", zap.Int64("video_id", video.ID))
+				// 值已经是目标值，不打印日志
+				noChangeCount++
 			}
 			continue
 		}
 
-		// 检查最后一集视频的更新时间是否超过3天（使用UpdatedAt而不是CreatedAt）
-		if lastEpisode.UpdatedAt.Before(threeDaysAgo) {
-			// 超过3天，将is_update改为0
-			if err := s.videoRepo.UpdateVideoIsUpdate(video.ID, false); err != nil {
-				zap.L().Error("更新视频is_update失败", zap.Error(err), zap.Int64("video_id", video.ID))
+		// 检查最后一集视频的创建时间是否超过2天（使用CreatedAt）
+		if lastEpisode.CreatedAt.Before(twoDaysAgo) {
+			// 超过2天，如果 is_update 不是 0，才更新为 0
+			if videoInfo.IsUpdate {
+				updated, err := s.videoRepo.UpdateVideoIsUpdate(video.ID, false)
+				if err != nil {
+					zap.L().Error("更新视频is_update失败", zap.Error(err), zap.Int64("video_id", video.ID))
+				} else if updated {
+					// 只有真正执行了更新才打印日志
+					updatedTo0Count++
+					zap.L().Info("最后一集视频超过2天，将is_update改为0",
+						zap.Int64("video_id", video.ID),
+						zap.Time("last_episode_created_at", lastEpisode.CreatedAt),
+						zap.Time("two_days_ago", twoDaysAgo))
+				} else {
+					// 值已经是目标值，不打印日志
+					noChangeCount++
+				}
 			} else {
-				updatedTo0Count++
-				zap.L().Info("最后一集视频超过3天，将is_update改为0",
-					zap.Int64("video_id", video.ID),
-					zap.Time("last_episode_updated_at", lastEpisode.UpdatedAt))
+				// 值已经是目标值，不打印日志
+				noChangeCount++
 			}
 		} else {
-			// 未超过3天，将is_update改为1
-			if err := s.videoRepo.UpdateVideoIsUpdate(video.ID, true); err != nil {
-				zap.L().Error("更新视频is_update失败", zap.Error(err), zap.Int64("video_id", video.ID))
+			// 未超过2天，如果 is_update 不是 1，才更新为 1
+			if !videoInfo.IsUpdate {
+				updated, err := s.videoRepo.UpdateVideoIsUpdate(video.ID, true)
+				if err != nil {
+					zap.L().Error("更新视频is_update失败", zap.Error(err), zap.Int64("video_id", video.ID))
+				} else if updated {
+					// 只有真正执行了更新才打印日志
+					updatedTo1Count++
+					zap.L().Info("最后一集视频未超过2天，将is_update改为1",
+						zap.Int64("video_id", video.ID),
+						zap.Time("last_episode_created_at", lastEpisode.CreatedAt),
+						zap.Time("two_days_ago", twoDaysAgo))
+				} else {
+					// 值已经是目标值，不打印日志
+					noChangeCount++
+				}
 			} else {
-				updatedTo1Count++
-				zap.L().Info("最后一集视频未超过3天，将is_update改为1",
-					zap.Int64("video_id", video.ID),
-					zap.Time("last_episode_updated_at", lastEpisode.UpdatedAt))
+				// 值已经是目标值，不打印日志
+				noChangeCount++
 			}
 		}
 	}
