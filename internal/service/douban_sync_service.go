@@ -453,8 +453,8 @@ func (s *DoubanSyncService) fetchAndUpdateSingleMovieDetail(video *model.Video) 
 	req.Header.Set("dnt", "1")
 	req.Header.Set("pragma", "no-cache")
 	req.Header.Set("priority", "u=0, i")
-	req.Header.Set("referer", "https://movie.douban.com/explore?support_type=movie&is_all=false&category=%E8%B1%86%E7%93%A3%E9%AB%98%E5%88%86&type=%E5%85%A8%E9%83%A8")
-	req.Header.Set("sec-ch-ua", `"Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"`)
+	req.Header.Set("referer", "https://sec.douban.com/")
+	req.Header.Set("sec-ch-ua", `"Chromium";v="144", "Google Chrome";v="144", "Not_A Brand";v="99"`)
 	req.Header.Set("sec-ch-ua-mobile", "?0")
 	req.Header.Set("sec-ch-ua-platform", `"macOS"`)
 	req.Header.Set("sec-fetch-dest", "document")
@@ -462,7 +462,8 @@ func (s *DoubanSyncService) fetchAndUpdateSingleMovieDetail(video *model.Video) 
 	req.Header.Set("sec-fetch-site", "same-origin")
 	req.Header.Set("sec-fetch-user", "?1")
 	req.Header.Set("upgrade-insecure-requests", "1")
-	req.Header.Set("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36")
+	req.Header.Set("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36")
+	req.Header.Set("cookie", "bid=um7cc82NDp0; dbsawcv1=...")
 
 	// 发送请求
 	client := &http.Client{Timeout: 30 * time.Second}
@@ -618,8 +619,8 @@ func (s *DoubanSyncService) fetchAndUpdateSingleTVDetail(video *model.Video) err
 	req.Header.Set("dnt", "1")
 	req.Header.Set("pragma", "no-cache")
 	req.Header.Set("priority", "u=0, i")
-	req.Header.Set("referer", "https://movie.douban.com/tv/")
-	req.Header.Set("sec-ch-ua", `"Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"`)
+	req.Header.Set("referer", "https://sec.douban.com/")
+	req.Header.Set("sec-ch-ua", `"Chromium";v="144", "Google Chrome";v="144", "Not_A Brand";v="99"`)
 	req.Header.Set("sec-ch-ua-mobile", "?0")
 	req.Header.Set("sec-ch-ua-platform", `"macOS"`)
 	req.Header.Set("sec-fetch-dest", "document")
@@ -627,7 +628,8 @@ func (s *DoubanSyncService) fetchAndUpdateSingleTVDetail(video *model.Video) err
 	req.Header.Set("sec-fetch-site", "same-origin")
 	req.Header.Set("sec-fetch-user", "?1")
 	req.Header.Set("upgrade-insecure-requests", "1")
-	req.Header.Set("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36")
+	req.Header.Set("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36")
+	req.Header.Set("cookie", "bid=um7cc82NDp0; dbsawcv1=...")
 
 	// 发送请求
 	client := &http.Client{Timeout: 30 * time.Second}
@@ -730,8 +732,8 @@ func (s *DoubanSyncService) fetchAndUpdateSingleShowDetail(video *model.Video) e
 	req.Header.Set("dnt", "1")
 	req.Header.Set("pragma", "no-cache")
 	req.Header.Set("priority", "u=0, i")
-	req.Header.Set("referer", "https://movie.douban.com/tv/")
-	req.Header.Set("sec-ch-ua", `"Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"`)
+	req.Header.Set("referer", "https://sec.douban.com/")
+	req.Header.Set("sec-ch-ua", `"Chromium";v="144", "Google Chrome";v="144", "Not_A Brand";v="99"`)
 	req.Header.Set("sec-ch-ua-mobile", "?0")
 	req.Header.Set("sec-ch-ua-platform", `"macOS"`)
 	req.Header.Set("sec-fetch-dest", "document")
@@ -739,7 +741,8 @@ func (s *DoubanSyncService) fetchAndUpdateSingleShowDetail(video *model.Video) e
 	req.Header.Set("sec-fetch-site", "same-origin")
 	req.Header.Set("sec-fetch-user", "?1")
 	req.Header.Set("upgrade-insecure-requests", "1")
-	req.Header.Set("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36")
+	req.Header.Set("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36")
+	req.Header.Set("cookie", "bid=um7cc82NDp0; dbsawcv1=...")
 
 	// 发送请求
 	client := &http.Client{Timeout: 30 * time.Second}
@@ -826,8 +829,8 @@ func (s *DoubanSyncService) fetchAndUpdateSingleDocDetail(video *model.Video) er
 	req.Header.Set("dnt", "1")
 	req.Header.Set("pragma", "no-cache")
 	req.Header.Set("priority", "u=0, i")
-	req.Header.Set("referer", "https://movie.douban.com/tv/")
-	req.Header.Set("sec-ch-ua", `"Chromium";v="142", "Google Chrome";v="142", "Not_A Brand";v="99"`)
+	req.Header.Set("referer", "https://sec.douban.com/")
+	req.Header.Set("sec-ch-ua", `"Chromium";v="144", "Google Chrome";v="144", "Not_A Brand";v="99"`)
 	req.Header.Set("sec-ch-ua-mobile", "?0")
 	req.Header.Set("sec-ch-ua-platform", `"macOS"`)
 	req.Header.Set("sec-fetch-dest", "document")
@@ -835,7 +838,8 @@ func (s *DoubanSyncService) fetchAndUpdateSingleDocDetail(video *model.Video) er
 	req.Header.Set("sec-fetch-site", "same-origin")
 	req.Header.Set("sec-fetch-user", "?1")
 	req.Header.Set("upgrade-insecure-requests", "1")
-	req.Header.Set("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36")
+	req.Header.Set("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36")
+	req.Header.Set("cookie", "bid=um7cc82NDp0; dbsawcv1=...")
 
 	// 发送请求
 	client := &http.Client{Timeout: 30 * time.Second}
