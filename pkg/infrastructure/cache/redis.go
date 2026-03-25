@@ -39,7 +39,8 @@ func InitRedis() {
 
 	// 通过Ping命令测试Redis连接
 	if err := Rdb.Ping(ctx).Err(); err != nil {
-		zap.L().Fatal("redis connect error", zap.Error(err))
+		zap.L().Error("redis connect error", zap.Error(err))
+		return
 	}
 
 	zap.L().Info("redis connected")

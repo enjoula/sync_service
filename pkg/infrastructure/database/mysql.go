@@ -40,7 +40,8 @@ func InitMySQL() {
 	// 使用GORM打开MySQL连接
 	dbConn, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
-		zap.L().Fatal("mysql connect error", zap.Error(err))
+		zap.L().Error("mysql connect error", zap.Error(err))
+		return
 	}
 
 	// 获取底层sql.DB对象以配置连接池

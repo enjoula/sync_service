@@ -25,6 +25,18 @@ type EpisodeRepository interface {
 
 	// ExistsByVideoID 检查视频ID是否存在episode记录
 	ExistsByVideoID(videoID int64) (bool, error)
+
+	// FindByID 根据ID查找剧集
+	FindByID(episodeID int64) (*model.Episode, error)
+
+	// Update 更新剧集记录
+	Update(episode *model.Episode) error
+
+	// DeleteByID 根据ID删除剧集
+	DeleteByID(episodeID int64) error
+
+	// DeleteByVideoID 根据视频ID删除所有剧集
+	DeleteByVideoID(videoID int64) error
 }
 
 // episodeRepository 剧集仓库实现
@@ -121,4 +133,29 @@ func (r *episodeRepository) ExistsByVideoID(videoID int64) (bool, error) {
 		return false, err
 	}
 	return count > 0, nil
+}
+
+// FindByID 根据ID查找剧集
+func (r *episodeRepository) FindByID(episodeID int64) (*model.Episode, error) {
+	var episode model.Episode
+	err := database.DB.Where("id = ?", episodeID).First(&episode).Error
+	if err != nil {
+		return nil, err
+	}
+	return &episode, nil
+}
+
+// Update 更新剧集记录
+func (r *episodeRepository) Update(episode *model.Episode) error {
+	return database.DB.Save(episode).Error
+}
+
+// DeleteByID 根据ID删除剧集
+func (r *episodeRepository) DeleteByID(episodeID int64) error {
+	return database.DB.Delete(&model.Episode{}, episodeID).Error
+}
+
+// DeleteByVideoID 根据视频ID删除所有剧集
+func (r *episodeRepository) DeleteByVideoID(videoID int64) error {
+	return database.DB.Where("video_id = ?", videoID).Delete(&model.Episode{}).Error
 }

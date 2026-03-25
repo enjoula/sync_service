@@ -2,13 +2,10 @@
 
 一个基于 Golang + Gin + GORM + Redis + Prometheus 的视频数据同步服务，支持从豆瓣等多个数据源自动同步影视信息，包含定时任务、JWT 认证、TraceID 链路追踪、日志系统等完整功能。
 
-cd /Users/sily/Desktop/WTV/Service/sync_service && \
-docker buildx build \
-  --platform linux/amd64,linux/arm64 \
-  -f deployments/docker/Dockerfile \
-  -t sily1/sync_service:latest \
-  --push .
+cd /Users/sily/Desktop/WTV/Service/sync_service &&   
+`docker buildx build --platform linux/amd64,linux/arm64 -f deployments/docker/Dockerfile -t sily1/sync_service:latest --push .`
 
+- 
 
 ## ✨ 核心功能
 
@@ -25,11 +22,13 @@ docker buildx build \
 ### 自动同步内容
 
 **第一阶段：电影列表**
+
 - 获取豆瓣最新80部电影
 - 保存基本信息：标题、类型、评分、封面等
 - 自动去重，避免重复保存
 
 **第二阶段：电影详情**
+
 - 导演、主演（多个逗号分隔）
 - 类型标签（多个逗号分隔）
 - 制片国家/地区
@@ -42,9 +41,9 @@ docker buildx build \
 
 1. **自动同步**：每8小时自动执行（服务启动后自动注册）
 2. **手动触发**：通过HTTP接口手动触发
-   ```bash
+  ```bash
    curl -X POST http://localhost:5500/api/sync/douban/movies
-   ```
+  ```
 
 ### 查看同步日志
 
@@ -61,17 +60,20 @@ tail -f logs/app.log | grep "豆瓣"
 ### 方式一：Docker 环境（推荐）
 
 1. **启动所有服务**
+
 ```bash
 cd sync_service
 docker-compose -f deployments/docker/docker-compose.yml up -d
 ```
 
-2. **查看服务状态**
+1. **查看服务状态**
+
 ```bash
 docker-compose -f deployments/docker/docker-compose.yml ps
 ```
 
-3. **查看日志**
+1. **查看日志**
+
 ```bash
 docker-compose -f deployments/docker/docker-compose.yml logs -f sync_service
 ```
@@ -79,11 +81,13 @@ docker-compose -f deployments/docker/docker-compose.yml logs -f sync_service
 ### 方式二：本地开发环境
 
 1. **启动依赖服务（MySQL、Redis）**
+
 ```bash
 docker-compose -f deployments/docker/docker-compose.yml up -d mysql redis
 ```
 
-2. **修改配置文件**
+1. **修改配置文件**
+
 ```yaml
 # configs/config.yaml
 server:
@@ -96,7 +100,8 @@ etcd:
   addr: ""  # 本地开发可以不使用etcd
 ```
 
-3. **运行服务**
+1. **运行服务**
+
 ```bash
 # 方式1：直接运行
 go run cmd/server/main.go
@@ -151,28 +156,31 @@ etcdctl put /video-service/secret '{
 ## 🧪 测试接口
 
 ### 健康检查
+
 ```bash
 curl http://localhost:5500/ping
 # 返回: {"code":0,"message":"pong","data":{"time":"ok"},...}
 ```
 
 ### 手动触发豆瓣同步
+
 ```bash
 curl -X POST http://localhost:5500/api/sync/douban/movies
 # 返回: {"code":0,"message":"同步任务已启动，正在后台执行",...}
 ```
 
 ### Prometheus指标
+
 ```bash
 curl http://localhost:5500/metrics
 ```
 
 ## 📊 监控访问
 
-- **后端服务**: http://localhost:5500
-- **Prometheus**: http://localhost:5590
-- **健康检查**: http://localhost:5500/ping
-- **监控指标**: http://localhost:5500/metrics
+- **后端服务**: [http://localhost:5500](http://localhost:5500)
+- **Prometheus**: [http://localhost:5590](http://localhost:5590)
+- **健康检查**: [http://localhost:5500/ping](http://localhost:5500/ping)
+- **监控指标**: [http://localhost:5500/metrics](http://localhost:5500/metrics)
 
 ## 📁 项目结构
 
@@ -231,16 +239,19 @@ sync_service/
 ## 🔧 Docker Compose 管理
 
 ### 启动所有服务
+
 ```bash
 docker-compose -f deployments/docker/docker-compose.yml up -d
 ```
 
 ### 停止所有服务
+
 ```bash
 docker-compose -f deployments/docker/docker-compose.yml down
 ```
 
 ### 重新构建并启动
+
 ```bash
 docker-compose -f deployments/docker/docker-compose.yml down
 docker-compose -f deployments/docker/docker-compose.yml build --no-cache
@@ -248,6 +259,7 @@ docker-compose -f deployments/docker/docker-compose.yml up -d
 ```
 
 ### 查看日志
+
 ```bash
 # 查看所有服务日志
 docker-compose -f deployments/docker/docker-compose.yml logs -f
@@ -287,6 +299,7 @@ docker exec -i Mysql mysql -uroot -p123456 video_service < migrations/init.sql
 ## 📝 日志系统
 
 日志同时输出到：
+
 - **控制台**：JSON格式，方便开发调试
 - **文件**：`logs/app.log`，自动按日期和大小轮转
 
@@ -306,24 +319,20 @@ tail -f logs/app.log | grep "error"
 ## 🔐 注意事项
 
 1. **数据库初始化**
-   - 首次启动会自动创建表结构
-   - 确保MySQL容器健康检查通过后再启动应用
-
+  - 首次启动会自动创建表结构
+  - 确保MySQL容器健康检查通过后再启动应用
 2. **敏感信息**
-   - 生产环境请修改MySQL、Redis密码
-   - 更新etcd中的JWT密钥
-
+  - 生产环境请修改MySQL、Redis密码
+  - 更新etcd中的JWT密钥
 3. **定时任务**
-   - 豆瓣同步任务默认每8小时执行一次
-   - 可在 `pkg/infrastructure/scheduler/scheduler.go` 中修改Cron表达式
-
+  - 豆瓣同步任务默认每8小时执行一次
+  - 可在 `pkg/infrastructure/scheduler/scheduler.go` 中修改Cron表达式
 4. **请求频率**
-   - 豆瓣详情页请求间隔2秒，避免被封禁
-   - 如需调整，修改 `internal/service/douban_sync_service.go`
-
+  - 豆瓣详情页请求间隔2秒，避免被封禁
+  - 如需调整，修改 `internal/service/douban_sync_service.go`
 5. **数据去重**
-   - 通过 `source_id` 字段确保不会重复保存相同电影
-   - 已存在的电影会跳过，只保存新增的
+  - 通过 `source_id` 字段确保不会重复保存相同电影
+  - 已存在的电影会跳过，只保存新增的
 
 ## 🛠️ 开发建议
 
@@ -368,6 +377,8 @@ MIT License
 ---
 
 **快速链接**：
+
 - 🐛 [报告问题](https://github.com/enjoula/sync_service/issues)
 - 📚 [查看文档](docs/)
 - 🎬 [豆瓣同步详解](docs/DOUBAN_SYNC.md)
+

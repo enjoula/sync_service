@@ -253,13 +253,13 @@ func (s *DoubanSyncService) fetchAndSaveList(url, referer, defaultType, fixedTyp
 			videoType = item.Type
 		}
 
-		// 创建新视频记录
+		// 创建新视频记录，去除标题中的所有空格
 		score := item.Rating.Value
 		video := &model.Video{
 			ID:       utils.GenerateUserID(), // 使用雪花算法生成ID
 			SourceID: &sourceID,
 			Source:   "douban",
-			Title:    item.Title,
+			Title:    strings.ReplaceAll(item.Title, " ", ""),
 			Type:     videoType,
 			CoverURL: item.Pic.Normal,
 			Score:    &score,
@@ -1327,23 +1327,23 @@ func (s *DoubanSyncService) searchAndSavePlayURLsForVideo(video *model.Video) er
 
 		// 根据 type 区分处理逻辑
 		if video.Type == "movie" {
-			// movie 类型：优先获取包含 "vip" 的项，如果没有则获取包含 "ryplay7" 的项，如果都没有则按顺序取第一个，只取第一行
+			// movie 类型：优先获取包含 "svip" 的项，其次 "vip"，再次 "dytt"
 			var selectedEpisode string
 			found := false
 
-			// 1. 优先查找包含 "vip" 的项
+			// 1. 优先查找包含 "svip" 的项
 			for _, episode := range result.Episodes {
-				if strings.Contains(strings.ToLower(episode), "vip") {
+				if strings.Contains(strings.ToLower(episode), "svip") {
 					selectedEpisode = episode
 					found = true
 					break
 				}
 			}
 
-			// 2. 如果没有找到 vip，查找包含 "ryplay7" 的项
+			// 2. 如果没有找到 svip，查找包含 "vip" 的项
 			if !found {
 				for _, episode := range result.Episodes {
-					if strings.Contains(strings.ToLower(episode), "ryplay7") {
+					if strings.Contains(strings.ToLower(episode), "vip") {
 						selectedEpisode = episode
 						found = true
 						break
@@ -1351,13 +1351,18 @@ func (s *DoubanSyncService) searchAndSavePlayURLsForVideo(video *model.Video) er
 				}
 			}
 
-			// 3. 如果都没有，按顺序取第一个
-			if !found && len(result.Episodes) > 0 {
-				selectedEpisode = result.Episodes[0]
-				found = true
+			// 3. 如果没有找到 vip，查找包含 "dytt" 的项
+			if !found {
+				for _, episode := range result.Episodes {
+					if strings.Contains(strings.ToLower(episode), "dytt") {
+						selectedEpisode = episode
+						found = true
+						break
+					}
+				}
 			}
 
-			// 如果没有找到任何项，跳过
+			// 如果没有找到任何项，跳过（不使用其他地址）
 			if !found {
 				continue
 			}
@@ -1430,14 +1435,14 @@ func (s *DoubanSyncService) searchAndSavePlayURLsForVideo(video *model.Video) er
 			}
 		} else {
 			// 非 movie 类型：episodes 本身就是一个字符串数组
-			// 1. 找到匹配的 episode（优先包含 "vip"，其次 "ryplay7"，否则取第一个）
+			// 1. 找到匹配的 episode（优先包含 "svip"，其次 "vip"，再次 "dytt"）
 			// 2. 实现增量更新逻辑
 			var selectedEpisodes []string
 			found := false
 
-			// 1. 优先查找包含 "vip" 的项
+			// 1. 优先查找包含 "svip" 的项
 			for _, episode := range result.Episodes {
-				if strings.Contains(strings.ToLower(episode), "vip") {
+				if strings.Contains(strings.ToLower(episode), "svip") {
 					// episodes 本身就是数组，直接使用整个数组
 					selectedEpisodes = result.Episodes
 					found = true
@@ -1445,10 +1450,10 @@ func (s *DoubanSyncService) searchAndSavePlayURLsForVideo(video *model.Video) er
 				}
 			}
 
-			// 2. 如果没有找到 vip，查找包含 "ryplay7" 的项
+			// 2. 如果没有找到 svip，查找包含 "vip" 的项
 			if !found {
 				for _, episode := range result.Episodes {
-					if strings.Contains(strings.ToLower(episode), "ryplay7") {
+					if strings.Contains(strings.ToLower(episode), "vip") {
 						// episodes 本身就是数组，直接使用整个数组
 						selectedEpisodes = result.Episodes
 						found = true
@@ -1457,13 +1462,19 @@ func (s *DoubanSyncService) searchAndSavePlayURLsForVideo(video *model.Video) er
 				}
 			}
 
-			// 3. 如果都没有，按顺序取第一个（使用整个数组）
-			if !found && len(result.Episodes) > 0 {
-				selectedEpisodes = result.Episodes
-				found = true
+			// 3. 如果没有找到 vip，查找包含 "dytt" 的项
+			if !found {
+				for _, episode := range result.Episodes {
+					if strings.Contains(strings.ToLower(episode), "dytt") {
+						// episodes 本身就是数组，直接使用整个数组
+						selectedEpisodes = result.Episodes
+						found = true
+						break
+					}
+				}
 			}
 
-			// 如果没有找到任何项，跳过
+			// 如果没有找到任何项，跳过（不使用其他地址）
 			if !found || len(selectedEpisodes) == 0 {
 				continue
 			}

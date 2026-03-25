@@ -45,6 +45,9 @@ COPY --from=builder /app/server .
 # 复制配置文件目录
 COPY configs ./configs
 
+# 复制web目录（包含静态文件）
+COPY web ./web
+
 # 暴露端口
 EXPOSE 6661
 

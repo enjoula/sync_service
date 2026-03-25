@@ -69,7 +69,7 @@ func InitConfig() {
 		DialTimeout: 3 * time.Second,
 	})
 	if err != nil {
-		panic(err)
+		return
 	}
 	EtcdCli = cli
 
