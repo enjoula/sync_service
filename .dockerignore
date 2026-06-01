@@ -29,6 +29,9 @@ temp/
 test/
 tests/
 
+# 前端依赖在镜像内 npm ci 安装，勿把本机 node_modules 打进构建上下文
+frontend/node_modules
+
 # 构建产物
 *.exe
 *.dll

@@ -30,6 +30,9 @@ type VideoRepository interface {
 	// FindAllVideos 查找所有视频（仅返回 id 和 title）
 	FindAllVideos() ([]*model.Video, error)
 
+	// FindVideosWithPagination 查找视频列表（带分页、排序和筛选）
+	FindVideosWithPagination(limit, offset int, title, videoType, status string, isCompleted *bool, isUpdate *bool) ([]*model.Video, int64, error)
+
 	// FindVideosByStatusNotEqual 查找 status 不等于指定值的视频（返回 id、type、title）
 	FindVideosByStatusNotEqual(status string) ([]*model.Video, error)
 
@@ -76,6 +79,9 @@ type VideoRepository interface {
 
 	// FindVideosStatus1OrIsUpdate1AndRecentCreated 查找 created_at在最近两个月内且(status=1或is_update=1)的视频（返回 id）
 	FindVideosStatus1OrIsUpdate1AndRecentCreated() ([]*model.Video, error)
+
+	// DeleteByID 根据ID删除视频
+	DeleteByID(videoID int64) error
 }
 
 // videoRepository 视频仓库实现
@@ -168,14 +174,60 @@ func (r *videoRepository) FindNeedDetailVideosByType(videoType string, limit int
 	return videos, nil
 }
 
-// FindAllVideos 查找所有视频（仅返回 id 和 title）
+// FindAllVideos 查找所有视频（返回完整信息）
 func (r *videoRepository) FindAllVideos() ([]*model.Video, error) {
 	var videos []*model.Video
-	err := database.DB.Select("id", "title").Find(&videos).Error
+	err := database.DB.Order("created_at DESC"). // 按创建时间倒序
+							Find(&videos).Error
 	if err != nil {
 		return nil, err
 	}
 	return videos, nil
+}
+
+// FindVideosWithPagination 查找视频列表（带分页、排序和筛选）
+func (r *videoRepository) FindVideosWithPagination(limit, offset int, title, videoType, status string, isCompleted *bool, isUpdate *bool) ([]*model.Video, int64, error) {
+	var videos []*model.Video
+	var total int64
+
+	// 构建查询
+	query := database.DB.Model(&model.Video{})
+
+	// 应用筛选条件
+	if title != "" {
+		query = query.Where("title LIKE ?", "%"+title+"%")
+	}
+
+	if videoType != "" {
+		query = query.Where("type = ?", videoType)
+	}
+
+	if status != "" {
+		query = query.Where("status = ?", status)
+	}
+
+	if isCompleted != nil {
+		query = query.Where("is_completed = ?", *isCompleted)
+	}
+
+	if isUpdate != nil {
+		query = query.Where("is_update = ?", *isUpdate)
+	}
+
+	// 计算总数
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// 按创建时间倒序查询，带分页
+	err := query.Order("created_at DESC"). // 按创建时间倒序
+						Limit(limit).Offset(offset).
+						Find(&videos).Error
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return videos, total, nil
 }
 
 // FindVideosByStatusNotEqual 查找 status 不等于指定值的视频（返回 id、type、title）
@@ -411,4 +463,9 @@ func (r *videoRepository) FindVideosStatus1OrIsUpdate1AndRecentCreated() ([]*mod
 		return nil, err
 	}
 	return videos, nil
+}
+
+// DeleteByID 根据ID删除视频
+func (r *videoRepository) DeleteByID(videoID int64) error {
+	return database.DB.Delete(&model.Video{}, videoID).Error
 }

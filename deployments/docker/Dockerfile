@@ -1,4 +1,14 @@
-# 多阶段构建：构建阶段
+# 前端构建阶段（管理后台 /super/，输出目录见 frontend/vite.config.js 的 outDir）
+# 若仅用「COPY static」而不在镜像内 build，修改 frontend 源码后镜像里仍是旧的 static/super
+FROM node:20-alpine AS frontend-builder
+WORKDIR /src
+COPY static ./static
+COPY frontend/package.json frontend/package-lock.json ./frontend/
+RUN cd frontend && npm ci
+COPY frontend ./frontend
+RUN cd frontend && npm run build
+
+# 多阶段构建：Go 构建阶段
 # 使用golang:1.21-alpine作为构建镜像
 FROM --platform=$BUILDPLATFORM golang:1.21-alpine AS builder
 
@@ -45,8 +55,8 @@ COPY --from=builder /app/server .
 # 复制配置文件目录
 COPY configs ./configs
 
-# 复制web目录（包含静态文件）
-COPY web ./web
+# 使用镜像内构建的前端静态资源（勿仅从构建上下文复制未重新 npm build 的 static）
+COPY --from=frontend-builder /src/static ./static
 
 # 暴露端口
 EXPOSE 6661

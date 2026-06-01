@@ -3,7 +3,10 @@
 package router
 
 import (
+	"strings"
+
 	"video-service/internal/handler"
+	"video-service/internal/handler/admin"
 	"video-service/internal/middleware"
 
 	"github.com/gin-gonic/gin"
@@ -46,7 +49,7 @@ func SetupRouter() *gin.Engine {
 	p.Use(r)
 
 	// 注册公开API端点（无需认证）
-	r.GET("/ping", handler.Ping) // 健康检查
+	// r.GET("/ping", handler.Ping) // 健康检查
 
 	// API路由组
 	apiGroup := r.Group("/api")
@@ -57,7 +60,53 @@ func SetupRouter() *gin.Engine {
 			// 豆瓣电影同步接口（手动触发）
 			syncGroup.POST("/douban/movies", handler.SyncDoubanMovies)
 		}
+
+		// 管理后台接口
+		adminGroup := apiGroup.Group("/admin")
+		{
+			// 视频管理
+			videoHandler := admin.NewVideoHandler()
+			adminGroup.GET("/videos", videoHandler.List)
+			adminGroup.GET("/videos/:id", videoHandler.Get)
+			adminGroup.POST("/videos", videoHandler.Create)
+			adminGroup.PUT("/videos/:id", videoHandler.Update)
+			adminGroup.DELETE("/videos/:id", videoHandler.Delete)
+
+			// 剧集管理
+			episodeHandler := admin.NewEpisodeHandler()
+			adminGroup.GET("/episodes", episodeHandler.ListByVideoID) // 使用查询参数 video_id
+			adminGroup.GET("/episodes/:id", episodeHandler.Get)
+			adminGroup.POST("/episodes", episodeHandler.Create) // 使用请求体中的 video_id
+			adminGroup.PUT("/episodes/:id", episodeHandler.Update)
+			adminGroup.DELETE("/episodes/:id", episodeHandler.Delete)
+		}
 	}
+
+	// 静态文件服务 - 先注册，确保静态文件请求不会被NoRoute捕获
+	r.Static("/static", "./static")
+
+	// 管理后台访问地址
+	r.GET("/super/admin.html", func(c *gin.Context) {
+		c.File("./static/super/index.html")
+	})
+
+	// 管理后台静态资源
+	r.Static("/super/assets", "./static/super/assets")
+
+	// 禁用根路径页面访问，避免直接打开服务地址返回前端页面
+	r.GET("/", func(c *gin.Context) {
+		c.Status(404)
+	})
+
+	// 处理所有其他请求，返回index.html（单页应用路由）
+	r.NoRoute(func(c *gin.Context) {
+		// 检查是否是静态资源请求
+		if strings.HasPrefix(c.Request.URL.Path, "/assets/") {
+			c.File("./static" + c.Request.URL.Path)
+			return
+		}
+		c.File("./static/index.html")
+	})
 
 	return r
 }

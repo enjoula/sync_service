@@ -92,7 +92,8 @@ func (r *episodeRepository) Create(episode *model.Episode) error {
 // FindByVideoID 根据视频ID查找所有剧集
 func (r *episodeRepository) FindByVideoID(videoID int64) ([]*model.Episode, error) {
 	var episodes []*model.Episode
-	err := database.DB.Where("video_id = ?", videoID).Find(&episodes).Error
+	err := database.DB.Where("video_id = ?", videoID).
+		Find(&episodes).Error
 	if err != nil {
 		return nil, err
 	}
