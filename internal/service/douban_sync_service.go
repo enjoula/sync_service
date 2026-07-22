@@ -55,13 +55,11 @@ type SearchResult struct {
 	Episodes   []string `json:"episodes"`
 }
 
-func getSearchSourcePriority(source, sourceName string) int {
-	normalized := strings.ToLower(strings.TrimSpace(source))
-	if normalized == "" {
-		normalized = strings.ToLower(strings.TrimSpace(sourceName))
-	}
+// searchSourcePriorityUnknown 表示 source 不在允许范围内（dyttzy / ruyi / ffzy）
+const searchSourcePriorityUnknown = 100
 
-	switch normalized {
+func getSearchSourcePriority(source string) int {
+	switch strings.ToLower(strings.TrimSpace(source)) {
 	case "dyttzy":
 		return 0
 	case "ruyi":
@@ -69,7 +67,7 @@ func getSearchSourcePriority(source, sourceName string) int {
 	case "ffzy":
 		return 2
 	default:
-		return 100
+		return searchSourcePriorityUnknown
 	}
 }
 
@@ -1337,15 +1335,18 @@ func (s *DoubanSyncService) searchAndSavePlayURLsForVideo(video *model.Video) er
 		return fmt.Errorf("解析JSON失败: %w", err)
 	}
 
-	// 根据 source 优先级选择同名结果：dyttzy > ruyi > ffzy
+	// 仅在 source 为 dyttzy / ruyi / ffzy 时采用结果，优先级：dyttzy > ruyi > ffzy（电影与非电影共用）
 	var selectedResult *SearchResult
-	bestPriority := 101
+	bestPriority := searchSourcePriorityUnknown
 	for i := range searchResponse.Results {
 		result := &searchResponse.Results[i]
 		if result.Title != video.Title {
 			continue
 		}
-		priority := getSearchSourcePriority(result.Source, result.SourceName)
+		priority := getSearchSourcePriority(result.Source)
+		if priority == searchSourcePriorityUnknown {
+			continue
+		}
 		if selectedResult == nil || priority < bestPriority {
 			selectedResult = result
 			bestPriority = priority
@@ -1429,9 +1430,10 @@ func (s *DoubanSyncService) searchAndSavePlayURLsForVideo(video *model.Video) er
 					zap.L().Info("更新视频status为1", zap.Int64("video_id", video.ID), zap.String("title", video.Title))
 				}
 				// movie类型只有单集，直接标记is_completed为1
-				if err := s.videoRepo.UpdateVideoIsCompleted(video.ID, true); err != nil {
+				updatedCompleted, err := s.videoRepo.UpdateVideoIsCompleted(video.ID, true)
+				if err != nil {
 					zap.L().Error("更新视频is_completed失败", zap.Error(err), zap.Int64("video_id", video.ID), zap.String("title", video.Title))
-				} else {
+				} else if updatedCompleted {
 					zap.L().Info("更新视频is_completed", zap.Int64("video_id", video.ID), zap.String("title", video.Title), zap.Bool("is_completed", true))
 				}
 			}
@@ -1534,9 +1536,10 @@ func (s *DoubanSyncService) searchAndSavePlayURLsForVideo(video *model.Video) er
 			if err == nil {
 				// 如果episodes总数等于episode_count，则is_completed为1
 				isCompleted := currentCount == videoInfo.EpisodeCount
-				if err := s.videoRepo.UpdateVideoIsCompleted(video.ID, isCompleted); err != nil {
+				updatedCompleted, err := s.videoRepo.UpdateVideoIsCompleted(video.ID, isCompleted)
+				if err != nil {
 					zap.L().Error("更新视频is_completed失败", zap.Error(err), zap.Int64("video_id", video.ID), zap.String("title", video.Title))
-				} else {
+				} else if updatedCompleted {
 					zap.L().Info("更新视频is_completed", zap.Int64("video_id", video.ID), zap.String("title", video.Title), zap.Bool("is_completed", isCompleted), zap.Int64("current_count", currentCount), zap.Int64("episode_count", videoInfo.EpisodeCount))
 				}
 			}
@@ -1559,21 +1562,19 @@ func (s *DoubanSyncService) updateVideosStatusByEpisodes() error {
 }
 
 // updateIsUpdateByLastEpisode 根据最后一集视频的时间更新 is_update 字段
-// 查询 created_at在最近两个月内且(status=1或is_update=1)的视频，检查其最后一集视频的创建时间
-// 如果最后一集视频距当前时间未超过2天，则将 is_update 改为 1
-// 如果最后一集视频距当前时间超过2天，则将 is_update 改为 0
+// 候选：is_update=1 的全部；或 status=1 且 updated_at 在最近两个月内
+// 如果最后一集距当前未超过2天，则 is_update=1；超过2天则 is_update=0
 // 如果没有episode记录，则将 status 设为空
 func (s *DoubanSyncService) updateIsUpdateByLastEpisode() error {
 	zap.L().Info("开始更新is_update字段")
 
-	// 查询 created_at在最近两个月内且(status=1或is_update=1)的视频
 	videos, err := s.videoRepo.FindVideosStatus1OrIsUpdate1AndRecentCreated()
 	if err != nil {
-		return fmt.Errorf("查询created_at在最近两个月内且(status=1或is_update=1)的视频失败: %w", err)
+		return fmt.Errorf("查询需要维护is_update的视频失败: %w", err)
 	}
 
 	if len(videos) == 0 {
-		zap.L().Info("没有created_at在最近两个月内且(status=1或is_update=1)的视频需要处理")
+		zap.L().Info("没有需要维护is_update的视频")
 		return nil
 	}
 

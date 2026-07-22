@@ -51,7 +51,8 @@ type VideoRepository interface {
 	UpdateVideoIsUpdate(videoID int64, isUpdate bool) (bool, error)
 
 	// UpdateVideoIsCompleted 更新指定视频的is_completed字段
-	UpdateVideoIsCompleted(videoID int64, isCompleted bool) error
+	// 返回 (是否真的执行了更新, 错误)
+	UpdateVideoIsCompleted(videoID int64, isCompleted bool) (bool, error)
 
 	// UpdateVideoUpdatedAt 更新指定视频的updated_at字段
 	UpdateVideoUpdatedAt(videoID int64, updatedAt time.Time) error
@@ -77,7 +78,8 @@ type VideoRepository interface {
 	// FindVideosStatus1AndRecentCreated 查找 status=1、created_at在最近两个月内的视频（返回 id）
 	FindVideosStatus1AndRecentCreated() ([]*model.Video, error)
 
-	// FindVideosStatus1OrIsUpdate1AndRecentCreated 查找 created_at在最近两个月内且(status=1或is_update=1)的视频（返回 id）
+	// FindVideosStatus1OrIsUpdate1AndRecentCreated 查找需要维护 is_update 的视频（返回 id）：
+	// is_update=1 的全部纳入（便于超窗后清回 0）；或 status=1 且 updated_at 在最近两个月内
 	FindVideosStatus1OrIsUpdate1AndRecentCreated() ([]*model.Video, error)
 
 	// DeleteByID 根据ID删除视频
@@ -325,10 +327,29 @@ func (r *videoRepository) UpdateVideoIsUpdate(videoID int64, isUpdate bool) (boo
 }
 
 // UpdateVideoIsCompleted 更新指定视频的is_completed字段
-func (r *videoRepository) UpdateVideoIsCompleted(videoID int64, isCompleted bool) error {
-	return database.DB.Model(&model.Video{}).
+// 如果当前值已经是目标值，则不执行数据库更新
+// 返回 (是否真的执行了更新, 错误)
+func (r *videoRepository) UpdateVideoIsCompleted(videoID int64, isCompleted bool) (bool, error) {
+	// 先查询当前值，如果已经是目标值，则跳过更新
+	var currentVideo model.Video
+	err := database.DB.Select("is_completed").Where("id = ?", videoID).First(&currentVideo).Error
+	if err != nil {
+		return false, err
+	}
+
+	// 如果当前值已经是目标值，直接返回，不执行更新
+	if currentVideo.IsCompleted == isCompleted {
+		return false, nil
+	}
+
+	// 执行更新
+	err = database.DB.Model(&model.Video{}).
 		Where("id = ?", videoID).
 		Update("is_completed", isCompleted).Error
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 // UpdateVideoUpdatedAt 更新指定视频的updated_at字段
@@ -448,16 +469,16 @@ func (r *videoRepository) FindVideosStatus1AndRecentCreated() ([]*model.Video, e
 	return videos, nil
 }
 
-// FindVideosStatus1OrIsUpdate1AndRecentCreated 查找 created_at在最近两个月内且(status=1或is_update=1)的视频（返回 id）
+// FindVideosStatus1OrIsUpdate1AndRecentCreated 查找需要维护 is_update 的视频（返回 id）
+// 条件：is_update=1（无论建档多久，避免早建档片子卡在 1）；或 status=1 且 updated_at 在最近两个月内
+// 使用 updated_at 而非 created_at：新集插入会刷新 updated_at，长期连载仍可被扫到
 func (r *videoRepository) FindVideosStatus1OrIsUpdate1AndRecentCreated() ([]*model.Video, error) {
 	var videos []*model.Video
-	// 计算两个月前的时间
 	twoMonthsAgo := time.Now().AddDate(0, -2, 0)
 
-	// 查询 created_at在最近两个月内且(status=1或is_update=1)的视频ID
 	err := database.DB.Select("id").
-		Where("created_at >= ?", twoMonthsAgo).
 		Where("(status = ? OR is_update = ?)", "1", true).
+		Where("(is_update = ? OR updated_at >= ?)", true, twoMonthsAgo).
 		Find(&videos).Error
 	if err != nil {
 		return nil, err
