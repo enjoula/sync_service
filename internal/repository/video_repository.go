@@ -36,10 +36,10 @@ type VideoRepository interface {
 	// FindVideosByStatusNotEqual 查找 status 不等于指定值的视频（返回 id、type、title）
 	FindVideosByStatusNotEqual(status string) ([]*model.Video, error)
 
-	// FindVideosNeedUpdateEpisodes 查找需要更新episodes的视频（status不等于0和1，返回 id、type、title）
+	// FindVideosNeedUpdateEpisodes 查找需要更新episodes的视频（status不等于0且is_completed不等于1，返回 id、type、title、source_id）
 	FindVideosNeedUpdateEpisodes() ([]*model.Video, error)
 
-	// UpdateVideosStatusByEpisodes 更新存在 episodes 记录的 videos 的 status
+	// UpdateVideosStatusByEpisodes 更新存在 episodes 记录且 status 不为 '0' 的 videos 的 status
 	UpdateVideosStatusByEpisodes(status string) error
 
 	// UpdateVideoStatus 更新指定视频的status
@@ -244,12 +244,12 @@ func (r *videoRepository) FindVideosByStatusNotEqual(status string) ([]*model.Vi
 	return videos, nil
 }
 
-// FindVideosNeedUpdateEpisodes 查找需要更新episodes的视频（status不等于0且is_completed不等于1，返回 id、type、title）
+// FindVideosNeedUpdateEpisodes 查找需要更新episodes的视频（status不等于0且is_completed不等于1，返回 id、type、title、source_id）
 func (r *videoRepository) FindVideosNeedUpdateEpisodes() ([]*model.Video, error) {
 	var videos []*model.Video
 	// 查询条件：status != '0'（包括NULL）且 is_completed != 1（包括NULL）
 	// 明确处理NULL值，确保查询结果一致
-	err := database.DB.Select("id", "type", "title").
+	err := database.DB.Select("id", "type", "title", "source_id").
 		Where("(status IS NULL OR status != ?) AND (is_completed IS NULL OR is_completed != ?)", "0", true).
 		Find(&videos).Error
 	if err != nil {
@@ -258,10 +258,10 @@ func (r *videoRepository) FindVideosNeedUpdateEpisodes() ([]*model.Video, error)
 	return videos, nil
 }
 
-// UpdateVideosStatusByEpisodes 更新存在 episodes 记录的 videos 的 status
+// UpdateVideosStatusByEpisodes 更新存在 episodes 记录且 status 不为 '0' 的 videos 的 status
 func (r *videoRepository) UpdateVideosStatusByEpisodes(status string) error {
-	// 执行 SQL: UPDATE videos v JOIN (SELECT DISTINCT video_id FROM episodes) e ON v.id = e.video_id SET v.status = ? WHERE v.status != ? OR v.status IS NULL
-	// 更新所有 status 不等于目标值的视频（包括 NULL 和其他非目标值）
+	// 执行 SQL: UPDATE videos v JOIN (SELECT DISTINCT video_id FROM episodes) e ON v.id = e.video_id SET v.status = ? WHERE (v.status IS NULL OR (v.status != ? AND v.status != '0'))
+	// 更新所有存在剧集、status 不等于目标值且不为 '0' 的视频（包括 NULL 和其他非目标值，但排除状态为 '0' 的数据）
 	err := database.DB.Exec(`
 		UPDATE videos v
 		JOIN (
@@ -269,7 +269,7 @@ func (r *videoRepository) UpdateVideosStatusByEpisodes(status string) error {
 			FROM episodes
 		) e ON v.id = e.video_id
 		SET v.status = ?
-		WHERE v.status != ? OR v.status IS NULL
+		WHERE (v.status IS NULL OR (v.status != ? AND v.status != '0'))
 	`, status, status).Error
 	return err
 }

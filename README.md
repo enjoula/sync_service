@@ -2,7 +2,7 @@
 
 一个基于 Golang + Gin + GORM + Redis + Prometheus 的视频数据同步服务，支持从豆瓣等多个数据源自动同步影视信息，包含定时任务、JWT 认证、TraceID 链路追踪、日志系统等完整功能。
 
-cd /Users/sily/Desktop/个人资料/WTV/Service/sync_servicee &&   
+cd /Users/sily/Desktop/个人资料/WTV/Service/sync_servicee &&  
 `docker buildx build --platform linux/amd64,linux/arm64 -f deployments/docker/Dockerfile -t sily1/sync_service:latest --push .`
 
 - 
@@ -37,6 +37,8 @@ cd /Users/sily/Desktop/个人资料/WTV/Service/sync_servicee &&
 - IMDb ID
 - 电影简介
 
+
+
 ### 同步方式
 
 1. **自动同步**：每8小时自动执行（服务启动后自动注册）
@@ -44,6 +46,8 @@ cd /Users/sily/Desktop/个人资料/WTV/Service/sync_servicee &&
   ```bash
    curl -X POST http://localhost:5500/api/sync/douban/movies
   ```
+
+
 
 ### 查看同步日志
 
@@ -55,7 +59,11 @@ tail -f logs/app.log | grep "豆瓣"
 ./scripts/test_douban_sync.sh
 ```
 
+
+
 ## 🚀 快速启动
+
+
 
 ### 方式一：Docker 环境（推荐）
 
@@ -77,6 +85,8 @@ docker-compose -f deployments/docker/docker-compose.yml ps
 ```bash
 docker-compose -f deployments/docker/docker-compose.yml logs -f sync_service
 ```
+
+
 
 ### 方式二：本地开发环境
 
@@ -114,7 +124,11 @@ go build -o bin/server cmd/server/main.go
 make run
 ```
 
+
+
 ## 📋 配置说明
+
+
 
 ### 基础配置 (configs/config.yaml)
 
@@ -141,6 +155,8 @@ prometheus:
         - targets: ['sync_service:5500']
 ```
 
+
+
 ### etcd敏感配置（可选）
 
 如果使用etcd存储敏感信息：
@@ -153,7 +169,11 @@ etcdctl put /video-service/secret '{
 }'
 ```
 
+
+
 ## 🧪 测试接口
+
+
 
 ### 健康检查
 
@@ -162,6 +182,8 @@ curl http://localhost:5500/ping
 # 返回: {"code":0,"message":"pong","data":{"time":"ok"},...}
 ```
 
+
+
 ### 手动触发豆瓣同步
 
 ```bash
@@ -169,11 +191,15 @@ curl -X POST http://localhost:5500/api/sync/douban/movies
 # 返回: {"code":0,"message":"同步任务已启动，正在后台执行",...}
 ```
 
+
+
 ### Prometheus指标
 
 ```bash
 curl http://localhost:5500/metrics
 ```
+
+
 
 ## 📊 监控访问
 
@@ -181,6 +207,8 @@ curl http://localhost:5500/metrics
 - **Prometheus**: [http://localhost:5590](http://localhost:5590)
 - **健康检查**: [http://localhost:5500/ping](http://localhost:5500/ping)
 - **监控指标**: [http://localhost:5500/metrics](http://localhost:5500/metrics)
+
+
 
 ## 📁 项目结构
 
@@ -236,7 +264,11 @@ sync_service/
     └── app.log
 ```
 
+
+
 ## 🔧 Docker Compose 管理
+
+
 
 ### 启动所有服务
 
@@ -244,11 +276,15 @@ sync_service/
 docker-compose -f deployments/docker/docker-compose.yml up -d
 ```
 
+
+
 ### 停止所有服务
 
 ```bash
 docker-compose -f deployments/docker/docker-compose.yml down
 ```
+
+
 
 ### 重新构建并启动
 
@@ -257,6 +293,8 @@ docker-compose -f deployments/docker/docker-compose.yml down
 docker-compose -f deployments/docker/docker-compose.yml build --no-cache
 docker-compose -f deployments/docker/docker-compose.yml up -d
 ```
+
+
 
 ### 查看日志
 
@@ -269,12 +307,18 @@ docker-compose -f deployments/docker/docker-compose.yml logs -f sync_service
 docker-compose -f deployments/docker/docker-compose.yml logs -f mysql
 ```
 
+
+
 ## 📖 详细文档
 
 - **[豆瓣同步功能详解](docs/DOUBAN_SYNC.md)** - 完整的功能说明和技术实现
 - **[快速开始指南](docs/QUICKSTART_DOUBAN_SYNC.md)** - 测试、调试和故障排查指南
 
+
+
 ## ⚙️ 数据库
+
+
 
 ### 自动迁移
 
@@ -288,6 +332,8 @@ docker-compose -f deployments/docker/docker-compose.yml logs -f mysql
 - `user_favorites` - 用户收藏表
 - `app_versions` - 应用版本表
 
+
+
 ### 手动初始化
 
 也可以使用SQL文件手动初始化：
@@ -296,12 +342,16 @@ docker-compose -f deployments/docker/docker-compose.yml logs -f mysql
 docker exec -i Mysql mysql -uroot -p123456 video_service < migrations/init.sql
 ```
 
+
+
 ## 📝 日志系统
 
 日志同时输出到：
 
 - **控制台**：JSON格式，方便开发调试
 - **文件**：`logs/app.log`，自动按日期和大小轮转
+
+
 
 ### 查看日志
 
@@ -315,6 +365,8 @@ tail -f logs/app.log | grep "豆瓣"
 # 查看错误日志
 tail -f logs/app.log | grep "error"
 ```
+
+
 
 ## 🔐 注意事项
 
@@ -334,7 +386,11 @@ tail -f logs/app.log | grep "error"
   - 通过 `source_id` 字段确保不会重复保存相同电影
   - 已存在的电影会跳过，只保存新增的
 
+
+
 ## 🛠️ 开发建议
+
+
 
 ### 修改同步频率
 
@@ -357,6 +413,8 @@ _, err := cronScheduler.AddFunc("0 0 2 * * *", func() {
 })
 ```
 
+
+
 ### 添加新的数据源
 
 参考 `internal/service/douban_sync_service.go`，创建新的同步服务：
@@ -365,6 +423,8 @@ _, err := cronScheduler.AddFunc("0 0 2 * * *", func() {
 2. 实现数据获取和解析逻辑
 3. 在scheduler中注册定时任务
 4. 在router中添加手动触发接口
+
+
 
 ## 🤝 贡献
 

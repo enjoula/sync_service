@@ -49,10 +49,51 @@ type SearchResponse struct {
 
 // SearchResult 搜索结果
 type SearchResult struct {
-	Title      string   `json:"title"`
-	Source     string   `json:"source"`
-	SourceName string   `json:"source_name"`
-	Episodes   []string `json:"episodes"`
+	Title      string      `json:"title"`
+	Source     string      `json:"source"`
+	SourceName string      `json:"source_name"`
+	DoubanID   interface{} `json:"douban_id"`
+	Episodes   []string    `json:"episodes"`
+}
+
+// parseDoubanID 将 interface{} 类型的 douban_id 统一解析为 int64
+func parseDoubanID(v interface{}) (int64, bool) {
+	if v == nil {
+		return 0, false
+	}
+	switch val := v.(type) {
+	case float64:
+		return int64(val), true
+	case float32:
+		return int64(val), true
+	case int:
+		return int64(val), true
+	case int64:
+		return val, true
+	case string:
+		val = strings.TrimSpace(val)
+		if val == "" {
+			return 0, false
+		}
+		id, err := strconv.ParseInt(val, 10, 64)
+		if err != nil {
+			return 0, false
+		}
+		return id, true
+	case json.Number:
+		id, err := val.Int64()
+		if err != nil {
+			return 0, false
+		}
+		return id, true
+	default:
+		str := strings.TrimSpace(fmt.Sprintf("%v", v))
+		id, err := strconv.ParseInt(str, 10, 64)
+		if err != nil {
+			return 0, false
+		}
+		return id, true
+	}
 }
 
 // searchSourcePriorityUnknown 表示 source 不在允许范围内（dyttzy / ruyi / ffzy）
@@ -126,7 +167,7 @@ func (s *DoubanSyncService) SyncAll() error {
 		zap.L().Error("搜索播放地址失败", zap.Error(err))
 	}
 
-	// 第四步：更新存在 episodes 记录的 videos 的 status 为 1
+	// 第四步：更新存在 episodes 记录且 status 不为 0 的 videos 的 status 为 1
 	if err := s.updateVideosStatusByEpisodes(); err != nil {
 		zap.L().Error("更新视频状态失败", zap.Error(err))
 	}
@@ -1194,7 +1235,7 @@ func truncateJSONArray(jsonData []byte) []byte {
 func (s *DoubanSyncService) searchAndSavePlayURLs() error {
 	zap.L().Info("开始搜索播放地址")
 
-	// 查询 status 不等于 0 和 1 的视频的 id、type、title（用于更新episodes）
+	// 查询 status 不等于 0 且 is_completed 不等于 1 的视频的 id、type、title、source_id（用于更新episodes）
 	videos, err := s.videoRepo.FindVideosNeedUpdateEpisodes()
 	if err != nil {
 		return fmt.Errorf("查询视频列表失败: %w", err)
@@ -1335,18 +1376,37 @@ func (s *DoubanSyncService) searchAndSavePlayURLsForVideo(video *model.Video) er
 		return fmt.Errorf("解析JSON失败: %w", err)
 	}
 
-	// 仅在 source 为 dyttzy / ruyi / ffzy 时采用结果，优先级：dyttzy > ruyi > ffzy（电影与非电影共用）
+	// 结果过滤与择优规则：
+	// 1. 过滤：result.douban_id 等于 video.source_id
+	// 2. 过滤：标题中包含解说、粤语、加更 关键字的 -> 丢弃
+	// 3. 过滤：数据源是否在白名单内 (dyttzy / ruyi / ffzy)？否 -> 丢弃
+	// 4. 择优：多源共存时，仅选最高优先级的一家 (dyttzy > ruyi > ffzy)
 	var selectedResult *SearchResult
 	bestPriority := searchSourcePriorityUnknown
 	for i := range searchResponse.Results {
 		result := &searchResponse.Results[i]
-		if result.Title != video.Title {
+
+		// 1. 过滤：result.douban_id 等于 video.source_id
+		if video.SourceID == nil || *video.SourceID == 0 {
 			continue
 		}
+		resDoubanID, ok := parseDoubanID(result.DoubanID)
+		if !ok || resDoubanID != *video.SourceID {
+			continue
+		}
+
+		// 2. 过滤：标题中包含解说、粤语、加更 关键字的 -> 丢弃
+		if strings.Contains(result.Title, "解说") || strings.Contains(result.Title, "粤语") || strings.Contains(result.Title, "加更") {
+			continue
+		}
+
+		// 3. 过滤：数据源是否在白名单内 (dyttzy / ruyi / ffzy)？否 -> 丢弃
 		priority := getSearchSourcePriority(result.Source)
 		if priority == searchSourcePriorityUnknown {
 			continue
 		}
+
+		// 4. 择优：多源共存时，仅选最高优先级的一家 (dyttzy > ruyi > ffzy)
 		if selectedResult == nil || priority < bestPriority {
 			selectedResult = result
 			bestPriority = priority
@@ -1549,7 +1609,7 @@ func (s *DoubanSyncService) searchAndSavePlayURLsForVideo(video *model.Video) er
 	return nil
 }
 
-// updateVideosStatusByEpisodes 更新存在 episodes 记录的 videos 的 status 为 1
+// updateVideosStatusByEpisodes 更新存在 episodes 记录且 status 不为 0 的 videos 的 status 为 1
 func (s *DoubanSyncService) updateVideosStatusByEpisodes() error {
 	zap.L().Info("开始更新视频状态")
 
