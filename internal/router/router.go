@@ -79,6 +79,10 @@ func SetupRouter() *gin.Engine {
 			adminGroup.POST("/episodes", episodeHandler.Create) // 使用请求体中的 video_id
 			adminGroup.PUT("/episodes/:id", episodeHandler.Update)
 			adminGroup.DELETE("/episodes/:id", episodeHandler.Delete)
+
+			userHandler := admin.NewUserHandler()
+			adminGroup.GET("/users", userHandler.List)
+			adminGroup.GET("/cover", admin.Cover)
 		}
 	}
 

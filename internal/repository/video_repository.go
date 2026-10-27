@@ -15,6 +15,9 @@ type VideoRepository interface {
 	// Create 创建视频记录
 	Create(video *model.Video) error
 
+	// CreateBasic 只写入来源 ID、来源、标题、类型、封面，以及雪花主键和创建/更新时间
+	CreateBasic(video *model.Video) error
+
 	// Update 更新视频记录
 	Update(video *model.Video) error
 
@@ -31,7 +34,7 @@ type VideoRepository interface {
 	FindAllVideos() ([]*model.Video, error)
 
 	// FindVideosWithPagination 查找视频列表（带分页、排序和筛选）
-	FindVideosWithPagination(limit, offset int, title, videoType, status string, isCompleted *bool, isUpdate *bool) ([]*model.Video, int64, error)
+	FindVideosWithPagination(limit, offset int, title, videoType, status string, releaseStart, releaseEnd *time.Time, isCompleted *bool, isUpdate *bool) ([]*model.Video, int64, error)
 
 	// FindVideosByStatusNotEqual 查找 status 不等于指定值的视频（返回 id、type、title）
 	FindVideosByStatusNotEqual(status string) ([]*model.Video, error)
@@ -107,6 +110,12 @@ func (r *videoRepository) FindBySourceID(sourceID int64) (*model.Video, error) {
 // Create 创建视频记录
 func (r *videoRepository) Create(video *model.Video) error {
 	return database.DB.Create(video).Error
+}
+
+// CreateBasic 只写入来源 ID、来源、标题、类型、封面，以及雪花主键和创建/更新时间。
+// 其余列留给数据库默认值，避免把未填写字段写成空串。
+func (r *videoRepository) CreateBasic(video *model.Video) error {
+	return database.DB.Select("ID", "SourceID", "Source", "Title", "Type", "CoverURL", "CreatedAt", "UpdatedAt").Create(video).Error
 }
 
 // Update 更新视频记录（更新所有字段）
@@ -188,7 +197,7 @@ func (r *videoRepository) FindAllVideos() ([]*model.Video, error) {
 }
 
 // FindVideosWithPagination 查找视频列表（带分页、排序和筛选）
-func (r *videoRepository) FindVideosWithPagination(limit, offset int, title, videoType, status string, isCompleted *bool, isUpdate *bool) ([]*model.Video, int64, error) {
+func (r *videoRepository) FindVideosWithPagination(limit, offset int, title, videoType, status string, releaseStart, releaseEnd *time.Time, isCompleted *bool, isUpdate *bool) ([]*model.Video, int64, error) {
 	var videos []*model.Video
 	var total int64
 
@@ -206,6 +215,13 @@ func (r *videoRepository) FindVideosWithPagination(limit, offset int, title, vid
 
 	if status != "" {
 		query = query.Where("status = ?", status)
+	}
+
+	if releaseStart != nil {
+		query = query.Where("release_date >= ?", releaseStart.Format("2006-01-02"))
+	}
+	if releaseEnd != nil {
+		query = query.Where("release_date <= ?", releaseEnd.Format("2006-01-02"))
 	}
 
 	if isCompleted != nil {

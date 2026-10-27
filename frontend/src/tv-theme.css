@@ -1,0 +1,92 @@
+/* 必须晚于 element-plus 暗色变量加载，否则列表区仍是组件默认灰。 */
+html.dark {
+  --el-color-primary: #78F0FF;
+  --el-color-primary-light-3: #9af5ff;
+  --el-color-primary-light-5: #b4f7ff;
+  --el-color-primary-light-7: #1a3a44;
+  --el-color-primary-light-8: #143038;
+  --el-color-primary-light-9: #102830;
+  --el-color-primary-dark-2: #4AAED6;
+  --el-bg-color-page: #070B12;
+  --el-bg-color: #151C2E;
+  --el-bg-color-overlay: #0E1524;
+  --el-fill-color: #151C2E;
+  --el-fill-color-light: #1A2232;
+  --el-fill-color-blank: #0E1524;
+  --el-text-color-primary: #EAF0F8;
+  --el-text-color-regular: #B4BFD6;
+  --el-text-color-secondary: #8E9AAF;
+  --el-text-color-placeholder: #5C677D;
+  --el-border-color: #1E2A3F;
+  --el-border-color-light: #1E2A3F;
+  --el-border-color-lighter: #1A2436;
+  --el-border-color-extra-light: #141A26;
+  --el-mask-color: rgba(7, 11, 18, 0.75);
+  --el-table-border-color: #1E2A3F;
+  --el-table-header-bg-color: #0E1524;
+  --el-table-header-text-color: #8E9AAF;
+  --el-table-row-hover-bg-color: #1E3048;
+  --el-table-bg-color: #151C2E;
+  --el-table-tr-bg-color: #151C2E;
+  --el-table-text-color: #EAF0F8;
+  --el-table-fixed-box-shadow: none;
+  --el-card-bg-color: #151C2E;
+  --el-card-border-color: #1E2A3F;
+}
+
+html.dark .video-list-table.el-table,
+html.dark .video-list-table .el-table__inner-wrapper,
+html.dark .video-list-table .el-table__header-wrapper,
+html.dark .video-list-table .el-table__body-wrapper,
+html.dark .video-list-table .el-table__fixed,
+html.dark .video-list-table .el-table__fixed-right,
+html.dark .video-list-table tr,
+html.dark .video-list-table td.el-table__cell {
+  background-color: #151C2E;
+  color: #EAF0F8;
+  border-color: #1E2A3F;
+}
+
+html.dark .video-list-table th.el-table__cell,
+html.dark .video-list-table th.el-table-fixed-column--left,
+html.dark .video-list-table th.el-table-fixed-column--right {
+  background-color: #0E1524 !important;
+  color: #8E9AAF !important;
+  border-color: #1E2A3F !important;
+}
+
+html.dark .video-list-table td.el-table-fixed-column--left,
+html.dark .video-list-table td.el-table-fixed-column--right {
+  background-color: #151C2E !important;
+}
+
+html.dark .video-list-table .el-table__body tr:hover > td.el-table__cell,
+html.dark .video-list-table .el-table__body tr.hover-row > td.el-table__cell {
+  background-color: #1E3048 !important;
+}
+
+html.dark .video-list-table .el-table__fixed-right-patch,
+html.dark .video-list-table .el-table__border-left-patch {
+  background-color: #0E1524;
+}
+
+html.dark .video-list-table .table-ops-cell .el-button.is-link {
+  --el-button-text-color: #78F0FF;
+  --el-button-hover-text-color: #B5E8FF;
+  color: #78F0FF;
+}
+
+html.dark .video-list-table .table-ops-cell .el-button--info.is-link {
+  --el-button-text-color: #EAF0F8;
+  color: #EAF0F8;
+}
+
+html.dark .video-list-table .table-ops-cell .el-button.is-link:hover {
+  color: #B5E8FF;
+}
+
+html.dark .list-card.el-card {
+  background-color: #151C2E;
+  border-color: #1E2A3F;
+  color: #EAF0F8;
+}

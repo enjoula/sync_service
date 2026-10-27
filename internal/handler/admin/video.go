@@ -6,10 +6,12 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"video-service/internal/model"
 	"video-service/internal/pkg/response"
+	"video-service/internal/pkg/utils"
 	"video-service/internal/repository"
 
 	"github.com/gin-gonic/gin"
@@ -30,6 +32,19 @@ func NewVideoHandler() *VideoHandler {
 	}
 }
 
+// parseReleaseDateQuery 解析上映日期查询参数。空字符串表示不筛选。
+func parseReleaseDateQuery(raw string) (*time.Time, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return nil, nil
+	}
+	parsed, err := time.ParseInLocation("2006-01-02", raw, time.Local)
+	if err != nil {
+		return nil, err
+	}
+	return &parsed, nil
+}
+
 // applyJSONStringField 将管理端传入的 JSON 字符串写入 datatypes.JSON（空串置空，非法 JSON 则写 []）
 func applyJSONStringField(dst *datatypes.JSON, raw string) {
 	if raw == "" {
@@ -45,13 +60,15 @@ func applyJSONStringField(dst *datatypes.JSON, raw string) {
 
 // VideoListRequest 视频列表请求参数
 type VideoListRequest struct {
-	Page        int    `form:"page" binding:"min=1"`
-	PageSize    int    `form:"page_size" binding:"min=1,max=100"`
-	Title       string `form:"title"`
-	Type        string `form:"type"`
-	Status      string `form:"status"`
-	IsCompleted string `form:"is_completed"`
-	IsUpdate    string `form:"is_update"`
+	Page             int    `form:"page" binding:"min=1"`
+	PageSize         int    `form:"page_size" binding:"min=1,max=100"`
+	Title            string `form:"title"`
+	Type             string `form:"type"`
+	Status           string `form:"status"`
+	ReleaseDateStart string `form:"release_date_start"`
+	ReleaseDateEnd   string `form:"release_date_end"`
+	IsCompleted      string `form:"is_completed"`
+	IsUpdate         string `form:"is_update"`
 }
 
 // VideoResponse 视频响应结构
@@ -117,8 +134,23 @@ func (h *VideoHandler) List(c *gin.Context) {
 		isUpdate = &update
 	}
 
+	releaseStart, err := parseReleaseDateQuery(req.ReleaseDateStart)
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "上映日期格式无效")
+		return
+	}
+	releaseEnd, err := parseReleaseDateQuery(req.ReleaseDateEnd)
+	if err != nil {
+		response.Error(c, http.StatusBadRequest, "上映日期格式无效")
+		return
+	}
+	if releaseStart != nil && releaseEnd != nil && releaseStart.After(*releaseEnd) {
+		response.Error(c, http.StatusBadRequest, "上映日期开始不能晚于结束")
+		return
+	}
+
 	// 获取视频列表（带分页、排序和筛选）
-	videos, total, err := h.videoRepo.FindVideosWithPagination(req.PageSize, offset, req.Title, req.Type, req.Status, isCompleted, isUpdate)
+	videos, total, err := h.videoRepo.FindVideosWithPagination(req.PageSize, offset, req.Title, req.Type, req.Status, releaseStart, releaseEnd, isCompleted, isUpdate)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, "获取视频列表失败")
 		return
@@ -212,29 +244,16 @@ func (h *VideoHandler) Get(c *gin.Context) {
 	response.Success(c, resp)
 }
 
-// CreateRequest 创建视频请求
+// CreateRequest 创建视频请求。只接收添加时需要填写的五项。
 type CreateRequest struct {
-	SourceID     *int64   `json:"source_id"`
-	Source       string   `json:"source"`
-	Title        string   `json:"title" binding:"required"`
-	Type         string   `json:"type" binding:"required"`
-	CoverURL     string   `json:"cover_url"`
-	Description  string   `json:"description"`
-	ReleaseDate  *string  `json:"release_date"`
-	Score        *float64 `json:"score"`
-	CountryJSON  string   `json:"country_json"`
-	DirectorJSON string   `json:"director_json"`
-	ActorsJSON   string   `json:"actors_json"`
-	TagsJSON     string   `json:"tags_json"`
-	Status       string   `json:"status"`
-	IMDbID       string   `json:"imdb_id"`
-	Runtime      *int64   `json:"runtime"`
-	EpisodeCount int64    `json:"episode_count"`
-	IsCompleted  bool     `json:"is_completed"`
-	IsUpdate     bool     `json:"is_update"`
+	SourceID *int64 `json:"source_id"`
+	Source   string `json:"source"`
+	Title    string `json:"title"`
+	Type     string `json:"type"`
+	CoverURL string `json:"cover_url"`
 }
 
-// Create 创建视频
+// Create 创建视频。主键用雪花算法生成，创建时间和更新时间取本次写入时间。
 func (h *VideoHandler) Create(c *gin.Context) {
 	var req CreateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -242,39 +261,27 @@ func (h *VideoHandler) Create(c *gin.Context) {
 		return
 	}
 
-	// 构建视频模型
+	source := strings.TrimSpace(req.Source)
+	title := strings.TrimSpace(req.Title)
+	videoType := strings.TrimSpace(req.Type)
+	coverURL := strings.TrimSpace(req.CoverURL)
+	if req.SourceID == nil || *req.SourceID <= 0 || source == "" || title == "" || videoType == "" || coverURL == "" {
+		response.Error(c, http.StatusBadRequest, "来源ID、来源、标题、类型、视频封面为必填")
+		return
+	}
+
+	now := time.Now()
 	video := &model.Video{
-		SourceID:     req.SourceID,
-		Source:       req.Source,
-		Title:        req.Title,
-		Type:         req.Type,
-		CoverURL:     req.CoverURL,
-		Description:  req.Description,
-		Status:       req.Status,
-		IMDbID:       req.IMDbID,
-		Runtime:      req.Runtime,
-		EpisodeCount: req.EpisodeCount,
-		IsCompleted:  req.IsCompleted,
-		IsUpdate:     req.IsUpdate,
+		ID:        utils.GenerateUserID(),
+		SourceID:  req.SourceID,
+		Source:    source,
+		Title:     title,
+		Type:      videoType,
+		CoverURL:  coverURL,
+		CreatedAt: now,
+		UpdatedAt: now,
 	}
-
-	// 处理日期
-	if req.ReleaseDate != nil {
-		releaseDate, err := time.Parse("2006-01-02", *req.ReleaseDate)
-		if err == nil {
-			video.ReleaseDate = &releaseDate
-		}
-	}
-
-	// 处理JSON字段
-	video.Score = req.Score
-	applyJSONStringField(&video.CountryJSON, req.CountryJSON)
-	applyJSONStringField(&video.DirectorJSON, req.DirectorJSON)
-	applyJSONStringField(&video.ActorsJSON, req.ActorsJSON)
-	applyJSONStringField(&video.TagsJSON, req.TagsJSON)
-
-	// 保存视频
-	if err := h.videoRepo.Create(video); err != nil {
+	if err := h.videoRepo.CreateBasic(video); err != nil {
 		response.Error(c, http.StatusInternalServerError, "创建视频失败")
 		return
 	}

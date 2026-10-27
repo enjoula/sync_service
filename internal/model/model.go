@@ -11,18 +11,21 @@ import (
 // User 用户模型
 // 存储用户基本信息、认证信息和多设备token
 type User struct {
-	ID             int64      `gorm:"primaryKey;comment:用户ID，使用算法生成（非自增）" json:"id"`                         // 用户ID，主键，使用算法生成（非自增）
-	Username       string     `gorm:"size:100;uniqueIndex;not null;comment:用户名" json:"username"`             // 用户名，唯一索引，不能为空
-	Password       string     `gorm:"column:password;size:255;not null;comment:密码(加密存储)" json:"-"`           // 密码哈希值，不返回给客户端
-	Nickname       string     `gorm:"size:100;comment:昵称" json:"nickname"`                                   // 昵称
-	Email          string     `gorm:"size:255;comment:邮箱地址" json:"email"`                                    // 邮箱地址
-	Avatar         string     `gorm:"type:text;comment:头像URL" json:"avatar"`                                 // 头像URL
-	AccWeb         string     `gorm:"column:acc_web;size:255;comment:Web端访问码" json:"acc_web"`                // Web端token
-	AccWebCreateAt *time.Time `gorm:"column:acc_web_create_at;comment:Web端访问码创建时间" json:"acc_web_create_at"` // Web token创建时间
-	AccTV          string     `gorm:"column:acc_tv;size:255;comment:TV端访问码" json:"acc_tv"`                   // TV端token
-	AccTVCreateAt  *time.Time `gorm:"column:acc_tv_create_at;comment:TV端访问码创建时间" json:"acc_tv_create_at"`    // TV token创建时间
-	CreatedAt      time.Time  `gorm:"autoCreateTime;comment:创建时间" json:"created_at"`                         // 创建时间，自动设置
-	UpdatedAt      time.Time  `gorm:"autoUpdateTime;comment:更新时间" json:"updated_at"`                         // 更新时间，自动更新
+	ID             int64      `gorm:"primaryKey;comment:用户ID，使用算法生成（非自增）" json:"id"`                // 用户ID，主键，使用算法生成（非自增）
+	Username       string     `gorm:"size:100;uniqueIndex;not null;comment:用户名" json:"username"`    // 用户名，唯一索引，不能为空
+	Password       string     `gorm:"column:password;size:255;not null;comment:密码(加密存储)" json:"-"`  // 密码哈希值，不返回给客户端
+	Nickname       string     `gorm:"size:100;comment:昵称" json:"nickname"`                          // 昵称
+	Email          string     `gorm:"size:255;comment:邮箱地址" json:"email"`                           // 邮箱地址
+	Avatar         string     `gorm:"type:text;comment:头像URL" json:"avatar"`                        // 头像URL
+	WatchCount     int64      `gorm:"column:watch_count;default:0;comment:观看次数" json:"watch_count"` // 观看次数
+	LastWatchAt    *time.Time `gorm:"column:last_watch_at;comment:最后观看时间" json:"last_watch_at"`     // 最后观看时间
+	AccWeb         string     `gorm:"column:acc_web;size:255;comment:Web端访问码" json:"-"`             // Web端访问码，管理端不返回
+	AccWebCreateAt *time.Time `gorm:"column:acc_web_create_at;comment:Web端访问码创建时间" json:"-"`        // Web端访问码创建时间，管理端不返回
+	AccTV          string     `gorm:"column:acc_tv;size:255;comment:TV端访问码" json:"-"`               // TV端访问码，管理端不返回
+	AccTVCreateAt  *time.Time `gorm:"column:acc_tv_create_at;comment:TV端访问码创建时间" json:"-"`          // TV端访问码创建时间，管理端不返回
+	LastOpenAt     *time.Time `gorm:"column:last_open_at;comment:最近一次打开时间" json:"last_open_at"`     // 最近一次打开时间
+	CreatedAt      time.Time  `gorm:"autoCreateTime;comment:创建时间" json:"created_at"`                // 创建时间，自动设置
+	UpdatedAt      time.Time  `gorm:"autoUpdateTime;comment:更新时间" json:"updated_at"`                // 更新时间，自动更新
 }
 
 // UserToken 用户Token记录模型
@@ -41,7 +44,7 @@ type UserToken struct {
 // Video 视频模型
 // 存储视频/电影/电视剧的基本信息
 type Video struct {
-	ID           int64          `gorm:"primaryKey;comment:视频ID，使用雪花算法生成（非自增主键）" json:"id"`                              // 视频ID，主键，使用雪花算法生成（非自增）
+	ID           int64          `gorm:"primaryKey;autoIncrement:false;comment:视频ID，使用雪花算法生成（非自增主键）" json:"id"`          // 视频ID，主键，使用雪花算法生成（非自增）
 	SourceID     *int64         `gorm:"column:source_id;comment:来源站点的视频ID" json:"source_id"`                            // 视频来源三方ID
 	Source       string         `gorm:"size:255;comment:视频来源(如:douban、xiaoya)" json:"source"`                           // 视频来源三方
 	Title        string         `gorm:"size:255;comment:视频标题" json:"title"`                                             // 视频标题

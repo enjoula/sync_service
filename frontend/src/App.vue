@@ -28,7 +28,8 @@
           </el-menu>
         </el-aside>
         <el-main class="app-main">
-          <VideoManagement />
+          <VideoManagement v-if="activeMenu === 'video'" />
+          <UserManagement v-else-if="activeMenu === 'user'" />
         </el-main>
       </el-container>
     </el-container>
@@ -38,6 +39,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import VideoManagement from './views/VideoManagement.vue'
+import UserManagement from './views/UserManagement.vue'
 import { VideoCamera, User, Star } from '@element-plus/icons-vue'
 
 const activeMenu = ref('video')
@@ -58,7 +60,7 @@ onMounted(() => {
 .app-container {
   width: 100%;
   height: 100vh;
-  background: linear-gradient(180deg, #121212 0%, #0a0a0a 100%);
+  background: #070B12;
 }
 
 .app-layout {
@@ -67,12 +69,14 @@ onMounted(() => {
 
 .app-body {
   flex: 1;
+  min-width: 0;
   min-height: 0;
   display: flex;
 }
 
 .app-main {
   flex: 1;
+  min-width: 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -81,10 +85,10 @@ onMounted(() => {
 }
 
 .aside {
-  background-color: #0d0d0d;
-  color: #e5e5e5;
+  background-color: #0A101E;
+  color: #EAF0F8;
   padding-top: 10px;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  border-right: 1px solid #1E2A3F;
 }
 
 .el-menu-vertical-demo {
@@ -94,17 +98,17 @@ onMounted(() => {
 }
 
 .el-menu-item {
-  color: #a3a3a3;
+  color: #8E9AAF;
 }
 
 .el-menu-item.is-active {
-  background-color: #2a2a2a;
-  color: #f5f5f5;
+  background-color: #1E3048;
+  color: #78F0FF;
 }
 
 :deep(.el-menu-item:hover) {
-  background-color: #1a1a1a !important;
-  color: #e5e5e5;
+  background-color: #151C2E !important;
+  color: #EAF0F8;
 }
 
 :deep(.el-menu-item) {
@@ -129,11 +133,11 @@ onMounted(() => {
   --el-header-height: 40px;
   height: 40px !important;
   padding: 0 16px;
-  background-color: #050505;
-  color: #e5e5e5;
+  background-color: #0A101E;
+  color: #EAF0F8;
   display: flex;
   align-items: center;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid #1E2A3F;
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.5);
 }
 
@@ -142,6 +146,6 @@ onMounted(() => {
   font-size: 18px;
   font-weight: 600;
   line-height: 1.2;
-  color: #fafafa;
+  color: #EAF0F8;
 }
 </style>

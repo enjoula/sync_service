@@ -11,26 +11,38 @@
             <el-option label="电影" value="movie" />
             <el-option label="电视剧" value="tv" />
             <el-option label="动漫" value="anime" />
-            <el-option label="综艺" value="variety" />
+            <el-option label="综艺" value="tvshow" />
             <el-option label="纪录片" value="doc" />
           </el-select>
         </el-form-item>
+        <el-form-item label="上映日期">
+          <el-date-picker
+            v-model="searchForm.release_date"
+            type="daterange"
+            value-format="YYYY-MM-DD"
+            range-separator="至"
+            start-placeholder="开始日期"
+            end-placeholder="结束日期"
+            clearable
+            style="width: 240px"
+          />
+        </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="searchForm.status" placeholder="请选择状态" style="width: 120px">
-            <el-option label="返回" value="1" />
-            <el-option label="不返回" value="0" />
+          <el-select v-model="searchForm.status" placeholder="请选择状态" style="width: 120px" clearable>
+            <el-option label="上架" value="1" />
+            <el-option label="未上架" value="0" />
           </el-select>
         </el-form-item>
-        <el-form-item label="是否完结">
-          <el-select v-model="searchForm.is_completed" placeholder="请选择" style="width: 120px">
-            <el-option label="已完结" value="1" />
-            <el-option label="未完结" value="0" />
+        <el-form-item label="完结">
+          <el-select v-model="searchForm.is_completed" placeholder="请选择" style="width: 90px" clearable>
+            <el-option label="已" value="1" />
+            <el-option label="未" value="0" />
           </el-select>
         </el-form-item>
-        <el-form-item label="是否有更新">
-          <el-select v-model="searchForm.is_update" placeholder="请选择" style="width: 120px">
-            <el-option label="有更新" value="1" />
-            <el-option label="无更新" value="0" />
+        <el-form-item label="更新">
+          <el-select v-model="searchForm.is_update" placeholder="请选择" style="width: 90px" clearable>
+            <el-option label="有" value="1" />
+            <el-option label="无" value="0" />
           </el-select>
         </el-form-item>
         <el-form-item>
@@ -50,7 +62,10 @@
           <el-table
             :data="videoList"
             class="video-list-table"
+            border
+            allow-drag-last-column
             height="100%"
+            style="width: 100%"
             @row-click="handleVideoClick"
           >
         <el-table-column prop="id" label="ID" width="120" fixed />
@@ -60,22 +75,22 @@
           </template>
         </el-table-column>
         <el-table-column prop="source" label="来源" width="100" show-overflow-tooltip />
-        <el-table-column label="封面" width="80">
+        <el-table-column label="封面" width="52" align="center">
           <template #default="scope">
-            <div class="cover-container">
-              <el-image
-                :src="scope.row.cover_url || 'https://via.placeholder.com/100x150'"
-                fit="cover"
-                style="width: 60px; height: 90px; cursor: pointer; transition: transform 0.3s"
+            <div
+              v-if="coverSrc(scope.row.cover_url)"
+              class="cover-thumb"
+              @mouseenter="showCoverPreview($event, coverSrc(scope.row.cover_url))"
+              @mouseleave="hideCoverPreview"
+            >
+              <img
+                :src="coverSrc(scope.row.cover_url)"
+                alt=""
+                class="cover-thumb-img"
+                referrerpolicy="no-referrer"
               />
-              <div class="cover-preview">
-                <el-image
-                  :src="scope.row.cover_url || 'https://via.placeholder.com/100x150'"
-                  fit="cover"
-                  style="width: 300px; height: 400px"
-                />
-              </div>
             </div>
+            <span v-else>—</span>
           </template>
         </el-table-column>
         <el-table-column prop="title" label="标题" min-width="140" show-overflow-tooltip />
@@ -102,32 +117,16 @@
             {{ formatJsonDisplay(scope.row.country_json) }}
           </template>
         </el-table-column>
-        <el-table-column label="导演" min-width="120" show-overflow-tooltip>
-          <template #default="scope">
-            {{ formatJsonDisplay(scope.row.director_json) }}
-          </template>
-        </el-table-column>
-        <el-table-column label="演员" min-width="120" show-overflow-tooltip>
-          <template #default="scope">
-            {{ formatJsonDisplay(scope.row.actors_json) }}
-          </template>
-        </el-table-column>
         <el-table-column label="标签" min-width="120" show-overflow-tooltip>
           <template #default="scope">
             {{ formatJsonDisplay(scope.row.tags_json) }}
           </template>
         </el-table-column>
-        <el-table-column prop="status" label="状态" width="80">
+        <el-table-column prop="status" label="状态" width="90">
           <template #default="scope">
             <el-tag size="small" :type="scope.row.status === '1' ? 'success' : 'info'">
-              {{ scope.row.status === '1' ? '返回' : '不返回' }}
+              {{ scope.row.status === '1' ? '上架' : '未上架' }}
             </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="imdb_id" label="IMDb ID" width="110" show-overflow-tooltip />
-        <el-table-column prop="runtime" label="片长(分)" width="100">
-          <template #default="scope">
-            {{ scope.row.runtime != null ? scope.row.runtime : '—' }}
           </template>
         </el-table-column>
         <el-table-column prop="episode_count" label="剧集数" width="90" />
@@ -146,8 +145,7 @@
           </template>
         </el-table-column>
         <el-table-column prop="created_at" label="创建时间" width="165" />
-        <el-table-column prop="updated_at" label="更新时间" width="165" />
-        <el-table-column label="操作" width="76" fixed="right" align="center">
+        <el-table-column label="操作" width="96" fixed="right" align="center">
           <template #default="scope">
             <div class="table-ops-cell">
               <el-button size="small" type="primary" link @click.stop="openVideoForm(scope.row)">
@@ -213,7 +211,7 @@
       v-model="videoFormVisible"
       class="video-form-dialog"
       :title="videoForm.id ? '编辑视频' : '添加视频'"
-      width="720px"
+      :width="videoForm.id ? '1180px' : '480px'"
       top="5vh"
       destroy-on-close
     >
@@ -224,13 +222,44 @@
         label-width="96px"
         size="small"
       >
-        <el-form-item v-if="videoForm.id" label="视频ID">
-          <el-input :model-value="videoForm.id" disabled />
-        </el-form-item>
-
-        <!-- 两列网格：把字段高度减半 -->
-        <el-row :gutter="12">
-          <el-col :span="12">
+        <template v-if="!videoForm.id">
+          <el-form-item label="来源ID" prop="source_id">
+            <el-input-number
+              v-model="videoForm.source_id"
+              :min="1"
+              :precision="0"
+              :controls="false"
+              placeholder="请填写来源ID"
+              style="width: 100%"
+            />
+          </el-form-item>
+          <el-form-item label="来源" prop="source">
+            <el-input v-model="videoForm.source" placeholder="如 douban、xiaoya" />
+          </el-form-item>
+          <el-form-item label="标题" prop="title">
+            <el-input v-model="videoForm.title" placeholder="请输入视频标题" />
+          </el-form-item>
+          <el-form-item label="类型" prop="type">
+            <el-select v-model="videoForm.type" placeholder="请选择视频类型" style="width: 100%">
+              <el-option label="电影" value="movie" />
+              <el-option label="电视剧" value="tv" />
+              <el-option label="动漫" value="anime" />
+              <el-option label="综艺" value="variety" />
+              <el-option label="纪录片" value="doc" />
+            </el-select>
+          </el-form-item>
+          <el-form-item label="视频封面" prop="cover_url">
+            <el-input v-model="videoForm.cover_url" placeholder="请填写封面图片地址" />
+          </el-form-item>
+        </template>
+        <template v-else>
+        <el-row :gutter="16">
+          <el-col :span="8">
+            <el-form-item label="视频ID">
+              <el-input :model-value="videoForm.id" disabled />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
             <el-form-item label="来源ID">
               <el-input-number
                 v-model="videoForm.source_id"
@@ -242,23 +271,15 @@
               />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
-            <el-form-item label="状态" prop="status">
-              <el-select v-model="videoForm.status" placeholder="请选择状态" style="width: 100%">
-                <el-option label="返回" value="1" />
-                <el-option label="不返回" value="0" />
-              </el-select>
-            </el-form-item>
-          </el-col>
-        </el-row>
-
-        <el-row :gutter="12">
-          <el-col :span="12">
+          <el-col :span="8">
             <el-form-item label="来源" prop="source">
               <el-input v-model="videoForm.source" placeholder="如 douban、xiaoya" />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+        </el-row>
+
+        <el-row :gutter="16">
+          <el-col :span="8">
             <el-form-item label="类型" prop="type">
               <el-select v-model="videoForm.type" placeholder="请选择视频类型" style="width: 100%">
                 <el-option label="电影" value="movie" />
@@ -269,15 +290,28 @@
               </el-select>
             </el-form-item>
           </el-col>
-        </el-row>
-
-        <el-row :gutter="12">
-          <el-col :span="12">
+          <el-col :span="8">
             <el-form-item label="标题" prop="title">
               <el-input v-model="videoForm.title" placeholder="请输入视频标题" />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
+          <el-col :span="8">
+            <el-form-item label="状态" prop="status">
+              <el-select v-model="videoForm.status" placeholder="请选择状态" style="width: 100%">
+                <el-option label="上架" value="1" />
+                <el-option label="未上架" value="0" />
+              </el-select>
+            </el-form-item>
+          </el-col>
+        </el-row>
+
+        <el-row :gutter="16">
+          <el-col :span="8">
+            <el-form-item label="评分" prop="score">
+              <el-input-number v-model="videoForm.score" :min="0" :max="10" :step="0.1" style="width: 100%" />
+            </el-form-item>
+          </el-col>
+          <el-col :span="8">
             <el-form-item label="上映日期" prop="release_date">
               <el-date-picker
                 v-model="videoForm.release_date"
@@ -288,15 +322,7 @@
               />
             </el-form-item>
           </el-col>
-        </el-row>
-
-        <el-row :gutter="12">
-          <el-col :span="12">
-            <el-form-item label="评分" prop="score">
-              <el-input-number v-model="videoForm.score" :min="0" :max="10" :step="0.1" style="width: 100%" />
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
+          <el-col :span="8">
             <el-form-item label="IMDb ID" prop="imdb_id">
               <el-input
                 v-model="videoForm.imdb_id"
@@ -308,39 +334,37 @@
           </el-col>
         </el-row>
 
-        <el-row :gutter="12">
-          <el-col :span="12">
-            <el-form-item label="片长(分钟)" prop="runtime">
+        <el-row :gutter="16">
+          <el-col :span="6">
+            <el-form-item label="片长(分钟)" prop="runtime" label-width="92px">
               <el-input-number
                 v-model="videoForm.runtime"
                 :min="0"
                 :precision="0"
-                :controls="true"
+                :controls="false"
                 placeholder="可选"
                 style="width: 100%"
               />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
-            <el-form-item label="剧集数" prop="episode_count">
+          <el-col :span="6">
+            <el-form-item label="剧集数" prop="episode_count" label-width="72px">
               <el-input-number
                 v-model="videoForm.episode_count"
                 :min="0"
                 :precision="0"
+                :controls="false"
                 style="width: 100%"
               />
             </el-form-item>
           </el-col>
-        </el-row>
-
-        <el-row :gutter="12">
-          <el-col :span="12">
-            <el-form-item label="是否完结">
+          <el-col :span="6">
+            <el-form-item label="是否完结" label-width="80px">
               <el-switch v-model="videoForm.is_completed" active-text="已完结" inactive-text="未完结" />
             </el-form-item>
           </el-col>
-          <el-col :span="12">
-            <el-form-item label="是否有更新">
+          <el-col :span="6">
+            <el-form-item label="有无更新" label-width="80px">
               <el-switch v-model="videoForm.is_update" active-text="有更新" inactive-text="无更新" />
             </el-form-item>
           </el-col>
@@ -358,21 +382,6 @@
             placeholder="请输入视频简介"
           />
         </el-form-item>
-
-        <template v-if="videoForm.id">
-          <el-row :gutter="12">
-            <el-col :span="12">
-              <el-form-item label="创建时间">
-                <el-input :model-value="videoForm.created_at || '—'" disabled />
-              </el-form-item>
-            </el-col>
-            <el-col :span="12">
-              <el-form-item label="更新时间">
-                <el-input :model-value="videoForm.updated_at || '—'" disabled />
-              </el-form-item>
-            </el-col>
-          </el-row>
-        </template>
 
         <!-- JSON字段编辑 -->
         <el-form-item label="国家/地区">
@@ -447,6 +456,20 @@
             />
           </div>
         </el-form-item>
+
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="创建时间">
+              <el-input :model-value="videoForm.created_at || '—'" disabled />
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="更新时间">
+              <el-input :model-value="videoForm.updated_at || '—'" disabled />
+            </el-form-item>
+          </el-col>
+        </el-row>
+        </template>
       </el-form>
       <template #footer>
         <span class="dialog-footer">
@@ -484,16 +507,22 @@
       </template>
     </el-dialog>
   </div>
+  <teleport to="body">
+    <div v-if="coverPreview.visible" class="cover-float" :style="coverPreview.style">
+      <img :src="coverPreview.url" alt="封面预览" referrerpolicy="no-referrer" />
+    </div>
+  </teleport>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import axios from 'axios'
 
 // 搜索表单
 const searchForm = reactive({
   title: '',
   type: '',
+  release_date: null,
   status: '',
   is_completed: '',
   is_update: ''
@@ -541,10 +570,30 @@ const videoForm = reactive({
   tags_json: []
 })
 const videoFormRef = ref(null)
-const videoFormRules = {
-  title: [{ required: true, message: '请输入视频标题', trigger: 'blur' }],
-  type: [{ required: true, message: '请选择视频类型', trigger: 'change' }]
-}
+const videoFormRules = computed(() => {
+  if (videoForm.id) {
+    return {
+      title: [{ required: true, message: '请输入视频标题', trigger: 'blur' }],
+      type: [{ required: true, message: '请选择视频类型', trigger: 'change' }]
+    }
+  }
+  return {
+    source_id: [{
+      validator: (_rule, value, callback) => {
+        if (value == null || value === '' || Number(value) <= 0) {
+          callback(new Error('请填写来源ID'))
+          return
+        }
+        callback()
+      },
+      trigger: 'blur'
+    }],
+    source: [{ required: true, whitespace: true, message: '请填写来源', trigger: 'blur' }],
+    title: [{ required: true, whitespace: true, message: '请填写标题', trigger: 'blur' }],
+    type: [{ required: true, message: '请选择类型', trigger: 'change' }],
+    cover_url: [{ required: true, whitespace: true, message: '请填写视频封面', trigger: 'blur' }]
+  }
+})
 
 // 剧集表单
 const episodeFormVisible = ref(false)
@@ -563,6 +612,49 @@ const episodeFormRules = {
 
 // Tag输入
 const tagInput = ref('')
+const coverPreview = reactive({
+  visible: false,
+  url: '',
+  style: {}
+})
+
+const coverSrc = (url) => {
+  if (!url || typeof url !== 'string') return ''
+  const trimmed = url.trim()
+  if (!trimmed) return ''
+  const normalized = trimmed.startsWith('//') ? `https:${trimmed}` : trimmed
+  try {
+    const parsed = new URL(normalized)
+    if (/(\.|^)doubanio\.com$/i.test(parsed.hostname)) {
+      return `/api/admin/cover?url=${encodeURIComponent(parsed.href)}`
+    }
+  } catch {
+    return ''
+  }
+  return normalized
+}
+
+const showCoverPreview = (event, url) => {
+  if (!url) return
+  const rect = event.currentTarget.getBoundingClientRect()
+  const width = 220
+  const height = 320
+  let left = rect.right + 12
+  if (left + width > window.innerWidth - 8) {
+    left = Math.max(8, rect.left - width - 12)
+  }
+  let top = rect.top - 8
+  if (top + height > window.innerHeight - 8) {
+    top = Math.max(8, window.innerHeight - height - 8)
+  }
+  coverPreview.url = url
+  coverPreview.style = { left: `${left}px`, top: `${top}px` }
+  coverPreview.visible = true
+}
+
+const hideCoverPreview = () => {
+  coverPreview.visible = false
+}
 
 // 获取视频列表
 const getVideoList = async () => {
@@ -574,6 +666,8 @@ const getVideoList = async () => {
         title: searchForm.title,
         type: searchForm.type,
         status: searchForm.status,
+        release_date_start: searchForm.release_date?.[0] || '',
+        release_date_end: searchForm.release_date?.[1] || '',
         is_completed: searchForm.is_completed,
         is_update: searchForm.is_update
       }
@@ -595,6 +689,7 @@ const searchVideos = () => {
 const resetSearch = () => {
   searchForm.title = ''
   searchForm.type = ''
+  searchForm.release_date = null
   searchForm.status = ''
   searchForm.is_completed = ''
   searchForm.is_update = ''
@@ -711,33 +806,35 @@ const saveVideo = async () => {
   try {
     await videoFormRef.value.validate()
 
-    const videoData = {
-      source_id: videoForm.source_id != null ? Number(videoForm.source_id) : null,
-      source: videoForm.source,
-      title: videoForm.title,
-      type: videoForm.type,
-      cover_url: videoForm.cover_url,
-      description: videoForm.description,
-      release_date: videoForm.release_date ? videoForm.release_date : null,
-      score: videoForm.score,
-      country_json: JSON.stringify(videoForm.country_json),
-      director_json: JSON.stringify(videoForm.director_json),
-      actors_json: JSON.stringify(videoForm.actors_json),
-      tags_json: JSON.stringify(videoForm.tags_json),
-      status: videoForm.status,
-      imdb_id: videoForm.imdb_id,
-      runtime: videoForm.runtime != null ? Number(videoForm.runtime) : null,
-      episode_count: Number(videoForm.episode_count) || 0,
-      is_completed: !!videoForm.is_completed,
-      is_update: !!videoForm.is_update
-    }
-
     if (videoForm.id) {
-      // 更新
-      await axios.put(`/admin/videos/${videoForm.id}`, videoData)
+      await axios.put(`/admin/videos/${videoForm.id}`, {
+        source_id: videoForm.source_id != null ? Number(videoForm.source_id) : null,
+        source: videoForm.source,
+        title: videoForm.title,
+        type: videoForm.type,
+        cover_url: videoForm.cover_url,
+        description: videoForm.description,
+        release_date: videoForm.release_date ? videoForm.release_date : null,
+        score: videoForm.score,
+        country_json: JSON.stringify(videoForm.country_json),
+        director_json: JSON.stringify(videoForm.director_json),
+        actors_json: JSON.stringify(videoForm.actors_json),
+        tags_json: JSON.stringify(videoForm.tags_json),
+        status: videoForm.status,
+        imdb_id: videoForm.imdb_id,
+        runtime: videoForm.runtime != null ? Number(videoForm.runtime) : null,
+        episode_count: Number(videoForm.episode_count) || 0,
+        is_completed: !!videoForm.is_completed,
+        is_update: !!videoForm.is_update
+      })
     } else {
-      // 新增
-      await axios.post('/admin/videos', videoData)
+      await axios.post('/admin/videos', {
+        source_id: Number(videoForm.source_id),
+        source: videoForm.source.trim(),
+        title: videoForm.title.trim(),
+        type: videoForm.type,
+        cover_url: videoForm.cover_url.trim()
+      })
     }
     
     videoFormVisible.value = false
@@ -841,6 +938,7 @@ const getTypeTagType = (type) => {
     movie: 'primary',
     tv: 'success',
     anime: 'warning',
+    tvshow: 'info',
     variety: 'info',
     doc: 'danger'
   }
@@ -853,6 +951,7 @@ const getTypeText = (type) => {
     movie: '电影',
     tv: '电视剧',
     anime: '动漫',
+    tvshow: '综艺',
     variety: '综艺',
     doc: '纪录片'
   }
@@ -868,11 +967,13 @@ onMounted(() => {
 <style scoped>
 .video-management {
   flex: 1;
+  min-width: 0;
   min-height: 0;
   display: flex;
   flex-direction: column;
   padding: 16px;
   width: 100%;
+  max-width: 100%;
   box-sizing: border-box;
   overflow: hidden;
 }
@@ -886,11 +987,15 @@ onMounted(() => {
 
 .list-card {
   flex: 1;
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
   min-height: 0;
   margin-top: 12px;
   display: flex;
   flex-direction: column;
   border-radius: 12px;
+  overflow: hidden;
 }
 
 :deep(.search-card .el-card__body) {
@@ -909,7 +1014,9 @@ onMounted(() => {
 
 .list-card-stretch {
   flex: 1;
+  min-width: 0;
   min-height: 0;
+  width: 100%;
   display: flex;
   flex-direction: column;
 }
@@ -957,41 +1064,49 @@ onMounted(() => {
   align-items: center;
   gap: 8px;
   padding: 8px;
-  border: 1px solid #3a3a3a;
+  border: 1px solid #1E2A3F;
   border-radius: 8px;
   min-height: 32px;
   width: 100%;
-  background: #1a1a1a;
+  background: #0E1524;
 }
 
 .tag-input-container .el-tag {
   margin-bottom: 8px;
 }
 
-/* 封面预览样式 */
-.cover-container {
-  position: relative;
-  display: inline-block;
+.cover-thumb {
+  display: inline-flex;
+  line-height: 0;
 }
 
-.cover-preview {
-  position: absolute;
-  top: -10px;
-  left: 70px;
-  z-index: 1000;
-  padding: 5px;
-  background: rgba(0, 0, 0, 0.8);
-  border-radius: 4px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+.cover-thumb-img {
+  width: 28px;
+  height: 40px;
+  border-radius: 3px;
+  object-fit: cover;
+  display: block;
+  cursor: zoom-in;
+  background: #061022;
+}
+
+.cover-float {
+  position: fixed;
+  z-index: 4000;
+  padding: 6px;
+  background: #0E1524;
+  border: 1px solid #78F0FF;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
   pointer-events: none;
 }
 
-.cover-container:hover .cover-preview {
+.cover-float img {
   display: block;
-}
-
-.cover-container .cover-preview {
-  display: none;
+  width: 220px;
+  height: 320px;
+  object-fit: cover;
+  border-radius: 4px;
 }
 
 .dialog-footer {
@@ -1003,16 +1118,38 @@ onMounted(() => {
 /* 表格区吃掉卡片内剩余高度，横向/纵向滚动由 el-table 内部处理 */
 .video-table-scroll {
   flex: 1;
+  min-width: 0;
   min-height: 0;
   width: 100%;
   max-width: 100%;
   overflow: hidden;
-  -webkit-overflow-scrolling: touch;
 }
 
 .video-table-scroll :deep(.video-list-table.el-table) {
-  width: max-content;
-  min-width: 100%;
+  width: 100%;
+  max-width: 100%;
+  --el-table-border-color: #1E2A3F;
+  font-size: 12px;
+}
+
+.video-table-scroll :deep(.video-list-table .el-table__header th),
+.video-table-scroll :deep(.video-list-table .cell),
+.video-table-scroll :deep(.video-list-table .el-tag),
+.video-table-scroll :deep(.video-list-table .el-button) {
+  font-size: 12px;
+}
+
+.video-table-scroll :deep(.video-list-table .el-table__cell) {
+  padding: 2px 0;
+}
+
+.video-table-scroll :deep(.video-list-table .cell) {
+  line-height: 18px;
+  padding: 2px 6px;
+}
+
+.video-table-scroll :deep(.video-list-table .el-table__column-resize-proxy) {
+  border-left-color: #78F0FF;
 }
 
 /* 确保卡片宽度适应容器 */
@@ -1022,11 +1159,11 @@ onMounted(() => {
 
 .table-ops-cell {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
   gap: 2px;
-  padding: 4px 0;
+  padding: 0;
 }
 
 .table-ops-cell .el-button {
@@ -1036,27 +1173,65 @@ onMounted(() => {
   line-height: 1.35;
 }
 
+:deep(.video-form-dialog) {
+  max-width: calc(100vw - 48px);
+}
+
+:deep(.video-form-dialog.el-dialog) {
+  padding: 0;
+}
+
 :deep(.video-form-dialog .el-dialog__body) {
   max-height: calc(100vh - 140px);
   overflow-y: auto;
-  padding-right: 8px;
+  padding: 16px 20px 8px;
+}
+
+:deep(.video-form-dialog .el-form-item__label) {
+  white-space: nowrap;
+}
+
+:deep(.video-form-dialog .el-form-item__content) {
+  min-width: 0;
 }
 
 /* 表格更现代：表头底色与 hover */
 :deep(.el-table__header th) {
-  background-color: #242424;
-  color: #c9c9c9;
+  background-color: #0E1524;
+  color: #8E9AAF;
   font-weight: 600;
 }
 
 :deep(.el-table__body tr:hover > td) {
-  background-color: #2a2a2a !important;
+  background-color: #1E3048 !important;
 }
 
-/* 弹窗头部：黑灰层次 */
+/* 弹窗头部铺满，标题和关闭按钮同一行 */
 :deep(.video-form-dialog .el-dialog__header) {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0));
-  border-bottom: 1px solid #333;
-  padding: 14px 20px;
+  background: #0E1524;
+  border-bottom: 1px solid #1E2A3F;
+  margin: 0;
+  padding: 16px 48px 16px 20px;
+}
+
+:deep(.video-form-dialog .el-dialog__title) {
+  color: #EAF0F8;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+}
+
+:deep(.video-form-dialog .el-dialog__headerbtn) {
+  top: 0;
+  right: 0;
+  width: 48px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+:deep(.video-form-dialog .el-dialog__footer) {
+  padding: 8px 20px 16px;
 }
 </style>

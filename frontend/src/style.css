@@ -162,23 +162,52 @@ code {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
-  background-color: #0f0f0f;
+  background-color: #070B12;
 }
 
-/* 管理后台：黑色调 + 主色改为中性灰（避免蓝色 primary） */
+/* 管理后台色调对齐电视端：深蓝底、青色强调 */
 html.dark {
-  --el-color-primary: #b0b0b0;
-  --el-color-primary-light-3: #8a8a8a;
-  --el-color-primary-light-5: #737373;
-  --el-color-primary-light-7: #5c5c5c;
-  --el-color-primary-light-8: #525252;
-  --el-color-primary-light-9: #474747;
-  --el-color-primary-dark-2: #8e8e8e;
-  --el-bg-color-page: #0f0f0f;
-  --el-bg-color: #161616;
-  --el-fill-color-blank: #141414;
-  --el-border-color-light: #333;
-  --el-border-color-lighter: #2a2a2a;
+  --el-color-primary: #78F0FF;
+  --el-color-primary-light-3: #9af5ff;
+  --el-color-primary-light-5: #b4f7ff;
+  --el-color-primary-light-7: #1a3a44;
+  --el-color-primary-light-8: #143038;
+  --el-color-primary-light-9: #102830;
+  --el-color-primary-dark-2: #4AAED6;
+  --el-bg-color-page: #070B12;
+  --el-bg-color: #151C2E;
+  --el-bg-color-overlay: #0E1524;
+  --el-fill-color: #151C2E;
+  --el-fill-color-light: #1A2232;
+  --el-fill-color-blank: #0E1524;
+  --el-text-color-primary: #EAF0F8;
+  --el-text-color-regular: #B4BFD6;
+  --el-text-color-secondary: #8E9AAF;
+  --el-text-color-placeholder: #5C677D;
+  --el-border-color: #1E2A3F;
+  --el-border-color-light: #1E2A3F;
+  --el-border-color-lighter: #1A2436;
+  --el-border-color-extra-light: #141A26;
+  --el-mask-color: rgba(7, 11, 18, 0.75);
+  --el-table-border-color: #1E2A3F;
+  --el-table-header-bg-color: #0E1524;
+  --el-table-header-text-color: #8E9AAF;
+  --el-table-row-hover-bg-color: #1E3048;
+  --el-table-bg-color: #151C2E;
+  --el-table-tr-bg-color: #151C2E;
+  --el-table-text-color: #EAF0F8;
+}
+
+html.dark .el-button--primary:not(.is-link):not(.is-text) {
+  --el-button-text-color: #070B12;
+  --el-button-hover-text-color: #070B12;
+  --el-button-active-text-color: #070B12;
+  --el-button-bg-color: #78F0FF;
+  --el-button-border-color: #78F0FF;
+  --el-button-hover-bg-color: #B5E8FF;
+  --el-button-hover-border-color: #B5E8FF;
+  --el-button-active-bg-color: #4AAED6;
+  --el-button-active-border-color: #4AAED6;
 }
 
 #center {
