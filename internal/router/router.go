@@ -59,6 +59,8 @@ func SetupRouter() *gin.Engine {
 		{
 			// 豆瓣电影同步接口（手动触发）
 			syncGroup.POST("/douban/movies", handler.SyncDoubanMovies)
+			// 从豆瓣刷新未下架且未完结视频的集数（不修改 updated_at）
+			syncGroup.POST("/douban/episode-counts", handler.SyncRefreshEpisodeCounts)
 		}
 
 		// 管理后台接口

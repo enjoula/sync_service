@@ -85,6 +85,11 @@ html.dark .video-list-table .table-ops-cell .el-button.is-link:hover {
   color: #B5E8FF;
 }
 
+/* 列表分页不展示末页页码；总条数和跳页已从 layout 去掉 */
+html.dark .admin-pagination .el-pager li.number ~ li.number:last-child {
+  display: none;
+}
+
 html.dark .list-card.el-card {
   background-color: #151C2E;
   border-color: #1E2A3F;

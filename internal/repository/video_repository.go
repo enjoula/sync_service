@@ -2,10 +2,41 @@
 package repository
 
 import (
+	"strconv"
 	"time"
 	"video-service/internal/model"
 	"video-service/pkg/infrastructure/database"
+
+	"gorm.io/gorm"
 )
+
+// VideoRef 状态收尾日志用的视频标识。ID 用字符串，避免雪花 ID 在 JSON 里丢精度。
+type VideoRef struct {
+	ID    string `json:"id"`
+	Title string `json:"title"`
+}
+
+type idTitleRow struct {
+	ID    int64  `gorm:"column:id"`
+	Title string `gorm:"column:title"`
+}
+
+func toVideoRefs(rows []idTitleRow) []VideoRef {
+	refs := make([]VideoRef, 0, len(rows))
+	for _, row := range rows {
+		refs = append(refs, VideoRef{
+			ID:    strconv.FormatInt(row.ID, 10),
+			Title: row.Title,
+		})
+	}
+	return refs
+}
+
+func queryIDTitles(query string, args ...interface{}) ([]idTitleRow, error) {
+	rows := make([]idTitleRow, 0)
+	err := database.DB.Raw(query, args...).Scan(&rows).Error
+	return rows, err
+}
 
 // VideoRepository 视频仓库接口
 type VideoRepository interface {
@@ -34,16 +65,25 @@ type VideoRepository interface {
 	FindAllVideos() ([]*model.Video, error)
 
 	// FindVideosWithPagination 查找视频列表（带分页、排序和筛选）
-	FindVideosWithPagination(limit, offset int, title, videoType, status string, releaseStart, releaseEnd *time.Time, isCompleted *bool, isUpdate *bool) ([]*model.Video, int64, error)
+	FindVideosWithPagination(limit, offset int, title string, videoTypes, statuses []string, releaseStart, releaseEnd *time.Time, isCompleted *bool, isUpdate *bool) ([]*model.Video, int64, error)
 
 	// FindVideosByStatusNotEqual 查找 status 不等于指定值的视频（返回 id、type、title）
 	FindVideosByStatusNotEqual(status string) ([]*model.Video, error)
 
-	// FindVideosNeedUpdateEpisodes 查找需要更新episodes的视频（status不等于0且is_completed不等于1，返回 id、type、title、source_id）
+	// FindVideosNeedUpdateEpisodes 查找需要搜索播放地址的视频（跳过 status=0 和 is_completed=1，title有内容）
 	FindVideosNeedUpdateEpisodes() ([]*model.Video, error)
 
-	// UpdateVideosStatusByEpisodes 更新存在 episodes 记录且 status 不为 '0' 的 videos 的 status
+	// FindVideosNeedRefreshEpisodeCount 查找需要从豆瓣刷新集数的视频（status!=0、is_completed!=1、有 source_id，不含 movie、tvshow）
+	FindVideosNeedRefreshEpisodeCount() ([]*model.Video, error)
+
+	// UpdateEpisodeCountWithoutUpdatedAt 只更新 episode_count，不修改 updated_at
+	UpdateEpisodeCountWithoutUpdatedAt(videoID int64, episodeCount int64) error
+
+	// UpdateVideosStatusByEpisodes 更新存在 episodes 记录的 videos 的 status。status 为 0、episode_count 为 0 或空的不处理。
 	UpdateVideosStatusByEpisodes(status string) error
+
+	// ShelfMoviesWithEpisodes 有剧集的电影上架并标为完结。status 为 0 或已完结的不处理。
+	ShelfMoviesWithEpisodes() (int64, error)
 
 	// UpdateVideoStatus 更新指定视频的status
 	// 返回 (是否真的执行了更新, 错误)
@@ -59,6 +99,24 @@ type VideoRepository interface {
 
 	// UpdateVideoUpdatedAt 更新指定视频的updated_at字段
 	UpdateVideoUpdatedAt(videoID int64, updatedAt time.Time) error
+
+	// UpdateVideoStateAfterEpisodeInsert 插入剧集后写上架、有更新，并把 updated_at 设为最后一集的 created_at。markCompleted 为真时同时标完结。
+	UpdateVideoStateAfterEpisodeInsert(videoID int64, updatedAt time.Time, markCompleted bool) error
+
+	// ClearIsUpdateOlderThan 将 updated_at 早于 since、且 status 不为 0 的视频 is_update 设为 0。不改 updated_at。返回实际改到的视频。
+	ClearIsUpdateOlderThan(since time.Time) ([]VideoRef, error)
+
+	// ApplyInsertedEpisodeVideoState 对本次新插入剧集的视频统一写上架、有更新和 updated_at。电影标完结；其它类型集数已齐才标完结。status 为 0 的不处理。返回实际改到的视频。
+	ApplyInsertedEpisodeVideoState(videoIDs []int64) ([]VideoRef, error)
+
+	// MarkSeriesCompletedWhenCountMatches 非电影现有集数等于 episode_count 时只把 is_completed 设为 1。status 为 0、集数为 0 的不处理。返回实际改到的视频。
+	MarkSeriesCompletedWhenCountMatches() ([]VideoRef, error)
+
+	// ShelfPendingMoviesWithEpisodes 已有剧集且未完结的电影上架并标完结，updated_at 取最后一集，is_update 先记为 1。status 为 0 或已完结的不处理。返回实际改到的视频。
+	ShelfPendingMoviesWithEpisodes() ([]VideoRef, error)
+
+	// AlignUpdatedAtWithLastEpisode 将有剧集且 status 不为 0 的视频 updated_at 对齐为最后一条剧集的 created_at，已一致的不更新
+	AlignUpdatedAtWithLastEpisode() (int64, error)
 
 	// FindByID 根据ID查找视频（返回完整信息）
 	FindByID(videoID int64) (*model.Video, error)
@@ -81,8 +139,7 @@ type VideoRepository interface {
 	// FindVideosStatus1AndRecentCreated 查找 status=1、created_at在最近两个月内的视频（返回 id）
 	FindVideosStatus1AndRecentCreated() ([]*model.Video, error)
 
-	// FindVideosStatus1OrIsUpdate1AndRecentCreated 查找需要维护 is_update 的视频（返回 id）：
-	// is_update=1 的全部纳入（便于超窗后清回 0）；或 status=1 且 updated_at 在最近两个月内
+	// FindVideosStatus1OrIsUpdate1AndRecentCreated 查找需要维护 is_update 的视频（返回 id）。status 为 0 的不处理。
 	FindVideosStatus1OrIsUpdate1AndRecentCreated() ([]*model.Video, error)
 
 	// DeleteByID 根据ID删除视频
@@ -160,10 +217,10 @@ func (r *videoRepository) UpdateDetails(video *model.Video) error {
 }
 
 // FindNeedDetailVideos 查找需要补充详情的视频
-// 条件：source_id不为空且country_json为空（country_json为空说明详情未获取）
+// 条件：source_id不为空且country_json为空（country_json为空说明详情未获取）。status 为 0 的不处理。
 func (r *videoRepository) FindNeedDetailVideos(limit int) ([]*model.Video, error) {
 	var videos []*model.Video
-	err := database.DB.Where("source_id IS NOT NULL AND source_id != 0 AND (country_json IS NULL OR country_json = '[]')").
+	err := database.DB.Where("source_id IS NOT NULL AND source_id != 0 AND (status IS NULL OR status != ?) AND (country_json IS NULL OR country_json = '[]')", "0").
 		Limit(limit).
 		Find(&videos).Error
 	if err != nil {
@@ -173,10 +230,10 @@ func (r *videoRepository) FindNeedDetailVideos(limit int) ([]*model.Video, error
 }
 
 // FindNeedDetailVideosByType 根据类型查找需要补充详情的视频
-// 条件：source_id不为空且release_date和country_json都为空
+// 条件：source_id不为空且release_date和country_json都为空。status 为 0 的不处理。
 func (r *videoRepository) FindNeedDetailVideosByType(videoType string, limit int) ([]*model.Video, error) {
 	var videos []*model.Video
-	err := database.DB.Where("source_id IS NOT NULL AND source_id != 0 AND type = ? AND (release_date IS NULL) AND (country_json IS NULL OR country_json = '[]')", videoType).
+	err := database.DB.Where("source_id IS NOT NULL AND source_id != 0 AND type = ? AND (status IS NULL OR status != ?) AND (release_date IS NULL) AND (country_json IS NULL OR country_json = '[]')", videoType, "0").
 		Limit(limit).
 		Find(&videos).Error
 	if err != nil {
@@ -196,8 +253,30 @@ func (r *videoRepository) FindAllVideos() ([]*model.Video, error) {
 	return videos, nil
 }
 
+func applyStatusFilter(query *gorm.DB, statuses []string) *gorm.DB {
+	concrete := make([]string, 0, len(statuses))
+	includeEmpty := false
+	for _, status := range statuses {
+		if status == "__empty__" {
+			includeEmpty = true
+			continue
+		}
+		concrete = append(concrete, status)
+	}
+	switch {
+	case includeEmpty && len(concrete) > 0:
+		return query.Where("(status IN ? OR status IS NULL OR status = '')", concrete)
+	case includeEmpty:
+		return query.Where("status IS NULL OR status = ''")
+	case len(concrete) > 0:
+		return query.Where("status IN ?", concrete)
+	default:
+		return query
+	}
+}
+
 // FindVideosWithPagination 查找视频列表（带分页、排序和筛选）
-func (r *videoRepository) FindVideosWithPagination(limit, offset int, title, videoType, status string, releaseStart, releaseEnd *time.Time, isCompleted *bool, isUpdate *bool) ([]*model.Video, int64, error) {
+func (r *videoRepository) FindVideosWithPagination(limit, offset int, title string, videoTypes, statuses []string, releaseStart, releaseEnd *time.Time, isCompleted *bool, isUpdate *bool) ([]*model.Video, int64, error) {
 	var videos []*model.Video
 	var total int64
 
@@ -209,13 +288,11 @@ func (r *videoRepository) FindVideosWithPagination(limit, offset int, title, vid
 		query = query.Where("title LIKE ?", "%"+title+"%")
 	}
 
-	if videoType != "" {
-		query = query.Where("type = ?", videoType)
+	if len(videoTypes) > 0 {
+		query = query.Where("type IN ?", videoTypes)
 	}
 
-	if status != "" {
-		query = query.Where("status = ?", status)
-	}
+	query = applyStatusFilter(query, statuses)
 
 	if releaseStart != nil {
 		query = query.Where("release_date >= ?", releaseStart.Format("2006-01-02"))
@@ -260,13 +337,12 @@ func (r *videoRepository) FindVideosByStatusNotEqual(status string) ([]*model.Vi
 	return videos, nil
 }
 
-// FindVideosNeedUpdateEpisodes 查找需要更新episodes的视频（status不等于0且is_completed不等于1，返回 id、type、title、source_id）
+// FindVideosNeedUpdateEpisodes 查找需要搜索播放地址的视频
+// 跳过 status=0 和 is_completed=1。未上架（status 为空）仍会搜索。title 必须有内容。
 func (r *videoRepository) FindVideosNeedUpdateEpisodes() ([]*model.Video, error) {
 	var videos []*model.Video
-	// 查询条件：status != '0'（包括NULL）且 is_completed != 1（包括NULL）
-	// 明确处理NULL值，确保查询结果一致
-	err := database.DB.Select("id", "type", "title", "source_id").
-		Where("(status IS NULL OR status != ?) AND (is_completed IS NULL OR is_completed != ?)", "0", true).
+	err := database.DB.Select("id", "type", "title", "source_id", "episode_count").
+		Where("(status IS NULL OR status != ?) AND (is_completed IS NULL OR is_completed != ?) AND title IS NOT NULL AND title != ?", "0", true, "").
 		Find(&videos).Error
 	if err != nil {
 		return nil, err
@@ -274,10 +350,32 @@ func (r *videoRepository) FindVideosNeedUpdateEpisodes() ([]*model.Video, error)
 	return videos, nil
 }
 
-// UpdateVideosStatusByEpisodes 更新存在 episodes 记录且 status 不为 '0' 的 videos 的 status
+// FindVideosNeedRefreshEpisodeCount 查找需要从豆瓣刷新集数的视频
+// 条件：status != 0、is_completed != 1、source_id 有效，且类型不是 movie、tvshow。
+func (r *videoRepository) FindVideosNeedRefreshEpisodeCount() ([]*model.Video, error) {
+	var videos []*model.Video
+	err := database.DB.Select("id", "type", "title", "source_id", "episode_count").
+		Where("status != ? AND is_completed != ? AND source_id IS NOT NULL AND source_id != 0 AND type NOT IN ?", "0", true, []string{"movie", "tvshow"}).
+		Find(&videos).Error
+	if err != nil {
+		return nil, err
+	}
+	return videos, nil
+}
+
+// UpdateEpisodeCountWithoutUpdatedAt 只更新 episode_count，不修改 updated_at
+func (r *videoRepository) UpdateEpisodeCountWithoutUpdatedAt(videoID int64, episodeCount int64) error {
+	return database.DB.Model(&model.Video{}).
+		Where("id = ?", videoID).
+		UpdateColumns(map[string]interface{}{
+			"episode_count": episodeCount,
+		}).Error
+}
+
+// UpdateVideosStatusByEpisodes 更新存在 episodes 记录的 videos 的 status。
+// status 为 0、episode_count 为 0 或空的不处理。
 func (r *videoRepository) UpdateVideosStatusByEpisodes(status string) error {
-	// 执行 SQL: UPDATE videos v JOIN (SELECT DISTINCT video_id FROM episodes) e ON v.id = e.video_id SET v.status = ? WHERE (v.status IS NULL OR (v.status != ? AND v.status != '0'))
-	// 更新所有存在剧集、status 不等于目标值且不为 '0' 的视频（包括 NULL 和其他非目标值，但排除状态为 '0' 的数据）
+	// 有剧集、status 不是 0、剧集数不是 0 的视频上架。剧集数为 0 或空时不改 status。
 	err := database.DB.Exec(`
 		UPDATE videos v
 		JOIN (
@@ -285,9 +383,27 @@ func (r *videoRepository) UpdateVideosStatusByEpisodes(status string) error {
 			FROM episodes
 		) e ON v.id = e.video_id
 		SET v.status = ?
-		WHERE (v.status IS NULL OR (v.status != ? AND v.status != '0'))
+		WHERE (v.episode_count IS NOT NULL AND v.episode_count != 0)
+		  AND (v.status IS NULL OR (v.status != ? AND v.status != '0'))
 	`, status, status).Error
 	return err
+}
+
+// ShelfMoviesWithEpisodes 有剧集的电影改为上架且已完结。status 为 0 或 is_completed 为 1 的不处理。
+// 只改 status 和 is_completed，不改 updated_at。
+func (r *videoRepository) ShelfMoviesWithEpisodes() (int64, error) {
+	result := database.DB.Exec(`
+		UPDATE videos v
+		INNER JOIN (
+			SELECT DISTINCT video_id
+			FROM episodes
+		) e ON v.id = e.video_id
+		SET v.status = '1', v.is_completed = 1
+		WHERE v.type = 'movie'
+		  AND (v.status IS NULL OR v.status != '0')
+		  AND (v.is_completed IS NULL OR v.is_completed != 1)
+	`)
+	return result.RowsAffected, result.Error
 }
 
 // UpdateVideoStatus 更新指定视频的status
@@ -306,10 +422,10 @@ func (r *videoRepository) UpdateVideoStatus(videoID int64, status string) (bool,
 		return false, nil
 	}
 
-	// 执行更新
+	// 只更新 status，避免自动把 updated_at 改成当前时间
 	err = database.DB.Model(&model.Video{}).
 		Where("id = ?", videoID).
-		Update("status", status).Error
+		UpdateColumn("status", status).Error
 	if err != nil {
 		return false, err
 	}
@@ -332,10 +448,10 @@ func (r *videoRepository) UpdateVideoIsUpdate(videoID int64, isUpdate bool) (boo
 		return false, nil
 	}
 
-	// 执行更新
+	// 只更新 is_update，避免自动把 updated_at 改成当前时间
 	err = database.DB.Model(&model.Video{}).
 		Where("id = ?", videoID).
-		Update("is_update", isUpdate).Error
+		UpdateColumn("is_update", isUpdate).Error
 	if err != nil {
 		return false, err
 	}
@@ -358,10 +474,10 @@ func (r *videoRepository) UpdateVideoIsCompleted(videoID int64, isCompleted bool
 		return false, nil
 	}
 
-	// 执行更新
+	// 只更新 is_completed，避免自动把 updated_at 改成当前时间
 	err = database.DB.Model(&model.Video{}).
 		Where("id = ?", videoID).
-		Update("is_completed", isCompleted).Error
+		UpdateColumn("is_completed", isCompleted).Error
 	if err != nil {
 		return false, err
 	}
@@ -372,7 +488,213 @@ func (r *videoRepository) UpdateVideoIsCompleted(videoID int64, isCompleted bool
 func (r *videoRepository) UpdateVideoUpdatedAt(videoID int64, updatedAt time.Time) error {
 	return database.DB.Model(&model.Video{}).
 		Where("id = ?", videoID).
-		Update("updated_at", updatedAt).Error
+		UpdateColumn("updated_at", updatedAt).Error
+}
+
+// UpdateVideoStateAfterEpisodeInsert 插入剧集后：status=1，is_update=1，updated_at 为最后一集 created_at。
+// markCompleted 为真时同时把 is_completed 设为 1。不改其它字段。
+func (r *videoRepository) UpdateVideoStateAfterEpisodeInsert(videoID int64, updatedAt time.Time, markCompleted bool) error {
+	updates := map[string]interface{}{
+		"status":     "1",
+		"is_update":  true,
+		"updated_at": updatedAt,
+	}
+	if markCompleted {
+		updates["is_completed"] = true
+	}
+	return database.DB.Model(&model.Video{}).
+		Where("id = ?", videoID).
+		UpdateColumns(updates).Error
+}
+
+// ClearIsUpdateOlderThan 将 updated_at 早于 since、且 status 不为 0 的视频 is_update 设为 0。
+func (r *videoRepository) ClearIsUpdateOlderThan(since time.Time) ([]VideoRef, error) {
+	rows, err := queryIDTitles(`
+		SELECT id, title
+		FROM videos
+		WHERE (status IS NULL OR status != '0')
+		  AND updated_at IS NOT NULL
+		  AND updated_at < ?
+		  AND (is_update IS NULL OR is_update != 0)
+	`, since)
+	if err != nil {
+		return nil, err
+	}
+	if len(rows) == 0 {
+		return []VideoRef{}, nil
+	}
+	result := database.DB.Exec(`
+		UPDATE videos
+		SET is_update = 0
+		WHERE (status IS NULL OR status != '0')
+		  AND updated_at IS NOT NULL
+		  AND updated_at < ?
+		  AND (is_update IS NULL OR is_update != 0)
+	`, since)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return toVideoRefs(rows), nil
+}
+
+// ApplyInsertedEpisodeVideoState 对本次新插入剧集的视频统一写状态。status 为 0 的不处理。
+func (r *videoRepository) ApplyInsertedEpisodeVideoState(videoIDs []int64) ([]VideoRef, error) {
+	if len(videoIDs) == 0 {
+		return []VideoRef{}, nil
+	}
+	rows := make([]idTitleRow, 0)
+	for start := 0; start < len(videoIDs); start += 500 {
+		end := start + 500
+		if end > len(videoIDs) {
+			end = len(videoIDs)
+		}
+		chunk, err := queryIDTitles(`
+			SELECT v.id, v.title
+			FROM videos v
+			INNER JOIN (
+				SELECT video_id
+				FROM episodes
+				WHERE video_id IN ?
+				GROUP BY video_id
+			) e ON v.id = e.video_id
+			WHERE v.status IS NULL OR v.status != '0'
+		`, videoIDs[start:end])
+		if err != nil {
+			return nil, err
+		}
+		rows = append(rows, chunk...)
+	}
+	if len(rows) == 0 {
+		return []VideoRef{}, nil
+	}
+	for start := 0; start < len(videoIDs); start += 500 {
+		end := start + 500
+		if end > len(videoIDs) {
+			end = len(videoIDs)
+		}
+		result := database.DB.Exec(`
+			UPDATE videos v
+			INNER JOIN (
+				SELECT video_id, MAX(created_at) AS last_created_at, COUNT(*) AS episode_total
+				FROM episodes
+				WHERE video_id IN ?
+				GROUP BY video_id
+			) e ON v.id = e.video_id
+			SET v.status = '1',
+				v.is_update = 1,
+				v.updated_at = e.last_created_at,
+				v.is_completed = CASE
+					WHEN v.type = 'movie' THEN 1
+					WHEN v.episode_count > 0 AND e.episode_total = v.episode_count THEN 1
+					ELSE v.is_completed
+				END
+			WHERE v.status IS NULL OR v.status != '0'
+		`, videoIDs[start:end])
+		if result.Error != nil {
+			return nil, result.Error
+		}
+	}
+	return toVideoRefs(rows), nil
+}
+
+// MarkSeriesCompletedWhenCountMatches 非电影现有集数等于 episode_count 时只更新 is_completed。
+func (r *videoRepository) MarkSeriesCompletedWhenCountMatches() ([]VideoRef, error) {
+	rows, err := queryIDTitles(`
+		SELECT v.id, v.title
+		FROM videos v
+		INNER JOIN (
+			SELECT video_id, COUNT(*) AS episode_total
+			FROM episodes
+			GROUP BY video_id
+		) e ON v.id = e.video_id
+		WHERE (v.status IS NULL OR v.status != '0')
+		  AND v.type <> 'movie'
+		  AND v.episode_count > 0
+		  AND e.episode_total = v.episode_count
+		  AND (v.is_completed IS NULL OR v.is_completed <> 1)
+	`)
+	if err != nil {
+		return nil, err
+	}
+	if len(rows) == 0 {
+		return []VideoRef{}, nil
+	}
+	result := database.DB.Exec(`
+		UPDATE videos v
+		INNER JOIN (
+			SELECT video_id, COUNT(*) AS episode_total
+			FROM episodes
+			GROUP BY video_id
+		) e ON v.id = e.video_id
+		SET v.is_completed = 1
+		WHERE (v.status IS NULL OR v.status != '0')
+		  AND v.type <> 'movie'
+		  AND v.episode_count > 0
+		  AND e.episode_total = v.episode_count
+		  AND (v.is_completed IS NULL OR v.is_completed <> 1)
+	`)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return toVideoRefs(rows), nil
+}
+
+// ShelfPendingMoviesWithEpisodes 已有剧集、未下架且未完结的电影上架并标完结。
+func (r *videoRepository) ShelfPendingMoviesWithEpisodes() ([]VideoRef, error) {
+	rows, err := queryIDTitles(`
+		SELECT v.id, v.title
+		FROM videos v
+		INNER JOIN (
+			SELECT video_id
+			FROM episodes
+			GROUP BY video_id
+		) e ON v.id = e.video_id
+		WHERE v.type = 'movie'
+		  AND (v.status IS NULL OR v.status != '0')
+		  AND (v.is_completed IS NULL OR v.is_completed <> 1)
+	`)
+	if err != nil {
+		return nil, err
+	}
+	if len(rows) == 0 {
+		return []VideoRef{}, nil
+	}
+	result := database.DB.Exec(`
+		UPDATE videos v
+		INNER JOIN (
+			SELECT video_id, MAX(created_at) AS last_created_at
+			FROM episodes
+			GROUP BY video_id
+		) e ON v.id = e.video_id
+		SET v.status = '1',
+			v.is_completed = 1,
+			v.is_update = 1,
+			v.updated_at = e.last_created_at
+		WHERE v.type = 'movie'
+		  AND (v.status IS NULL OR v.status != '0')
+		  AND (v.is_completed IS NULL OR v.is_completed <> 1)
+	`)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return toVideoRefs(rows), nil
+}
+
+// AlignUpdatedAtWithLastEpisode 将有剧集的视频 updated_at 对齐为该剧最后一条剧集的 created_at。
+// 已经等于最后一条 created_at 的记录不更新。status 为 0 的不处理。
+func (r *videoRepository) AlignUpdatedAtWithLastEpisode() (int64, error) {
+	result := database.DB.Exec(`
+		UPDATE videos v
+		INNER JOIN (
+			SELECT video_id, MAX(created_at) AS last_created_at
+			FROM episodes
+			GROUP BY video_id
+		) last_ep ON v.id = last_ep.video_id
+		SET v.updated_at = last_ep.last_created_at
+		WHERE (v.status IS NULL OR v.status != '0')
+		  AND (v.updated_at IS NULL OR v.updated_at <> last_ep.last_created_at)
+	`)
+	return result.RowsAffected, result.Error
 }
 
 // FindByID 根据ID查找视频（返回完整信息）
@@ -486,14 +808,15 @@ func (r *videoRepository) FindVideosStatus1AndRecentCreated() ([]*model.Video, e
 }
 
 // FindVideosStatus1OrIsUpdate1AndRecentCreated 查找需要维护 is_update 的视频（返回 id）
-// 条件：is_update=1（无论建档多久，避免早建档片子卡在 1）；或 status=1 且 updated_at 在最近两个月内
-// 使用 updated_at 而非 created_at：新集插入会刷新 updated_at，长期连载仍可被扫到
+// status 为 0 的不处理。其余满足：已上架或已是有更新，未完结或已是有更新，并且已是有更新或两个月内有更新。
 func (r *videoRepository) FindVideosStatus1OrIsUpdate1AndRecentCreated() ([]*model.Video, error) {
 	var videos []*model.Video
 	twoMonthsAgo := time.Now().AddDate(0, -2, 0)
 
 	err := database.DB.Select("id").
+		Where("(status IS NULL OR status != ?)", "0").
 		Where("(status = ? OR is_update = ?)", "1", true).
+		Where("(is_completed != ? OR is_update = ?)", true, true).
 		Where("(is_update = ? OR updated_at >= ?)", true, twoMonthsAgo).
 		Find(&videos).Error
 	if err != nil {

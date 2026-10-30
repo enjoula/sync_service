@@ -2,7 +2,6 @@
 package repository
 
 import (
-	"time"
 	"video-service/internal/model"
 	"video-service/pkg/infrastructure/database"
 
@@ -11,8 +10,11 @@ import (
 
 // EpisodeRepository 剧集仓库接口
 type EpisodeRepository interface {
-	// Create 创建剧集记录
+	// Create 创建剧集记录，并回写对应视频的 updated_at
 	Create(episode *model.Episode) error
+
+	// InsertOnly 只插入剧集，不修改视频表。同步任务用它把状态更新留到搜索结束后统一处理。
+	InsertOnly(episode *model.Episode) error
 
 	// FindByVideoID 根据视频ID查找所有剧集
 	FindByVideoID(videoID int64) ([]*model.Episode, error)
@@ -49,7 +51,48 @@ func NewEpisodeRepository() EpisodeRepository {
 
 // Create 创建剧集记录，同时更新对应视频的updated_at字段
 func (r *episodeRepository) Create(episode *model.Episode) error {
-	// 根据零值收集需要省略的字段，避免写入空数据
+	omitFields := episodeOmitFields(episode)
+
+	// 使用事务确保原子性
+	return database.DB.Transaction(func(tx *gorm.DB) error {
+		txCreate := tx
+		if len(omitFields) > 0 {
+			txCreate = txCreate.Omit(omitFields...)
+		}
+		// 1. 插入episode记录
+		if err := txCreate.Create(episode).Error; err != nil {
+			return err
+		}
+
+		// 2. 视频 updated_at 取该视频最后一条剧集的 created_at
+		var lastEpisode model.Episode
+		if err := tx.Select("created_at").
+			Where("video_id = ?", episode.VideoID).
+			Order("created_at DESC, id DESC").
+			First(&lastEpisode).Error; err != nil {
+			return err
+		}
+		if err := tx.Model(&model.Video{}).
+			Where("id = ?", episode.VideoID).
+			UpdateColumn("updated_at", lastEpisode.CreatedAt).Error; err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
+// InsertOnly 只插入剧集，不修改视频表。
+func (r *episodeRepository) InsertOnly(episode *model.Episode) error {
+	omitFields := episodeOmitFields(episode)
+	tx := database.DB
+	if len(omitFields) > 0 {
+		tx = tx.Omit(omitFields...)
+	}
+	return tx.Create(episode).Error
+}
+
+func episodeOmitFields(episode *model.Episode) []string {
 	omitFields := make([]string, 0, 5)
 	if episode.Channel == "" {
 		omitFields = append(omitFields, "Channel")
@@ -66,27 +109,7 @@ func (r *episodeRepository) Create(episode *model.Episode) error {
 	if len(episode.SubtitleURLs) == 0 || string(episode.SubtitleURLs) == "[]" {
 		omitFields = append(omitFields, "SubtitleURLs")
 	}
-
-	// 使用事务确保原子性
-	return database.DB.Transaction(func(tx *gorm.DB) error {
-		txCreate := tx
-		if len(omitFields) > 0 {
-			txCreate = txCreate.Omit(omitFields...)
-		}
-		// 1. 插入episode记录
-		if err := txCreate.Create(episode).Error; err != nil {
-			return err
-		}
-
-		// 2. 更新对应video的updated_at字段为当前时间
-		if err := tx.Model(&model.Video{}).
-			Where("id = ?", episode.VideoID).
-			Update("updated_at", time.Now()).Error; err != nil {
-			return err
-		}
-
-		return nil
-	})
+	return omitFields
 }
 
 // FindByVideoID 根据视频ID查找所有剧集

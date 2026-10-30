@@ -7,7 +7,15 @@
           <el-input v-model="searchForm.title" placeholder="请输入视频标题" style="width: 200px" />
         </el-form-item>
         <el-form-item label="类型">
-          <el-select v-model="searchForm.type" placeholder="请选择视频类型" style="width: 120px">
+          <el-select
+            v-model="searchForm.type"
+            multiple
+            collapse-tags
+            collapse-tags-tooltip
+            clearable
+            placeholder="请选择视频类型"
+            style="width: 180px"
+          >
             <el-option label="电影" value="movie" />
             <el-option label="电视剧" value="tv" />
             <el-option label="动漫" value="anime" />
@@ -28,9 +36,18 @@
           />
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="searchForm.status" placeholder="请选择状态" style="width: 120px" clearable>
+          <el-select
+            v-model="searchForm.status"
+            multiple
+            collapse-tags
+            collapse-tags-tooltip
+            clearable
+            placeholder="请选择状态"
+            style="width: 160px"
+          >
             <el-option label="上架" value="1" />
-            <el-option label="未上架" value="0" />
+            <el-option label="下架" value="0" />
+            <el-option label="未上架" value="__empty__" />
           </el-select>
         </el-form-item>
         <el-form-item label="完结">
@@ -124,8 +141,8 @@
         </el-table-column>
         <el-table-column prop="status" label="状态" width="90">
           <template #default="scope">
-            <el-tag size="small" :type="scope.row.status === '1' ? 'success' : 'info'">
-              {{ scope.row.status === '1' ? '上架' : '未上架' }}
+            <el-tag size="small" :type="statusTagType(scope.row.status)">
+              {{ statusText(scope.row.status) }}
             </el-tag>
           </template>
         </el-table-column>
@@ -164,7 +181,8 @@
           v-model:current-page="pagination.currentPage"
           v-model:page-size="pagination.pageSize"
           :page-sizes="[10, 20, 50, 100]"
-          layout="total, sizes, prev, pager, next, jumper"
+          class="admin-pagination"
+          layout="sizes, prev, pager, next"
           :total="pagination.total"
           @size-change="handleSizeChange"
           @current-change="handleCurrentChange"
@@ -299,7 +317,8 @@
             <el-form-item label="状态" prop="status">
               <el-select v-model="videoForm.status" placeholder="请选择状态" style="width: 100%">
                 <el-option label="上架" value="1" />
-                <el-option label="未上架" value="0" />
+                <el-option label="下架" value="0" />
+                <el-option label="未上架" value="__empty__" />
               </el-select>
             </el-form-item>
           </el-col>
@@ -521,9 +540,9 @@ import axios from 'axios'
 // 搜索表单
 const searchForm = reactive({
   title: '',
-  type: '',
+  type: [],
   release_date: null,
-  status: '',
+  status: [],
   is_completed: '',
   is_update: ''
 })
@@ -664,8 +683,8 @@ const getVideoList = async () => {
         page: pagination.currentPage,
         page_size: pagination.pageSize,
         title: searchForm.title,
-        type: searchForm.type,
-        status: searchForm.status,
+        type: searchForm.type.join(','),
+        status: searchForm.status.join(','),
         release_date_start: searchForm.release_date?.[0] || '',
         release_date_end: searchForm.release_date?.[1] || '',
         is_completed: searchForm.is_completed,
@@ -688,9 +707,9 @@ const searchVideos = () => {
 // 重置搜索
 const resetSearch = () => {
   searchForm.title = ''
-  searchForm.type = ''
+  searchForm.type = []
   searchForm.release_date = null
-  searchForm.status = ''
+  searchForm.status = []
   searchForm.is_completed = ''
   searchForm.is_update = ''
   pagination.currentPage = 1
@@ -781,7 +800,7 @@ const openVideoForm = (video = null) => {
     videoForm.description = video.description ?? ''
     videoForm.release_date = video.release_date || ''
     videoForm.score = video.score != null ? Number(video.score) : null
-    videoForm.status = video.status != null ? String(video.status) : '1'
+    videoForm.status = video.status === '0' || video.status === '1' ? String(video.status) : '__empty__'
     videoForm.imdb_id = video.imdb_id ?? ''
     videoForm.runtime = video.runtime != null ? Number(video.runtime) : null
     videoForm.episode_count = video.episode_count != null ? Number(video.episode_count) : 0
@@ -820,7 +839,7 @@ const saveVideo = async () => {
         director_json: JSON.stringify(videoForm.director_json),
         actors_json: JSON.stringify(videoForm.actors_json),
         tags_json: JSON.stringify(videoForm.tags_json),
-        status: videoForm.status,
+        status: videoForm.status === '__empty__' ? '' : videoForm.status,
         imdb_id: videoForm.imdb_id,
         runtime: videoForm.runtime != null ? Number(videoForm.runtime) : null,
         episode_count: Number(videoForm.episode_count) || 0,
@@ -933,6 +952,18 @@ const formatJsonDisplay = (val) => {
 }
 
 // 获取类型标签类型
+const statusText = (status) => {
+  if (status === '1') return '上架'
+  if (status === '0') return '下架'
+  return '未上架'
+}
+
+const statusTagType = (status) => {
+  if (status === '1') return 'success'
+  if (status === '0') return 'info'
+  return 'warning'
+}
+
 const getTypeTagType = (type) => {
   const typeMap = {
     movie: 'primary',

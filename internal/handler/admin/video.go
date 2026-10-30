@@ -32,6 +32,25 @@ func NewVideoHandler() *VideoHandler {
 	}
 }
 
+// parseTypeQuery 解析类型查询参数。多个类型用逗号分隔，空字符串表示不筛选。
+func parseTypeQuery(raw string) []string {
+	parts := strings.Split(raw, ",")
+	types := make([]string, 0, len(parts))
+	seen := make(map[string]struct{}, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		if _, ok := seen[part]; ok {
+			continue
+		}
+		seen[part] = struct{}{}
+		types = append(types, part)
+	}
+	return types
+}
+
 // parseReleaseDateQuery 解析上映日期查询参数。空字符串表示不筛选。
 func parseReleaseDateQuery(raw string) (*time.Time, error) {
 	raw = strings.TrimSpace(raw)
@@ -150,7 +169,7 @@ func (h *VideoHandler) List(c *gin.Context) {
 	}
 
 	// 获取视频列表（带分页、排序和筛选）
-	videos, total, err := h.videoRepo.FindVideosWithPagination(req.PageSize, offset, req.Title, req.Type, req.Status, releaseStart, releaseEnd, isCompleted, isUpdate)
+	videos, total, err := h.videoRepo.FindVideosWithPagination(req.PageSize, offset, req.Title, parseTypeQuery(req.Type), parseTypeQuery(req.Status), releaseStart, releaseEnd, isCompleted, isUpdate)
 	if err != nil {
 		response.Error(c, http.StatusInternalServerError, "获取视频列表失败")
 		return

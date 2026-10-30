@@ -18,7 +18,6 @@ import (
 	"video-service/internal/pkg/utils"
 	"video-service/internal/repository"
 	"video-service/pkg/infrastructure/config"
-	"video-service/pkg/infrastructure/database"
 
 	"go.uber.org/zap"
 	"gorm.io/gorm"
@@ -116,14 +115,43 @@ func getSearchSourcePriority(source string) int {
 type DoubanSyncService struct {
 	videoRepo   repository.VideoRepository
 	episodeRepo repository.EpisodeRepository
+
+	insertedMu       sync.Mutex
+	insertedVideoIDs map[int64]struct{}
 }
 
 // NewDoubanSyncService 创建豆瓣同步服务实例
 func NewDoubanSyncService() *DoubanSyncService {
 	return &DoubanSyncService{
-		videoRepo:   repository.NewVideoRepository(),
-		episodeRepo: repository.NewEpisodeRepository(),
+		videoRepo:        repository.NewVideoRepository(),
+		episodeRepo:      repository.NewEpisodeRepository(),
+		insertedVideoIDs: make(map[int64]struct{}),
 	}
+}
+
+func (s *DoubanSyncService) resetInsertedVideos() {
+	s.insertedMu.Lock()
+	s.insertedVideoIDs = make(map[int64]struct{})
+	s.insertedMu.Unlock()
+}
+
+func (s *DoubanSyncService) markInsertedVideo(videoID int64) {
+	if videoID == 0 {
+		return
+	}
+	s.insertedMu.Lock()
+	s.insertedVideoIDs[videoID] = struct{}{}
+	s.insertedMu.Unlock()
+}
+
+func (s *DoubanSyncService) snapshotInsertedVideoIDs() []int64 {
+	s.insertedMu.Lock()
+	defer s.insertedMu.Unlock()
+	ids := make([]int64, 0, len(s.insertedVideoIDs))
+	for id := range s.insertedVideoIDs {
+		ids = append(ids, id)
+	}
+	return ids
 }
 
 // SyncAll 同步所有豆瓣数据
@@ -162,19 +190,14 @@ func (s *DoubanSyncService) SyncAll() error {
 		zap.L().Error("更新纪录片详情失败", zap.Error(err))
 	}
 
-	// 第三步：搜索播放地址并插入episodes表
+	// 第三步：搜索剧集并插入 episodes。跳过 status=0 和 is_completed=1。
 	if err := s.searchAndSavePlayURLs(); err != nil {
 		zap.L().Error("搜索播放地址失败", zap.Error(err))
 	}
 
-	// 第四步：更新存在 episodes 记录且 status 不为 0 的 videos 的 status 为 1
-	if err := s.updateVideosStatusByEpisodes(); err != nil {
-		zap.L().Error("更新视频状态失败", zap.Error(err))
-	}
-
-	// 第五步：根据最后一集视频的时间更新 is_update 字段
-	if err := s.updateIsUpdateByLastEpisode(); err != nil {
-		zap.L().Error("更新is_update字段失败", zap.Error(err))
+	// 搜索结束后统一改状态：新插入剧集的上架并标新，集数已齐的标完结，超过 2 天的改为无更新。
+	if err := s.finalizeShelfAndIsUpdate(); err != nil {
+		zap.L().Error("统一更新视频状态失败", zap.Error(err))
 	}
 
 	zap.L().Info("豆瓣数据同步完成")
@@ -1234,8 +1257,9 @@ func truncateJSONArray(jsonData []byte) []byte {
 // searchAndSavePlayURLs 搜索播放地址并保存到episodes表（多线程并发执行）
 func (s *DoubanSyncService) searchAndSavePlayURLs() error {
 	zap.L().Info("开始搜索播放地址")
+	s.resetInsertedVideos()
 
-	// 查询 status 不等于 0 且 is_completed 不等于 1 的视频的 id、type、title、source_id（用于更新episodes）
+	// 跳过 status=0 和 is_completed=1，只搜标题有内容的视频
 	videos, err := s.videoRepo.FindVideosNeedUpdateEpisodes()
 	if err != nil {
 		return fmt.Errorf("查询视频列表失败: %w", err)
@@ -1419,6 +1443,14 @@ func (s *DoubanSyncService) searchAndSavePlayURLsForVideo(video *model.Video) er
 
 	// 根据 type 区分处理逻辑
 	if video.Type == "movie" {
+		exists, err := s.episodeRepo.ExistsByVideoID(video.ID)
+		if err != nil {
+			return fmt.Errorf("检查电影剧集失败: %w", err)
+		}
+		if exists {
+			return nil
+		}
+
 		var selectedEpisode string
 		for _, episode := range result.Episodes {
 			episode = strings.TrimSpace(episode)
@@ -1468,139 +1500,65 @@ func (s *DoubanSyncService) searchAndSavePlayURLsForVideo(video *model.Video) er
 		}
 
 		// 插入到数据库
-		if err := s.episodeRepo.Create(episode); err != nil {
+		if err := s.episodeRepo.InsertOnly(episode); err != nil {
 			zap.L().Error("插入episode失败", zap.Error(err), zap.String("title", result.Title), zap.Int64("video_id", video.ID))
 			return fmt.Errorf("插入episode失败: %w", err)
 		}
-
+		s.markInsertedVideo(video.ID)
 		zap.L().Info("插入episode成功", zap.String("title", result.Title), zap.Int64("video_id", video.ID), zap.Int64("episode_number", episodeNumber), zap.String("play_url", firstLine))
-
-		// movie类型：检查videos.id在episodes表的video_id是否存在，如果存在则更新status，并将is_completed设为1
-		if video.Type == "movie" {
-			exists, err := s.episodeRepo.ExistsByVideoID(video.ID)
-			if err != nil {
-				zap.L().Error("检查episode是否存在失败", zap.Error(err), zap.Int64("video_id", video.ID), zap.String("title", video.Title))
-			} else if exists {
-				// 更新videos表status的值为1
-				updated, err := s.videoRepo.UpdateVideoStatus(video.ID, "1")
-				if err != nil {
-					zap.L().Error("更新视频status失败", zap.Error(err), zap.Int64("video_id", video.ID), zap.String("title", video.Title))
-				} else if updated {
-					// 只有真正执行了更新才打印日志
-					zap.L().Info("更新视频status为1", zap.Int64("video_id", video.ID), zap.String("title", video.Title))
-				}
-				// movie类型只有单集，直接标记is_completed为1
-				updatedCompleted, err := s.videoRepo.UpdateVideoIsCompleted(video.ID, true)
-				if err != nil {
-					zap.L().Error("更新视频is_completed失败", zap.Error(err), zap.Int64("video_id", video.ID), zap.String("title", video.Title))
-				} else if updatedCompleted {
-					zap.L().Info("更新视频is_completed", zap.Int64("video_id", video.ID), zap.String("title", video.Title), zap.Bool("is_completed", true))
-				}
-			}
-		}
 	} else {
 		// 非 movie 类型：结果命中同样按 source 优先级选择，直接使用该 source 的 episodes
 		selectedEpisodes := result.Episodes
-		if len(selectedEpisodes) == 0 {
-			return nil
-		}
+		if len(selectedEpisodes) > 0 {
 
-		// 检查videos.id在episodes表的video_id是否存在
-		exists, err := s.episodeRepo.ExistsByVideoID(video.ID)
-		if err != nil {
-			zap.L().Error("检查episode是否存在失败", zap.Error(err), zap.Int64("video_id", video.ID), zap.String("title", video.Title))
-		} else if exists {
-			// 如果存在，更新videos表status的值为1
-			updated, err := s.videoRepo.UpdateVideoStatus(video.ID, "1")
+			// 获取当前已存在的episode数量
+			existingCount, err := s.episodeRepo.CountByVideoID(video.ID)
 			if err != nil {
-				zap.L().Error("更新视频status失败", zap.Error(err), zap.Int64("video_id", video.ID), zap.String("title", video.Title))
-			} else if updated {
-				// 只有真正执行了更新才打印日志
-				zap.L().Info("更新视频status为1", zap.Int64("video_id", video.ID), zap.String("title", video.Title))
-			}
-		}
-
-		// 获取当前已存在的episode数量
-		existingCount, err := s.episodeRepo.CountByVideoID(video.ID)
-		if err != nil {
-			zap.L().Error("统计episode数量失败", zap.Error(err), zap.Int64("video_id", video.ID))
-			existingCount = 0
-		}
-
-		// 源数据总条数
-		sourceCount := int64(len(selectedEpisodes))
-
-		// 如果源数据条数大于已存在的episodes数量，则增量更新
-		if sourceCount > existingCount {
-			// 从existingCount+1开始，增量插入新的episodes
-			startIndex := int(existingCount)
-			newEpisodesCount := 0
-
-			for i := startIndex; i < len(selectedEpisodes); i++ {
-				episodeValue := strings.TrimSpace(selectedEpisodes[i])
-				if episodeValue == "" {
-					continue
-				}
-
-				// 限制播放地址长度不超过255字符
-				playURL := episodeValue
-				if len(playURL) > 255 {
-					playURL = playURL[:255]
-					zap.L().Warn("播放地址长度超过255字符，已截断", zap.String("original", episodeValue), zap.String("truncated", playURL))
-				}
-
-				// 创建episode记录，episode_number从existingCount+1开始
-				episodeNumber := int64(i + 1)
-				now := time.Now()
-				episode := &model.Episode{
-					Channel:       result.SourceName,
-					VideoID:       video.ID,
-					EpisodeNumber: episodeNumber,
-					Name:          result.Title,
-					PlayURLs:      playURL,
-					CreatedAt:     now,
-					UpdatedAt:     now,
-				}
-
-				// 插入到数据库
-				if err := s.episodeRepo.Create(episode); err != nil {
-					zap.L().Error("插入episode失败", zap.Error(err), zap.String("title", result.Title), zap.Int64("video_id", video.ID), zap.Int64("episode_number", episodeNumber))
-					continue
-				}
-
-				newEpisodesCount++
-				zap.L().Info("插入episode成功", zap.String("title", result.Title), zap.Int64("video_id", video.ID), zap.Int64("episode_number", episodeNumber), zap.String("play_url", episodeValue))
+				zap.L().Error("统计episode数量失败", zap.Error(err), zap.Int64("video_id", video.ID))
+				existingCount = 0
 			}
 
-			// 如果有新增episodes，更新videos表的updated_at为当前时间
-			if newEpisodesCount > 0 {
-				if err := database.DB.Model(&model.Video{}).
-					Where("id = ?", video.ID).
-					Update("updated_at", time.Now()).Error; err != nil {
-					zap.L().Error("更新视频updated_at失败", zap.Error(err), zap.Int64("video_id", video.ID))
-				}
-			}
-		}
+			// 源数据总条数
+			sourceCount := int64(len(selectedEpisodes))
 
-	}
+			// 如果源数据条数大于已存在的episodes数量，则增量更新
+			if sourceCount > existingCount {
+				// 从existingCount+1开始，增量插入新的episodes
+				startIndex := int(existingCount)
 
-	// 所有类型都需要更新is_completed（在if-else块外统一处理）
-	// 注意：is_update字段的更新已移至定时任务执行完成后的统一处理逻辑中
+				for i := startIndex; i < len(selectedEpisodes); i++ {
+					episodeValue := strings.TrimSpace(selectedEpisodes[i])
+					if episodeValue == "" {
+						continue
+					}
 
-	// 获取视频完整信息，检查episode_count（movie类型已在分支中处理，这里只处理非movie类型）
-	if video.Type != "movie" {
-		videoInfo, err := s.videoRepo.FindByID(video.ID)
-		if err == nil && videoInfo != nil {
-			// 获取当前episodes总数
-			currentCount, err := s.episodeRepo.CountByVideoID(video.ID)
-			if err == nil {
-				// 如果episodes总数等于episode_count，则is_completed为1
-				isCompleted := currentCount == videoInfo.EpisodeCount
-				updatedCompleted, err := s.videoRepo.UpdateVideoIsCompleted(video.ID, isCompleted)
-				if err != nil {
-					zap.L().Error("更新视频is_completed失败", zap.Error(err), zap.Int64("video_id", video.ID), zap.String("title", video.Title))
-				} else if updatedCompleted {
-					zap.L().Info("更新视频is_completed", zap.Int64("video_id", video.ID), zap.String("title", video.Title), zap.Bool("is_completed", isCompleted), zap.Int64("current_count", currentCount), zap.Int64("episode_count", videoInfo.EpisodeCount))
+					// 限制播放地址长度不超过255字符
+					playURL := episodeValue
+					if len(playURL) > 255 {
+						playURL = playURL[:255]
+						zap.L().Warn("播放地址长度超过255字符，已截断", zap.String("original", episodeValue), zap.String("truncated", playURL))
+					}
+
+					// 创建episode记录，episode_number从existingCount+1开始
+					episodeNumber := int64(i + 1)
+					now := time.Now()
+					episode := &model.Episode{
+						Channel:       result.SourceName,
+						VideoID:       video.ID,
+						EpisodeNumber: episodeNumber,
+						Name:          result.Title,
+						PlayURLs:      playURL,
+						CreatedAt:     now,
+						UpdatedAt:     now,
+					}
+
+					// 插入到数据库
+					if err := s.episodeRepo.InsertOnly(episode); err != nil {
+						zap.L().Error("插入episode失败", zap.Error(err), zap.String("title", result.Title), zap.Int64("video_id", video.ID), zap.Int64("episode_number", episodeNumber))
+						continue
+					}
+					s.markInsertedVideo(video.ID)
+					zap.L().Info("插入episode成功", zap.String("title", result.Title), zap.Int64("video_id", video.ID), zap.Int64("episode_number", episodeNumber), zap.String("play_url", episodeValue))
 				}
 			}
 		}
@@ -1609,124 +1567,159 @@ func (s *DoubanSyncService) searchAndSavePlayURLsForVideo(video *model.Video) er
 	return nil
 }
 
-// updateVideosStatusByEpisodes 更新存在 episodes 记录且 status 不为 0 的 videos 的 status 为 1
-func (s *DoubanSyncService) updateVideosStatusByEpisodes() error {
-	zap.L().Info("开始更新视频状态")
+// RefreshEpisodeCountsFromDouban 从豆瓣刷新 status!=0 且 is_completed!=1 的视频集数，不修改 updated_at
+func (s *DoubanSyncService) RefreshEpisodeCountsFromDouban() error {
+	zap.L().Info("开始从豆瓣刷新视频集数")
 
-	if err := s.videoRepo.UpdateVideosStatusByEpisodes("1"); err != nil {
-		return fmt.Errorf("更新视频状态失败: %w", err)
-	}
-
-	zap.L().Info("视频状态更新完成")
-	return nil
-}
-
-// updateIsUpdateByLastEpisode 根据最后一集视频的时间更新 is_update 字段
-// 候选：is_update=1 的全部；或 status=1 且 updated_at 在最近两个月内
-// 如果最后一集距当前未超过2天，则 is_update=1；超过2天则 is_update=0
-// 如果没有episode记录，则将 status 设为空
-func (s *DoubanSyncService) updateIsUpdateByLastEpisode() error {
-	zap.L().Info("开始更新is_update字段")
-
-	videos, err := s.videoRepo.FindVideosStatus1OrIsUpdate1AndRecentCreated()
+	videos, err := s.videoRepo.FindVideosNeedRefreshEpisodeCount()
 	if err != nil {
-		return fmt.Errorf("查询需要维护is_update的视频失败: %w", err)
+		return fmt.Errorf("查询需要刷新集数的视频失败: %w", err)
 	}
-
 	if len(videos) == 0 {
-		zap.L().Info("没有需要维护is_update的视频")
+		zap.L().Info("没有需要刷新集数的视频")
 		return nil
 	}
 
-	zap.L().Info("找到需要检查的视频", zap.Int("count", len(videos)))
+	zap.L().Info("找到需要刷新集数的视频", zap.Int("count", len(videos)))
 
-	twoDaysAgo := time.Now().AddDate(0, 0, -2)
-	updatedTo1Count := 0
-	updatedTo0Count := 0
-	noChangeCount := 0
+	updatedCount := 0
+	skippedCount := 0
+	failedCount := 0
 
-	// 遍历每个视频，检查其最后一集视频的时间
-	for _, video := range videos {
-		// 先查询视频的完整信息，获取当前的 is_update 状态
-		videoInfo, err := s.videoRepo.FindByID(video.ID)
+	for i, video := range videos {
+		if i > 0 {
+			time.Sleep(4 * time.Second)
+		}
+
+		episodeCount, err := s.fetchEpisodeCountFromDouban(video)
 		if err != nil {
-			zap.L().Error("查询视频信息失败", zap.Error(err), zap.Int64("video_id", video.ID))
+			failedCount++
+			zap.L().Error("从豆瓣获取集数失败",
+				zap.Error(err),
+				zap.Int64("video_id", video.ID),
+				zap.String("title", video.Title))
+			continue
+		}
+		if episodeCount < 0 {
+			skippedCount++
+			zap.L().Info("豆瓣页面未解析到集数，跳过",
+				zap.Int64("video_id", video.ID),
+				zap.String("title", video.Title),
+				zap.String("type", video.Type))
+			continue
+		}
+		if video.EpisodeCount == episodeCount {
+			skippedCount++
 			continue
 		}
 
-		// 查询该视频的最后一集
-		lastEpisode, err := s.episodeRepo.FindLastByVideoID(video.ID)
-		if err != nil {
-			// 如果没有episode记录，将status设为空
-			if videoInfo.Status != "" {
-				updated, err := s.videoRepo.UpdateVideoStatus(video.ID, "")
-				if err != nil {
-					zap.L().Error("更新视频status失败", zap.Error(err), zap.Int64("video_id", video.ID))
-				} else if updated {
-					// 只有真正执行了更新才打印日志
-					updatedTo0Count++
-					zap.L().Info("视频没有episode记录，将status设为空", zap.Int64("video_id", video.ID))
-				} else {
-					// 值已经是目标值，不打印日志
-					noChangeCount++
-				}
-			} else {
-				// 值已经是目标值，不打印日志
-				noChangeCount++
-			}
+		if err := s.videoRepo.UpdateEpisodeCountWithoutUpdatedAt(video.ID, episodeCount); err != nil {
+			failedCount++
+			zap.L().Error("更新视频集数失败",
+				zap.Error(err),
+				zap.Int64("video_id", video.ID),
+				zap.String("title", video.Title))
 			continue
 		}
 
-		// 检查最后一集视频的创建时间是否超过2天（使用CreatedAt）
-		if lastEpisode.CreatedAt.Before(twoDaysAgo) {
-			// 超过2天，如果 is_update 不是 0，才更新为 0
-			if videoInfo.IsUpdate {
-				updated, err := s.videoRepo.UpdateVideoIsUpdate(video.ID, false)
-				if err != nil {
-					zap.L().Error("更新视频is_update失败", zap.Error(err), zap.Int64("video_id", video.ID))
-				} else if updated {
-					// 只有真正执行了更新才打印日志
-					updatedTo0Count++
-					zap.L().Info("最后一集视频超过2天，将is_update改为0",
-						zap.Int64("video_id", video.ID),
-						zap.Time("last_episode_created_at", lastEpisode.CreatedAt),
-						zap.Time("two_days_ago", twoDaysAgo))
-				} else {
-					// 值已经是目标值，不打印日志
-					noChangeCount++
-				}
-			} else {
-				// 值已经是目标值，不打印日志
-				noChangeCount++
-			}
-		} else {
-			// 未超过2天，如果 is_update 不是 1，才更新为 1
-			if !videoInfo.IsUpdate {
-				updated, err := s.videoRepo.UpdateVideoIsUpdate(video.ID, true)
-				if err != nil {
-					zap.L().Error("更新视频is_update失败", zap.Error(err), zap.Int64("video_id", video.ID))
-				} else if updated {
-					// 只有真正执行了更新才打印日志
-					updatedTo1Count++
-					zap.L().Info("最后一集视频未超过2天，将is_update改为1",
-						zap.Int64("video_id", video.ID),
-						zap.Time("last_episode_created_at", lastEpisode.CreatedAt),
-						zap.Time("two_days_ago", twoDaysAgo))
-				} else {
-					// 值已经是目标值，不打印日志
-					noChangeCount++
-				}
-			} else {
-				// 值已经是目标值，不打印日志
-				noChangeCount++
-			}
-		}
+		updatedCount++
+		zap.L().Info("更新视频集数成功",
+			zap.Int64("video_id", video.ID),
+			zap.String("title", video.Title),
+			zap.Int64("old_episode_count", video.EpisodeCount),
+			zap.Int64("new_episode_count", episodeCount))
 	}
 
-	zap.L().Info("is_update字段更新完成",
+	zap.L().Info("从豆瓣刷新视频集数完成",
 		zap.Int("total", len(videos)),
-		zap.Int("updated_to_1", updatedTo1Count),
-		zap.Int("updated_to_0", updatedTo0Count),
-		zap.Int("no_change", noChangeCount))
+		zap.Int("updated", updatedCount),
+		zap.Int("skipped", skippedCount),
+		zap.Int("failed", failedCount))
+	return nil
+}
+
+// fetchEpisodeCountFromDouban 请求豆瓣详情页并提取集数。未解析到集数时返回 -1。
+func (s *DoubanSyncService) fetchEpisodeCountFromDouban(video *model.Video) (int64, error) {
+	if video.SourceID == nil || *video.SourceID == 0 {
+		return -1, fmt.Errorf("视频的 SourceID 为空或无效: title=%s, id=%d", video.Title, video.ID)
+	}
+
+	url := fmt.Sprintf("https://movie.douban.com/subject/%d/", *video.SourceID)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return -1, fmt.Errorf("创建请求失败: %w", err)
+	}
+
+	req.Header.Set("accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7")
+	req.Header.Set("accept-language", "zh-CN,zh;q=0.9,en;q=0.8")
+	req.Header.Set("cache-control", "no-cache")
+	req.Header.Set("dnt", "1")
+	req.Header.Set("pragma", "no-cache")
+	req.Header.Set("priority", "u=0, i")
+	req.Header.Set("referer", "https://sec.douban.com/")
+	req.Header.Set("sec-ch-ua", `"Chromium";v="144", "Google Chrome";v="144", "Not_A Brand";v="99"`)
+	req.Header.Set("sec-ch-ua-mobile", "?0")
+	req.Header.Set("sec-ch-ua-platform", `"macOS"`)
+	req.Header.Set("sec-fetch-dest", "document")
+	req.Header.Set("sec-fetch-mode", "navigate")
+	req.Header.Set("sec-fetch-site", "same-origin")
+	req.Header.Set("sec-fetch-user", "?1")
+	req.Header.Set("upgrade-insecure-requests", "1")
+	req.Header.Set("user-agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36")
+	req.Header.Set("cookie", "bid=um7cc82NDp0; dbsawcv1=...")
+
+	client := &http.Client{Timeout: 30 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return -1, fmt.Errorf("请求失败: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return -1, fmt.Errorf("豆瓣详情页返回状态码: %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return -1, fmt.Errorf("读取响应失败: %w", err)
+	}
+
+	episodeStr := extractField(string(body), `<span class="pl">集数:</span>`, `<br`)
+	if episodeStr == "" {
+		return -1, nil
+	}
+	return int64(extractNumber(episodeStr)), nil
+}
+
+// finalizeShelfAndIsUpdate 搜索结束后统一写视频状态，最后把超过 2 天的标为无更新。
+func (s *DoubanSyncService) finalizeShelfAndIsUpdate() error {
+	zap.L().Info("开始统一更新视频状态")
+	inserted, err := s.videoRepo.ApplyInsertedEpisodeVideoState(s.snapshotInsertedVideoIDs())
+	if err != nil {
+		return fmt.Errorf("更新新插入剧集的视频状态失败: %w", err)
+	}
+	completed, err := s.videoRepo.MarkSeriesCompletedWhenCountMatches()
+	if err != nil {
+		return fmt.Errorf("按集数标完结失败: %w", err)
+	}
+	movies, err := s.videoRepo.ShelfPendingMoviesWithEpisodes()
+	if err != nil {
+		return fmt.Errorf("更新电影上架状态失败: %w", err)
+	}
+	twoDaysAgo := time.Now().AddDate(0, 0, -2)
+	stale, err := s.videoRepo.ClearIsUpdateOlderThan(twoDaysAgo)
+	if err != nil {
+		return fmt.Errorf("更新过期is_update失败: %w", err)
+	}
+	zap.L().Info("视频状态统一更新完成",
+		zap.Int("inserted_updated", len(inserted)),
+		zap.Any("inserted_videos", inserted),
+		zap.Int("series_completed", len(completed)),
+		zap.Any("series_completed_videos", completed),
+		zap.Int("movies_shelved", len(movies)),
+		zap.Any("movies_shelved_videos", movies),
+		zap.Int("is_update_to_0", len(stale)),
+		zap.Any("is_update_to_0_videos", stale),
+		zap.Time("before", twoDaysAgo))
 	return nil
 }
