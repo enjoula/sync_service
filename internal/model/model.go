@@ -193,3 +193,79 @@ type MembershipOrder struct {
 	CreatedAt     time.Time  `gorm:"autoCreateTime;comment:创建时间" json:"created_at"`                                      // 创建时间
 	UpdatedAt     time.Time  `gorm:"autoUpdateTime;comment:更新时间" json:"updated_at"`                                      // 更新时间
 }
+
+// 管理员角色。管理后台账号与前台 users 分离，权限由 role 决定。
+const (
+	AdminRoleSuper    = "super"    // 超级管理员
+	AdminRoleEditor   = "editor"   // 内容编辑
+	AdminRoleOperator = "operator" // 运营
+	AdminRoleViewer   = "viewer"   // 只读
+)
+
+// 管理后台权限点
+const (
+	PermVideoRead   = "video:read"   // 查看视频和剧集
+	PermVideoWrite  = "video:write"  // 修改视频和剧集
+	PermUserRead    = "user:read"    // 查看前台用户
+	PermMemberRead  = "member:read"  // 查看会员
+	PermAdminManage = "admin:manage" // 管理管理员账号
+)
+
+// AdminRolePermissions 角色对应的权限
+var AdminRolePermissions = map[string][]string{
+	AdminRoleSuper:    {PermVideoRead, PermVideoWrite, PermUserRead, PermMemberRead, PermAdminManage},
+	AdminRoleEditor:   {PermVideoRead, PermVideoWrite, PermUserRead, PermMemberRead},
+	AdminRoleOperator: {PermVideoRead, PermUserRead, PermMemberRead},
+	AdminRoleViewer:   {PermVideoRead},
+}
+
+// AdminRoleNames 角色中文名
+var AdminRoleNames = map[string]string{
+	AdminRoleSuper:    "超级管理员",
+	AdminRoleEditor:   "内容编辑",
+	AdminRoleOperator: "运营",
+	AdminRoleViewer:   "只读",
+}
+
+// IsValidAdminRole 判断角色是否合法
+func IsValidAdminRole(role string) bool {
+	_, ok := AdminRolePermissions[role]
+	return ok
+}
+
+// AdminPermissions 返回角色权限副本
+func AdminPermissions(role string) []string {
+	perms := AdminRolePermissions[role]
+	out := make([]string, len(perms))
+	copy(out, perms)
+	return out
+}
+
+// HasAdminPermission 判断角色是否拥有指定权限
+func HasAdminPermission(role, perm string) bool {
+	for _, item := range AdminRolePermissions[role] {
+		if item == perm {
+			return true
+		}
+	}
+	return false
+}
+
+// Admin 管理员模型
+// 管理后台登录账号，用户名和密码独立于前台用户表
+type Admin struct {
+	ID          int64      `gorm:"primaryKey;autoIncrement;comment:管理员ID" json:"id"`                                                                            // 管理员ID，主键，自增
+	Username    string     `gorm:"size:100;uniqueIndex:uk_admins_username;not null;comment:用户名" json:"username"`                                                // 用户名，唯一索引
+	Password    string     `gorm:"column:password;size:255;not null;comment:密码(bcrypt加密存储)" json:"-"`                                                           // 密码哈希，不返回给客户端
+	Nickname    string     `gorm:"size:100;comment:昵称" json:"nickname"`                                                                                         // 昵称
+	Role        string     `gorm:"size:32;not null;default:viewer;index:idx_admins_role;comment:角色(super:超级管理员,editor:内容编辑,operator:运营,viewer:只读)" json:"role"` // 角色
+	Status      int        `gorm:"column:status;not null;default:1;index:idx_admins_status;comment:状态(0:禁用,1:启用)" json:"status"`                                // 状态（0:禁用 1:启用）
+	LastLoginAt *time.Time `gorm:"column:last_login_at;comment:最后登录时间" json:"last_login_at"`                                                                    // 最后登录时间
+	CreatedAt   time.Time  `gorm:"autoCreateTime;comment:创建时间" json:"created_at"`                                                                               // 创建时间
+	UpdatedAt   time.Time  `gorm:"autoUpdateTime;comment:更新时间" json:"updated_at"`                                                                               // 更新时间
+}
+
+// TableName 指定管理员表名
+func (Admin) TableName() string {
+	return "admins"
+}

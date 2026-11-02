@@ -41,7 +41,6 @@ func main() {
 
 	// 启动定时任务调度器
 	scheduler.InitCron()
-	// 确保程序退出时停止定时任务
 	defer scheduler.Stop()
 
 	// 设置HTTP路由，包括中间件和API端点

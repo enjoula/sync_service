@@ -2,9 +2,10 @@
 
 一个基于 Golang + Gin + GORM + Redis + Prometheus 的视频数据同步服务，支持从豆瓣等多个数据源自动同步影视信息，包含定时任务、JWT 认证、TraceID 链路追踪、日志系统等完整功能。
 
+```bash
 cd /Users/sily/Desktop/个人资料/WTV/Service/sync_servicee &&  
-`docker buildx build --platform linux/amd64,linux/arm64 -f deployments/docker/Dockerfile -t sily1/sync_service:latest --push .`
-
+docker buildx build --platform linux/amd64,linux/arm64 -f deployments/docker/Dockerfile -t sily1/sync_service:latest --push .
+```
 - 
 
 ## ✨ 核心功能

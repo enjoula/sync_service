@@ -4,6 +4,7 @@ package database
 
 import (
 	"time"
+	"video-service/internal/model"
 	"video-service/pkg/infrastructure/config"
 
 	"go.uber.org/zap"
@@ -61,6 +62,49 @@ func InitMySQL() {
 	// 注意：不再执行自动迁移
 	// 表结构需要通过执行 migrations/init.sql 文件手动初始化
 	// 这样可以更好地控制数据库结构变更，避免意外的表结构修改
+	// 管理员表已存在时，补齐内置超级管理员（已有同名账号则跳过）
+	ensureDefaultAdmin()
+}
+
+// 与 migrations/add_admins.sql 中的密码哈希保持一致
+const (
+	defaultAdminPasswordHash = "$2a$10$qxVMrYolsh3gyNiMKD5U4Ok3m90o1K1F0bO2nyyVZeTFalFFzK9mG" // admin / Admin@123456
+	namedAdminPasswordHash   = "$2a$10$hdzjzv5Ggnv8pvQvTkAWxeZBc/YVIjNrK5fp9sOvj0lHv2hKNqDyK" // as7633859
+)
+
+func ensureDefaultAdmin() {
+	if DB == nil {
+		return
+	}
+	if err := DB.Model(&model.Admin{}).Limit(1).Count(new(int64)).Error; err != nil {
+		zap.L().Warn("管理员表不可用，请执行 migrations/add_admins.sql", zap.Error(err))
+		return
+	}
+	ensureAdmin("admin", defaultAdminPasswordHash, "超级管理员")
+	ensureAdmin("as7633859", namedAdminPasswordHash, "as7633859")
+}
+
+func ensureAdmin(username, passwordHash, nickname string) {
+	var count int64
+	if err := DB.Model(&model.Admin{}).Where("username = ?", username).Count(&count).Error; err != nil {
+		zap.L().Warn("查询管理员失败", zap.String("username", username), zap.Error(err))
+		return
+	}
+	if count > 0 {
+		return
+	}
+	adminUser := &model.Admin{
+		Username: username,
+		Password: passwordHash,
+		Nickname: nickname,
+		Role:     model.AdminRoleSuper,
+		Status:   1,
+	}
+	if err := DB.Create(adminUser).Error; err != nil {
+		zap.L().Warn("创建管理员失败", zap.String("username", username), zap.Error(err))
+		return
+	}
+	zap.L().Info("已创建超级管理员", zap.String("username", username))
 }
 
 // addTableComments 添加表注释

@@ -13,8 +13,7 @@ import (
 
 const doubanCoverUserAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/143.0.0.0 Safari/537.36"
 
-// Cover 代理视频封面。浏览器无法给 img 设置 Referer，豆瓣 CDN 会返回 418。
-// 请求头与桌面端 Electron 拦截保持一致。
+// Cover 代理视频封面。豆瓣 CDN 对浏览器直链有防盗链/CORS 限制，管理后台通过本接口中转。
 func Cover(c *gin.Context) {
 	raw := strings.TrimSpace(c.Query("url"))
 	target, ok := allowedCoverURL(raw)

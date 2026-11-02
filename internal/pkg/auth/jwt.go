@@ -13,10 +13,16 @@ import (
 // defaultKey 是JWT签名的默认密钥，生产环境应通过配置或Etcd获取
 var defaultKey = []byte("change-me-default")
 
+// TokenTypeAdmin 标识管理后台登录令牌，与前台用户令牌区分
+const TokenTypeAdmin = "admin"
+
 // Claims 定义JWT token的载荷结构
-// 包含用户名和JWT标准的RegisteredClaims
+// 包含用户名和JWT标准的RegisteredClaims。管理后台令牌额外携带管理员ID和角色。
 type Claims struct {
-	Username string `json:"username"`
+	Username  string `json:"username"`
+	AdminID   int64  `json:"admin_id,omitempty"`
+	Role      string `json:"role,omitempty"`
+	TokenType string `json:"token_type,omitempty"`
 	jwt.RegisteredClaims
 }
 
@@ -49,6 +55,25 @@ func GenerateToken(username string, expiration time.Time) (string, error) {
 			ID:        uuid.New().String(), // jti - JWT ID，确保token唯一性
 			ExpiresAt: jwt.NewNumericDate(expiration),
 			IssuedAt:  jwt.NewNumericDate(now), // iat - 签发时间
+		},
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(GetJWTKey())
+}
+
+// GenerateAdminToken 生成管理后台登录令牌
+func GenerateAdminToken(adminID int64, username, role string, expiration time.Time) (string, error) {
+	now := time.Now()
+	claims := Claims{
+		Username:  username,
+		AdminID:   adminID,
+		Role:      role,
+		TokenType: TokenTypeAdmin,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ID:        uuid.New().String(),
+			ExpiresAt: jwt.NewNumericDate(expiration),
+			IssuedAt:  jwt.NewNumericDate(now),
 		},
 	}
 

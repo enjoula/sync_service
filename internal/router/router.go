@@ -3,11 +3,10 @@
 package router
 
 import (
-	"strings"
-
 	"video-service/internal/handler"
 	"video-service/internal/handler/admin"
 	"video-service/internal/middleware"
+	"video-service/internal/model"
 
 	"github.com/gin-gonic/gin"
 	ginprom "github.com/zsais/go-gin-prometheus"
@@ -63,38 +62,68 @@ func SetupRouter() *gin.Engine {
 			syncGroup.POST("/douban/episode-counts", handler.SyncRefreshEpisodeCounts)
 		}
 
-		// 管理后台接口
+		// 管理后台接口。除登录外都需要管理员令牌，并按角色权限控制。
 		adminGroup := apiGroup.Group("/admin")
 		{
-			// 视频管理
-			videoHandler := admin.NewVideoHandler()
-			adminGroup.GET("/videos", videoHandler.List)
-			adminGroup.GET("/videos/:id", videoHandler.Get)
-			adminGroup.POST("/videos", videoHandler.Create)
-			adminGroup.PUT("/videos/:id", videoHandler.Update)
-			adminGroup.DELETE("/videos/:id", videoHandler.Delete)
-
-			// 剧集管理
-			episodeHandler := admin.NewEpisodeHandler()
-			adminGroup.GET("/episodes", episodeHandler.ListByVideoID) // 使用查询参数 video_id
-			adminGroup.GET("/episodes/:id", episodeHandler.Get)
-			adminGroup.POST("/episodes", episodeHandler.Create) // 使用请求体中的 video_id
-			adminGroup.PUT("/episodes/:id", episodeHandler.Update)
-			adminGroup.DELETE("/episodes/:id", episodeHandler.Delete)
-
-			userHandler := admin.NewUserHandler()
-			adminGroup.GET("/users", userHandler.List)
+			authHandler := admin.NewAuthHandler()
+			adminGroup.POST("/login", authHandler.Login)
+			// 封面由 <img> 加载，不能带 Authorization；豆瓣直链有防盗链/CORS，需服务端代理
 			adminGroup.GET("/cover", admin.Cover)
+
+			authed := adminGroup.Group("")
+			authed.Use(middleware.AdminAuth())
+			authed.GET("/me", authHandler.Me)
+			authed.PUT("/password", authHandler.ChangePassword)
+
+			schedulerHandler := admin.NewSchedulerHandler()
+			schedulerGroup := authed.Group("")
+			schedulerGroup.Use(middleware.RequireSuperAdmin())
+			schedulerGroup.GET("/scheduler", schedulerHandler.Get)
+			schedulerGroup.PUT("/scheduler", schedulerHandler.Update)
+
+			videoHandler := admin.NewVideoHandler()
+			episodeHandler := admin.NewEpisodeHandler()
+
+			videoRead := authed.Group("")
+			videoRead.Use(middleware.RequireAdminPerm(model.PermVideoRead))
+			videoRead.GET("/videos", videoHandler.List)
+			videoRead.GET("/videos/:id", videoHandler.Get)
+			videoRead.GET("/episodes", episodeHandler.ListByVideoID)
+			videoRead.GET("/episodes/:id", episodeHandler.Get)
+
+			videoWrite := authed.Group("")
+			videoWrite.Use(middleware.RequireAdminPerm(model.PermVideoWrite))
+			videoWrite.POST("/videos", videoHandler.Create)
+			videoWrite.PUT("/videos/:id", videoHandler.Update)
+			videoWrite.DELETE("/videos/:id", videoHandler.Delete)
+			videoWrite.POST("/episodes", episodeHandler.Create)
+			videoWrite.PUT("/episodes/:id", episodeHandler.Update)
+			videoWrite.DELETE("/episodes/:id", episodeHandler.Delete)
+
+			userRead := authed.Group("")
+			userRead.Use(middleware.RequireAdminPerm(model.PermUserRead))
+			userHandler := admin.NewUserHandler()
+			userRead.GET("/users", userHandler.List)
+
+			accountHandler := admin.NewAccountHandler()
+			accountManage := authed.Group("")
+			accountManage.Use(middleware.RequireAdminPerm(model.PermAdminManage))
+			accountManage.GET("/accounts", accountHandler.List)
+			accountManage.POST("/accounts", accountHandler.Create)
+			accountManage.PUT("/accounts/:id", accountHandler.Update)
 		}
 	}
 
 	// 静态文件服务 - 先注册，确保静态文件请求不会被NoRoute捕获
 	r.Static("/static", "./static")
 
-	// 管理后台访问地址
-	r.GET("/super/admin.html", func(c *gin.Context) {
+	// 管理后台只从 /super 提供，未匹配的地址返回 404
+	serveAdmin := func(c *gin.Context) {
 		c.File("./static/super/index.html")
-	})
+	}
+	r.GET("/super", serveAdmin)
+	r.GET("/super/", serveAdmin)
+	r.GET("/super/admin.html", serveAdmin)
 
 	// 管理后台静态资源
 	r.Static("/super/assets", "./static/super/assets")
@@ -104,14 +133,8 @@ func SetupRouter() *gin.Engine {
 		c.Status(404)
 	})
 
-	// 处理所有其他请求，返回index.html（单页应用路由）
 	r.NoRoute(func(c *gin.Context) {
-		// 检查是否是静态资源请求
-		if strings.HasPrefix(c.Request.URL.Path, "/assets/") {
-			c.File("./static" + c.Request.URL.Path)
-			return
-		}
-		c.File("./static/index.html")
+		c.Status(404)
 	})
 
 	return r

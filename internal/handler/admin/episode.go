@@ -3,6 +3,7 @@
 package admin
 
 import (
+	"encoding/json"
 	"net/http"
 	"strconv"
 
@@ -112,16 +113,33 @@ func (h *EpisodeHandler) Get(c *gin.Context) {
 	response.Success(c, resp)
 }
 
-// CreateRequest 创建剧集请求
+// CreateRequest 创建剧集请求。video_id 兼容数字与字符串，避免前端雪花 ID 精度/类型问题。
 type CreateEpisodeRequest struct {
-	VideoID         int64  `json:"video_id" binding:"required"`
-	Channel         string `json:"channel"`
-	ChannelID       int64  `json:"channel_id"`
-	EpisodeNumber   int64  `json:"episode_number" binding:"required"`
-	Name            string `json:"name"`
-	PlayURLs        string `json:"play_urls" binding:"required"`
-	DurationSeconds int64  `json:"duration_seconds"`
-	SubtitleURLs    string `json:"subtitle_urls"`
+	VideoID         interface{} `json:"video_id" binding:"required"`
+	Channel         string      `json:"channel"`
+	ChannelID       int64       `json:"channel_id"`
+	EpisodeNumber   int64       `json:"episode_number" binding:"required"`
+	Name            string      `json:"name"`
+	PlayURLs        string      `json:"play_urls" binding:"required"`
+	DurationSeconds int64       `json:"duration_seconds"`
+	SubtitleURLs    string      `json:"subtitle_urls"`
+}
+
+func parseFlexibleInt64(v interface{}) (int64, error) {
+	switch n := v.(type) {
+	case float64:
+		return int64(n), nil
+	case int64:
+		return n, nil
+	case int:
+		return int64(n), nil
+	case json.Number:
+		return n.Int64()
+	case string:
+		return strconv.ParseInt(n, 10, 64)
+	default:
+		return 0, strconv.ErrSyntax
+	}
 }
 
 // Create 创建剧集
@@ -132,16 +150,19 @@ func (h *EpisodeHandler) Create(c *gin.Context) {
 		return
 	}
 
-	videoID := req.VideoID
+	videoID, err := parseFlexibleInt64(req.VideoID)
+	if err != nil || videoID <= 0 {
+		response.Error(c, http.StatusBadRequest, "无效的视频ID")
+		return
+	}
 
 	// 检查视频是否存在
-	_, err := h.videoRepo.FindByID(videoID)
-	if err != nil {
+	if _, err := h.videoRepo.FindByID(videoID); err != nil {
 		response.Error(c, http.StatusNotFound, "视频不存在")
 		return
 	}
 
-	// 构建剧集模型
+	// 构建剧集模型；空 name/时长等由仓库 Omit，不写入
 	episode := &model.Episode{
 		Channel:         req.Channel,
 		ChannelID:       req.ChannelID,

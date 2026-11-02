@@ -3,6 +3,7 @@ package repository
 
 import (
 	"strconv"
+	"strings"
 	"time"
 	"video-service/internal/model"
 	"video-service/pkg/infrastructure/database"
@@ -169,10 +170,14 @@ func (r *videoRepository) Create(video *model.Video) error {
 	return database.DB.Create(video).Error
 }
 
-// CreateBasic 只写入来源 ID、来源、标题、类型、封面，以及雪花主键和创建/更新时间。
-// 其余列留给数据库默认值，避免把未填写字段写成空串。
+// CreateBasic 只写入有值的基础字段，以及雪花主键和创建/更新时间。
+// 空封面等未填项不写入，留给数据库默认值。
 func (r *videoRepository) CreateBasic(video *model.Video) error {
-	return database.DB.Select("ID", "SourceID", "Source", "Title", "Type", "CoverURL", "CreatedAt", "UpdatedAt").Create(video).Error
+	fields := []string{"ID", "SourceID", "Source", "Title", "Type", "CreatedAt", "UpdatedAt"}
+	if strings.TrimSpace(video.CoverURL) != "" {
+		fields = append(fields, "CoverURL")
+	}
+	return database.DB.Select(fields).Create(video).Error
 }
 
 // Update 更新视频记录（更新所有字段）

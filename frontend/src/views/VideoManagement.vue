@@ -66,8 +66,8 @@
           <el-button type="primary" size="small" @click="searchVideos">搜索</el-button>
           <el-button size="small" @click="resetSearch">重置</el-button>
         </el-form-item>
-        <el-form-item>
-          <el-button type="success" size="small" @click="openVideoForm">添加视频</el-button>
+        <el-form-item v-if="canWrite">
+          <el-button type="success" size="small" @click="openVideoForm()">添加视频</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -165,7 +165,7 @@
         <el-table-column label="操作" width="96" fixed="right" align="center">
           <template #default="scope">
             <div class="table-ops-cell">
-              <el-button size="small" type="primary" link @click.stop="openVideoForm(scope.row)">
+              <el-button v-if="canWrite" size="small" type="primary" link @click.stop="openVideoForm(scope.row)">
                 编辑
               </el-button>
               <el-button size="small" type="info" link @click.stop="openEpisodeDrawer(scope.row)">
@@ -200,14 +200,14 @@
     >
       <div v-if="selectedVideo">
         <h3>{{ selectedVideo.title }} - 剧集列表</h3>
-        <el-button type="primary" style="margin-bottom: 20px" @click="openEpisodeForm">添加剧集</el-button>
+        <el-button v-if="canWrite" type="primary" style="margin-bottom: 20px" @click="openEpisodeForm()">添加剧集</el-button>
         <el-table :data="episodeList" style="width: 100%">
           <el-table-column prop="id" label="ID" width="80" />
           <el-table-column prop="episode_number" label="集数" width="80" />
           <el-table-column prop="name" label="名称" min-width="200" />
           <el-table-column prop="play_urls" label="播放地址" min-width="300" />
           <el-table-column prop="duration_seconds" label="时长(秒)" width="100" />
-          <el-table-column label="操作" width="150" fixed="right">
+          <el-table-column v-if="canWrite" label="操作" width="150" fixed="right">
             <template #default="scope">
               <el-button size="small" type="primary" @click="openEpisodeForm(scope.row)">
                 编辑
@@ -262,12 +262,12 @@
               <el-option label="电影" value="movie" />
               <el-option label="电视剧" value="tv" />
               <el-option label="动漫" value="anime" />
-              <el-option label="综艺" value="variety" />
+              <el-option label="综艺" value="tvshow" />
               <el-option label="纪录片" value="doc" />
             </el-select>
           </el-form-item>
           <el-form-item label="视频封面" prop="cover_url">
-            <el-input v-model="videoForm.cover_url" placeholder="请填写封面图片地址" />
+            <el-input v-model="videoForm.cover_url" placeholder="选填，封面图片地址" />
           </el-form-item>
         </template>
         <template v-else>
@@ -303,7 +303,7 @@
                 <el-option label="电影" value="movie" />
                 <el-option label="电视剧" value="tv" />
                 <el-option label="动漫" value="anime" />
-                <el-option label="综艺" value="variety" />
+                <el-option label="综艺" value="tvshow" />
                 <el-option label="纪录片" value="doc" />
               </el-select>
             </el-form-item>
@@ -536,6 +536,14 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import axios from 'axios'
+import { ElMessage } from 'element-plus'
+
+defineProps({
+  canWrite: {
+    type: Boolean,
+    default: false
+  }
+})
 
 // 搜索表单
 const searchForm = reactive({
@@ -570,7 +578,7 @@ const videoForm = reactive({
   source_id: null,
   source: '',
   title: '',
-  type: '',
+  type: 'movie',
   cover_url: '',
   description: '',
   release_date: '',
@@ -609,8 +617,7 @@ const videoFormRules = computed(() => {
     }],
     source: [{ required: true, whitespace: true, message: '请填写来源', trigger: 'blur' }],
     title: [{ required: true, whitespace: true, message: '请填写标题', trigger: 'blur' }],
-    type: [{ required: true, message: '请选择类型', trigger: 'change' }],
-    cover_url: [{ required: true, whitespace: true, message: '请填写视频封面', trigger: 'blur' }]
+    type: [{ required: true, message: '请选择类型', trigger: 'change' }]
   }
 })
 
@@ -644,6 +651,7 @@ const coverSrc = (url) => {
   const normalized = trimmed.startsWith('//') ? `https:${trimmed}` : trimmed
   try {
     const parsed = new URL(normalized)
+    // 豆瓣 CDN 浏览器直链会触发防盗链/CORS，改走同域代理
     if (/(\.|^)doubanio\.com$/i.test(parsed.hostname)) {
       return `/api/admin/cover?url=${encodeURIComponent(parsed.href)}`
     }
@@ -769,7 +777,7 @@ const resetVideoForm = () => {
   videoForm.source_id = null
   videoForm.source = ''
   videoForm.title = ''
-  videoForm.type = ''
+  videoForm.type = 'movie'
   videoForm.cover_url = ''
   videoForm.description = ''
   videoForm.release_date = ''
@@ -788,14 +796,14 @@ const resetVideoForm = () => {
   videoForm.tags_json = []
 }
 
-// 打开视频表单（@click.stop 避免触发行点击打开剧集抽屉）
+// 打开视频表单（编辑按钮已 @click.stop；新增用 openVideoForm() 避免把点击事件当成视频）
 const openVideoForm = (video = null) => {
-  if (video) {
+  if (video && video.id != null && video.id !== '') {
     videoForm.id = video.id
     videoForm.source_id = video.source_id != null ? Number(video.source_id) : null
     videoForm.source = video.source ?? ''
     videoForm.title = video.title ?? ''
-    videoForm.type = video.type ?? ''
+    videoForm.type = video.type || 'movie'
     videoForm.cover_url = video.cover_url ?? ''
     videoForm.description = video.description ?? ''
     videoForm.release_date = video.release_date || ''
@@ -821,7 +829,7 @@ const openVideoForm = (video = null) => {
 // 保存视频
 const saveVideo = async () => {
   if (!videoFormRef.value) return
-  
+
   try {
     await videoFormRef.value.validate()
 
@@ -847,35 +855,35 @@ const saveVideo = async () => {
         is_update: !!videoForm.is_update
       })
     } else {
-      await axios.post('/admin/videos', {
+      // 空字段不提交，避免写入空串
+      const payload = {
         source_id: Number(videoForm.source_id),
         source: videoForm.source.trim(),
         title: videoForm.title.trim(),
-        type: videoForm.type,
-        cover_url: videoForm.cover_url.trim()
-      })
+        type: videoForm.type || 'movie'
+      }
+      const cover = (videoForm.cover_url || '').trim()
+      if (cover) payload.cover_url = cover
+      await axios.post('/admin/videos', payload)
     }
-    
+
     videoFormVisible.value = false
     getVideoList()
+    ElMessage.success('保存成功')
   } catch (error) {
     console.error('保存视频失败:', error)
   }
 }
 
-
-
-// 打开剧集表单
+// 打开剧集表单（新增必须 openEpisodeForm()，否则点击事件会被当成剧集对象）
 const openEpisodeForm = (episode = null) => {
-  if (episode) {
-    // 编辑模式
+  if (episode && episode.id != null && episode.id !== '') {
     episodeForm.id = episode.id
-    episodeForm.episode_number = episode.episode_number
-    episodeForm.name = episode.name
-    episodeForm.play_urls = episode.play_urls
-    episodeForm.duration_seconds = episode.duration_seconds
+    episodeForm.episode_number = Number(episode.episode_number) || 1
+    episodeForm.name = episode.name || ''
+    episodeForm.play_urls = episode.play_urls || ''
+    episodeForm.duration_seconds = Number(episode.duration_seconds) || 0
   } else {
-    // 新增模式
     episodeForm.id = ''
     episodeForm.episode_number = 1
     episodeForm.name = ''
@@ -888,25 +896,49 @@ const openEpisodeForm = (episode = null) => {
 // 保存剧集
 const saveEpisode = async () => {
   if (!episodeFormRef.value) return
-  
+  if (!selectedVideo.value?.id) {
+    ElMessage.error('请先选择视频')
+    return
+  }
+
   try {
     await episodeFormRef.value.validate()
-    
+
+    const episodeNumber = Number(episodeForm.episode_number)
+    const playURLs = (episodeForm.play_urls || '').trim()
+    const name = (episodeForm.name || '').trim()
+    const durationSeconds = Number(episodeForm.duration_seconds) || 0
+
     if (episodeForm.id) {
-      // 更新
-      await axios.put(`/admin/episodes/${episodeForm.id}`, episodeForm)
+      const payload = {
+        episode_number: episodeNumber,
+        play_urls: playURLs
+      }
+      if (name) payload.name = name
+      if (durationSeconds > 0) payload.duration_seconds = durationSeconds
+      await axios.put(`/admin/episodes/${episodeForm.id}`, payload)
     } else {
-      // 新增
-      await axios.post('/admin/episodes', {
-        ...episodeForm,
-        video_id: selectedVideo.value.id
-      })
+      const payload = {
+        // 雪花 ID 保持字符串，避免 Number 精度丢失
+        video_id: String(selectedVideo.value.id),
+        episode_number: episodeNumber,
+        play_urls: playURLs
+      }
+      if (name) payload.name = name
+      if (durationSeconds > 0) payload.duration_seconds = durationSeconds
+      const response = await axios.post('/admin/episodes', payload)
+      if (response.data?.code !== 0 && response.data?.code !== 200) {
+        ElMessage.error(response.data?.message || '添加剧集失败')
+        return
+      }
     }
-    
+
     episodeFormVisible.value = false
     getEpisodeList(selectedVideo.value.id)
+    ElMessage.success('保存成功')
   } catch (error) {
     console.error('保存剧集失败:', error)
+    ElMessage.error(error?.response?.data?.message || '保存剧集失败')
   }
 }
 
@@ -970,7 +1002,6 @@ const getTypeTagType = (type) => {
     tv: 'success',
     anime: 'warning',
     tvshow: 'info',
-    variety: 'info',
     doc: 'danger'
   }
   return typeMap[type] || 'default'
@@ -983,7 +1014,6 @@ const getTypeText = (type) => {
     tv: '电视剧',
     anime: '动漫',
     tvshow: '综艺',
-    variety: '综艺',
     doc: '纪录片'
   }
   return typeMap[type] || type

@@ -273,6 +273,7 @@ type CreateRequest struct {
 }
 
 // Create 创建视频。主键用雪花算法生成，创建时间和更新时间取本次写入时间。
+// 空字段不写入数据库，留给列默认值。
 func (h *VideoHandler) Create(c *gin.Context) {
 	var req CreateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -284,8 +285,8 @@ func (h *VideoHandler) Create(c *gin.Context) {
 	title := strings.TrimSpace(req.Title)
 	videoType := strings.TrimSpace(req.Type)
 	coverURL := strings.TrimSpace(req.CoverURL)
-	if req.SourceID == nil || *req.SourceID <= 0 || source == "" || title == "" || videoType == "" || coverURL == "" {
-		response.Error(c, http.StatusBadRequest, "来源ID、来源、标题、类型、视频封面为必填")
+	if req.SourceID == nil || *req.SourceID <= 0 || source == "" || title == "" || videoType == "" {
+		response.Error(c, http.StatusBadRequest, "来源ID、来源、标题、类型为必填")
 		return
 	}
 
