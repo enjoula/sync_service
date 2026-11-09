@@ -60,7 +60,7 @@ func NewUserRepository() UserRepository {
 // ListBasic 分页查询用户基本信息。
 func (r *userRepository) ListBasic(keyword string, limit, offset int) ([]model.User, int64, error) {
 	query := database.DB.Model(&model.User{}).
-		Select("id", "username", "nickname", "email", "avatar", "watch_count", "last_watch_at", "last_open_at", "created_at", "updated_at")
+		Select("id", "username", "nickname", "email", "avatar", "monthly_watch_count", "watch_count", "last_watch_at", "last_open_at", "created_at", "updated_at")
 
 	keyword = strings.TrimSpace(keyword)
 	if keyword != "" {

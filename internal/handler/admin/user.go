@@ -30,16 +30,17 @@ type UserListRequest struct {
 
 // UserResponse 用户基本信息。不包含密码和四个访问码字段。
 type UserResponse struct {
-	ID          string `json:"id"`
-	Username    string `json:"username"`
-	Nickname    string `json:"nickname"`
-	Email       string `json:"email"`
-	Avatar      string `json:"avatar"`
-	WatchCount  int64  `json:"watch_count"`
-	LastWatchAt string `json:"last_watch_at"`
-	LastOpenAt  string `json:"last_open_at"`
-	CreatedAt   string `json:"created_at"`
-	UpdatedAt   string `json:"updated_at"`
+	ID                string `json:"id"`
+	Username          string `json:"username"`
+	Nickname          string `json:"nickname"`
+	Email             string `json:"email"`
+	Avatar            string `json:"avatar"`
+	MonthlyWatchCount int64  `json:"monthly_watch_count"`
+	WatchCount        int64  `json:"watch_count"`
+	LastWatchAt       string `json:"last_watch_at"`
+	LastOpenAt        string `json:"last_open_at"`
+	CreatedAt         string `json:"created_at"`
+	UpdatedAt         string `json:"updated_at"`
 }
 
 // List 获取用户列表
@@ -65,14 +66,15 @@ func (h *UserHandler) List(c *gin.Context) {
 	list := make([]UserResponse, 0, len(users))
 	for _, user := range users {
 		item := UserResponse{
-			ID:         strconv.FormatInt(user.ID, 10),
-			Username:   user.Username,
-			Nickname:   user.Nickname,
-			Email:      user.Email,
-			Avatar:     user.Avatar,
-			WatchCount: user.WatchCount,
-			CreatedAt:  user.CreatedAt.Format("2006-01-02 15:04:05"),
-			UpdatedAt:  user.UpdatedAt.Format("2006-01-02 15:04:05"),
+			ID:                strconv.FormatInt(user.ID, 10),
+			Username:          user.Username,
+			Nickname:          user.Nickname,
+			Email:             user.Email,
+			Avatar:            user.Avatar,
+			MonthlyWatchCount: user.MonthlyWatchCount,
+			WatchCount:        user.WatchCount,
+			CreatedAt:         user.CreatedAt.Format("2006-01-02 15:04:05"),
+			UpdatedAt:         user.UpdatedAt.Format("2006-01-02 15:04:05"),
 		}
 		if user.LastWatchAt != nil {
 			item.LastWatchAt = user.LastWatchAt.Format("2006-01-02 15:04:05")

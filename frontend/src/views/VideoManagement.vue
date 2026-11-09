@@ -610,7 +610,7 @@ const videoFormVisible = ref(false)
 const videoForm = reactive({
   id: '',
   source_id: null,
-  source: '',
+  source: 'douban',
   title: '',
   type: 'movie',
   cover_url: '',
@@ -809,7 +809,7 @@ const jsonFieldToTags = (val) => {
 const resetVideoForm = () => {
   videoForm.id = ''
   videoForm.source_id = null
-  videoForm.source = ''
+  videoForm.source = 'douban'
   videoForm.title = ''
   videoForm.type = 'movie'
   videoForm.cover_url = ''

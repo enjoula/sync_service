@@ -58,7 +58,8 @@
                 {{ scope.row.email || '—' }}
               </template>
             </el-table-column>
-            <el-table-column prop="watch_count" label="观看次数" width="90" />
+            <el-table-column prop="monthly_watch_count" label="月度观看" width="90" />
+            <el-table-column prop="watch_count" label="观看总量" width="90" />
             <el-table-column prop="last_watch_at" label="最后观看" width="165">
               <template #default="scope">
                 {{ scope.row.last_watch_at || '—' }}
