@@ -41,6 +41,26 @@ type UserToken struct {
 	CreatedAt time.Time  `gorm:"autoCreateTime;comment:创建时间" json:"created_at"`                          // 创建时间，自动设置
 }
 
+// UserWatchRecord 用户观看记录。同一用户同一集只保留一条最新记录。
+type UserWatchRecord struct {
+	ID             int64     `gorm:"primaryKey;autoIncrement;comment:观看记录ID" json:"id"`
+	UserID         int64     `gorm:"column:user_id;not null;comment:用户ID" json:"user_id"`
+	VideoID        int64     `gorm:"column:video_id;not null;comment:视频ID" json:"video_id"`
+	EpisodeID      int64     `gorm:"column:episode_id;not null;comment:剧集ID" json:"episode_id"`
+	EpisodeName    string    `gorm:"column:episode_name;size:255;comment:剧集名称" json:"episode_name"`
+	PlayCount      int64     `gorm:"column:play_count;default:0;comment:观看次数" json:"play_count"`
+	EpisodeNumber  int64     `gorm:"column:episode_number;default:1;comment:集数编号" json:"episode_number"`
+	LastPositionMs int64     `gorm:"column:last_position_ms;default:0;comment:观看进度位置(毫秒)" json:"last_position_ms"`
+	LastPlayedAt   time.Time `gorm:"column:last_played_at;comment:最后观看时间" json:"last_played_at"`
+	CreatedAt      time.Time `gorm:"autoCreateTime;comment:首次观看时间" json:"created_at"`
+	UpdatedAt      time.Time `gorm:"autoUpdateTime;comment:更新时间" json:"updated_at"`
+}
+
+// TableName 指定表名
+func (UserWatchRecord) TableName() string {
+	return "user_watch_records"
+}
+
 // Video 视频模型
 // 存储视频/电影/电视剧的基本信息
 type Video struct {

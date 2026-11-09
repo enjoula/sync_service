@@ -104,6 +104,8 @@ func SetupRouter() *gin.Engine {
 			userRead.Use(middleware.RequireAdminPerm(model.PermUserRead))
 			userHandler := admin.NewUserHandler()
 			userRead.GET("/users", userHandler.List)
+			userRead.GET("/users/watch-records", userHandler.ListWatchRecords)
+			userRead.GET("/users/logins", userHandler.ListLogins)
 
 			accountHandler := admin.NewAccountHandler()
 			accountManage := authed.Group("")

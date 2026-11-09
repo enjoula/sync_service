@@ -23,17 +23,28 @@
             <el-option label="纪录片" value="doc" />
           </el-select>
         </el-form-item>
-        <el-form-item label="上映日期">
-          <el-date-picker
-            v-model="searchForm.release_date"
-            type="daterange"
-            value-format="YYYY-MM-DD"
-            range-separator="至"
-            start-placeholder="开始日期"
-            end-placeholder="结束日期"
-            clearable
-            style="width: 240px"
-          />
+        <el-form-item label="上映年份">
+          <div class="release-year-range">
+            <el-select
+              v-model="searchForm.release_year_start"
+              filterable
+              clearable
+              placeholder="开始"
+              style="width: 96px"
+            >
+              <el-option v-for="year in releaseYearOptions" :key="`start-${year}`" :label="String(year)" :value="year" />
+            </el-select>
+            <span class="release-year-sep">至</span>
+            <el-select
+              v-model="searchForm.release_year_end"
+              filterable
+              clearable
+              placeholder="结束"
+              style="width: 96px"
+            >
+              <el-option v-for="year in releaseYearOptions" :key="`end-${year}`" :label="String(year)" :value="year" />
+            </el-select>
+          </div>
         </el-form-item>
         <el-form-item label="状态">
           <el-select
@@ -86,12 +97,12 @@
             @row-click="handleVideoClick"
           >
         <el-table-column prop="id" label="ID" width="120" fixed />
-        <el-table-column prop="source_id" label="来源ID" width="100">
+        <el-table-column prop="source_id" label="来源ID" width="76" show-overflow-tooltip>
           <template #default="scope">
             {{ scope.row.source_id != null ? scope.row.source_id : '—' }}
           </template>
         </el-table-column>
-        <el-table-column prop="source" label="来源" width="100" show-overflow-tooltip />
+        <el-table-column prop="source" label="来源" width="68" show-overflow-tooltip />
         <el-table-column label="封面" width="52" align="center">
           <template #default="scope">
             <div
@@ -124,7 +135,7 @@
             {{ scope.row.release_date || '—' }}
           </template>
         </el-table-column>
-        <el-table-column prop="score" label="评分" width="80">
+        <el-table-column prop="score" label="评分" width="56">
           <template #default="scope">
             {{ scope.row.score != null ? scope.row.score : '—' }}
           </template>
@@ -146,7 +157,7 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="episode_count" label="剧集数" width="90" />
+        <el-table-column prop="episode_count" label="剧集数" width="64" />
         <el-table-column prop="is_completed" label="是否完结" width="90">
           <template #default="scope">
             <el-tag size="small" :type="scope.row.is_completed ? 'success' : 'warning'">
@@ -549,11 +560,34 @@ defineProps({
 const searchForm = reactive({
   title: '',
   type: [],
-  release_date: null,
+  release_year_start: null,
+  release_year_end: null,
   status: [],
   is_completed: '',
   is_update: ''
 })
+
+// 上映年份：近年在前，可输入筛选
+const releaseYearOptions = computed(() => {
+  const current = new Date().getFullYear()
+  const years = []
+  for (let year = current; year >= 1900; year -= 1) {
+    years.push(year)
+  }
+  return years
+})
+
+const releaseDateQuery = () => {
+  let start = searchForm.release_year_start
+  let end = searchForm.release_year_end
+  if (start != null && end != null && start > end) {
+    ;[start, end] = [end, start]
+  }
+  return {
+    release_date_start: start != null ? `${start}-01-01` : '',
+    release_date_end: end != null ? `${end}-12-31` : ''
+  }
+}
 
 // 分页
 const pagination = reactive({
@@ -693,8 +727,7 @@ const getVideoList = async () => {
         title: searchForm.title,
         type: searchForm.type.join(','),
         status: searchForm.status.join(','),
-        release_date_start: searchForm.release_date?.[0] || '',
-        release_date_end: searchForm.release_date?.[1] || '',
+        ...releaseDateQuery(),
         is_completed: searchForm.is_completed,
         is_update: searchForm.is_update
       }
@@ -716,7 +749,8 @@ const searchVideos = () => {
 const resetSearch = () => {
   searchForm.title = ''
   searchForm.type = []
-  searchForm.release_date = null
+  searchForm.release_year_start = null
+  searchForm.release_year_end = null
   searchForm.status = []
   searchForm.is_completed = ''
   searchForm.is_update = ''
@@ -1087,6 +1121,18 @@ onMounted(() => {
   align-items: center;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.release-year-range {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.release-year-sep {
+  color: #8b9bb4;
+  font-size: 12px;
+  line-height: 1;
 }
 
 /* 让搜索区域更紧凑，同时字号不至于太小 */
