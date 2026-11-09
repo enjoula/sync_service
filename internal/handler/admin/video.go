@@ -263,16 +263,31 @@ func (h *VideoHandler) Get(c *gin.Context) {
 	response.Success(c, resp)
 }
 
-// CreateRequest 创建视频请求。只接收添加时需要填写的五项。
+// CreateRequest 创建视频请求。只接收添加时需要填写的五项；confirm 表示用户已对重复来源ID二次确认。
 type CreateRequest struct {
 	SourceID *int64 `json:"source_id"`
 	Source   string `json:"source"`
 	Title    string `json:"title"`
 	Type     string `json:"type"`
 	CoverURL string `json:"cover_url"`
+	Confirm  bool   `json:"confirm"`
+}
+
+// DuplicateVideoItem 添加视频时返回的来源ID重复项。
+type DuplicateVideoItem struct {
+	ID        string `json:"id"`
+	SourceID  *int64 `json:"source_id"`
+	Source    string `json:"source"`
+	Title     string `json:"title"`
+	Type      string `json:"type"`
+	CoverURL  string `json:"cover_url"`
+	Status    string `json:"status"`
+	CreatedAt string `json:"created_at"`
+	UpdatedAt string `json:"updated_at"`
 }
 
 // Create 创建视频。主键用雪花算法生成，创建时间和更新时间取本次写入时间。
+// 未确认时若 source_id 已存在，返回重复列表供前端二次确认；确认后或无重复则直接写入。
 // 空字段不写入数据库，留给列默认值。
 func (h *VideoHandler) Create(c *gin.Context) {
 	var req CreateRequest
@@ -288,6 +303,40 @@ func (h *VideoHandler) Create(c *gin.Context) {
 	if req.SourceID == nil || *req.SourceID <= 0 || source == "" || title == "" || videoType == "" {
 		response.Error(c, http.StatusBadRequest, "来源ID、来源、标题、类型为必填")
 		return
+	}
+
+	if !req.Confirm {
+		existings, err := h.videoRepo.ListBySourceID(*req.SourceID)
+		if err != nil {
+			response.Error(c, http.StatusInternalServerError, "查重失败")
+			return
+		}
+		if len(existings) > 0 {
+			duplicates := make([]DuplicateVideoItem, 0, len(existings))
+			for _, video := range existings {
+				item := DuplicateVideoItem{
+					ID:       strconv.FormatInt(video.ID, 10),
+					SourceID: video.SourceID,
+					Source:   video.Source,
+					Title:    video.Title,
+					Type:     video.Type,
+					CoverURL: video.CoverURL,
+					Status:   video.Status,
+				}
+				if !video.CreatedAt.IsZero() {
+					item.CreatedAt = video.CreatedAt.Format("2006-01-02 15:04:05")
+				}
+				if !video.UpdatedAt.IsZero() {
+					item.UpdatedAt = video.UpdatedAt.Format("2006-01-02 15:04:05")
+				}
+				duplicates = append(duplicates, item)
+			}
+			response.Success(c, gin.H{
+				"duplicate":  true,
+				"duplicates": duplicates,
+			})
+			return
+		}
 	}
 
 	now := time.Now()

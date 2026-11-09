@@ -240,9 +240,10 @@
       v-model="videoFormVisible"
       class="video-form-dialog"
       :title="videoForm.id ? '编辑视频' : '添加视频'"
-      :width="videoForm.id ? '1180px' : '480px'"
+      :width="videoForm.id ? '1180px' : (duplicateVideos.length ? '720px' : '480px')"
       top="5vh"
       destroy-on-close
+      @closed="clearDuplicateVideos"
     >
       <el-form
         :model="videoForm"
@@ -260,6 +261,7 @@
               :controls="false"
               placeholder="请填写来源ID"
               style="width: 100%"
+              @change="clearDuplicateVideos"
             />
           </el-form-item>
           <el-form-item label="来源" prop="source">
@@ -280,6 +282,26 @@
           <el-form-item label="视频封面" prop="cover_url">
             <el-input v-model="videoForm.cover_url" placeholder="选填，封面图片地址" />
           </el-form-item>
+          <div v-if="duplicateVideos.length" class="duplicate-panel">
+            <el-alert
+              type="warning"
+              :closable="false"
+              show-icon
+              title="已存在相同来源ID的视频，请确认是否仍要添加"
+            />
+            <el-table :data="duplicateVideos" border size="small" class="duplicate-table" max-height="260">
+              <el-table-column prop="id" label="ID" width="160" show-overflow-tooltip />
+              <el-table-column prop="title" label="标题" min-width="140" show-overflow-tooltip />
+              <el-table-column label="类型" width="80">
+                <template #default="scope">{{ getTypeText(scope.row.type) }}</template>
+              </el-table-column>
+              <el-table-column prop="source" label="来源" width="80" show-overflow-tooltip />
+              <el-table-column label="状态" width="72">
+                <template #default="scope">{{ statusText(scope.row.status) }}</template>
+              </el-table-column>
+              <el-table-column prop="created_at" label="创建时间" width="160" />
+            </el-table>
+          </div>
         </template>
         <template v-else>
         <el-row :gutter="16">
@@ -504,7 +526,13 @@
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="videoFormVisible = false">取消</el-button>
-          <el-button type="primary" @click="saveVideo">保存</el-button>
+          <el-button
+            type="primary"
+            :loading="videoSaving"
+            @click="saveVideo"
+          >
+            {{ !videoForm.id && duplicateVideos.length ? '确认添加' : '保存' }}
+          </el-button>
         </span>
       </template>
     </el-dialog>
@@ -607,6 +635,8 @@ const episodeDrawerVisible = ref(false)
 
 // 视频表单
 const videoFormVisible = ref(false)
+const videoSaving = ref(false)
+const duplicateVideos = ref([])
 const videoForm = reactive({
   id: '',
   source_id: null,
@@ -631,6 +661,10 @@ const videoForm = reactive({
   tags_json: []
 })
 const videoFormRef = ref(null)
+
+const clearDuplicateVideos = () => {
+  duplicateVideos.value = []
+}
 const videoFormRules = computed(() => {
   if (videoForm.id) {
     return {
@@ -828,6 +862,7 @@ const resetVideoForm = () => {
   videoForm.director_json = []
   videoForm.actors_json = []
   videoForm.tags_json = []
+  clearDuplicateVideos()
 }
 
 // 打开视频表单（编辑按钮已 @click.stop；新增用 openVideoForm() 避免把点击事件当成视频）
@@ -862,13 +897,14 @@ const openVideoForm = (video = null) => {
 
 // 保存视频
 const saveVideo = async () => {
-  if (!videoFormRef.value) return
+  if (!videoFormRef.value || videoSaving.value) return
 
   try {
     await videoFormRef.value.validate()
+    videoSaving.value = true
 
     if (videoForm.id) {
-      await axios.put(`/admin/videos/${videoForm.id}`, {
+      const response = await axios.put(`/admin/videos/${videoForm.id}`, {
         source_id: videoForm.source_id != null ? Number(videoForm.source_id) : null,
         source: videoForm.source,
         title: videoForm.title,
@@ -888,24 +924,43 @@ const saveVideo = async () => {
         is_completed: !!videoForm.is_completed,
         is_update: !!videoForm.is_update
       })
+      if (response.data?.code !== 0) {
+        ElMessage.error(response.data?.message || '保存失败')
+        return
+      }
     } else {
-      // 空字段不提交，避免写入空串
+      // 空字段不提交，避免写入空串；已展示重复项时带 confirm 二次确认添加
       const payload = {
         source_id: Number(videoForm.source_id),
         source: videoForm.source.trim(),
         title: videoForm.title.trim(),
-        type: videoForm.type || 'movie'
+        type: videoForm.type || 'movie',
+        confirm: duplicateVideos.value.length > 0
       }
       const cover = (videoForm.cover_url || '').trim()
       if (cover) payload.cover_url = cover
-      await axios.post('/admin/videos', payload)
+      const response = await axios.post('/admin/videos', payload)
+      if (response.data?.code !== 0) {
+        ElMessage.error(response.data?.message || '添加失败')
+        return
+      }
+      const data = response.data?.data || {}
+      if (data.duplicate && Array.isArray(data.duplicates) && data.duplicates.length) {
+        duplicateVideos.value = data.duplicates
+        ElMessage.warning(`来源ID已存在 ${data.duplicates.length} 条记录，请确认后再次添加`)
+        return
+      }
     }
 
     videoFormVisible.value = false
+    clearDuplicateVideos()
     getVideoList()
     ElMessage.success('保存成功')
   } catch (error) {
     console.error('保存视频失败:', error)
+    ElMessage.error(error?.response?.data?.message || '保存失败')
+  } finally {
+    videoSaving.value = false
   }
 }
 
@@ -1180,6 +1235,17 @@ onMounted(() => {
 
 .tag-input-container .el-tag {
   margin-bottom: 8px;
+}
+
+.duplicate-panel {
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.duplicate-table {
+  width: 100%;
 }
 
 .cover-thumb {

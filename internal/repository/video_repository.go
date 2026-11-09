@@ -44,6 +44,9 @@ type VideoRepository interface {
 	// FindBySourceID 根据来源ID查找视频
 	FindBySourceID(sourceID int64) (*model.Video, error)
 
+	// ListBySourceID 根据来源ID查找全部匹配视频（用于添加前查重）
+	ListBySourceID(sourceID int64) ([]*model.Video, error)
+
 	// Create 创建视频记录
 	Create(video *model.Video) error
 
@@ -163,6 +166,20 @@ func (r *videoRepository) FindBySourceID(sourceID int64) (*model.Video, error) {
 		return nil, err
 	}
 	return &video, nil
+}
+
+// ListBySourceID 根据来源ID查找全部匹配视频。
+func (r *videoRepository) ListBySourceID(sourceID int64) ([]*model.Video, error) {
+	var videos []*model.Video
+	err := database.DB.
+		Select("id", "source_id", "source", "title", "type", "cover_url", "status", "created_at", "updated_at").
+		Where("source_id = ?", sourceID).
+		Order("created_at DESC").
+		Find(&videos).Error
+	if err != nil {
+		return nil, err
+	}
+	return videos, nil
 }
 
 // Create 创建视频记录
