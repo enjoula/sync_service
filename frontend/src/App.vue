@@ -40,6 +40,10 @@
         <el-main class="app-main">
           <VideoManagement v-if="activeMenu === 'video'" :can-write="can('video:write')" />
           <UserManagement v-else-if="activeMenu === 'user'" />
+          <FeedbackManagement
+            v-else-if="activeMenu === 'feedback'"
+            :can-write="can('feedback:write')"
+          />
           <AdminManagement v-else-if="activeMenu === 'admin'" />
           <div v-else-if="activeMenu === 'member'" class="placeholder">
             <el-empty description="会员管理开发中" />
@@ -71,14 +75,16 @@ import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import VideoManagement from './views/VideoManagement.vue'
 import UserManagement from './views/UserManagement.vue'
+import FeedbackManagement from './views/FeedbackManagement.vue'
 import AdminManagement from './views/AdminManagement.vue'
 import Login from './views/Login.vue'
-import { VideoCamera, User, Star, Setting } from '@element-plus/icons-vue'
+import { VideoCamera, User, ChatDotRound, Star, Setting } from '@element-plus/icons-vue'
 import { clearSession, getProfile, getToken, hasPerm, setSession } from './auth'
 
 const menus = [
   { index: 'video', label: '视频管理', perm: 'video:read', icon: VideoCamera },
   { index: 'user', label: '用户管理', perm: 'user:read', icon: User },
+  { index: 'feedback', label: '用户反馈', perm: 'feedback:read', icon: ChatDotRound },
   { index: 'member', label: '会员管理', perm: 'member:read', icon: Star },
   { index: 'admin', label: '管理员', perm: 'admin:manage', icon: Setting }
 ]

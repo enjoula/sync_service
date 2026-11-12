@@ -92,7 +92,7 @@
             :placeholder="form.id ? '留空则不修改' : '6-64位'"
           />
         </el-form-item>
-        <p class="role-hint">超级管理员可管理全部功能。内容编辑负责视频。运营可查看视频、用户和会员。只读仅可查看视频。</p>
+        <p class="role-hint">超级管理员可管理全部功能。内容编辑负责视频并可处理反馈。运营可查看视频、用户、会员并处理反馈。只读可查看视频与反馈。</p>
       </el-form>
       <template #footer>
         <el-button @click="formVisible = false">取消</el-button>

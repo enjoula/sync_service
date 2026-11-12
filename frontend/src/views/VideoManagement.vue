@@ -23,27 +23,25 @@
             <el-option label="纪录片" value="doc" />
           </el-select>
         </el-form-item>
-        <el-form-item label="上映年份">
+        <el-form-item label="上映年月">
           <div class="release-year-range">
-            <el-select
-              v-model="searchForm.release_year_start"
-              filterable
+            <el-date-picker
+              v-model="searchForm.release_month_start"
+              type="month"
+              value-format="YYYY-MM"
               clearable
               placeholder="开始"
-              style="width: 96px"
-            >
-              <el-option v-for="year in releaseYearOptions" :key="`start-${year}`" :label="String(year)" :value="year" />
-            </el-select>
+              style="width: 120px"
+            />
             <span class="release-year-sep">至</span>
-            <el-select
-              v-model="searchForm.release_year_end"
-              filterable
+            <el-date-picker
+              v-model="searchForm.release_month_end"
+              type="month"
+              value-format="YYYY-MM"
               clearable
               placeholder="结束"
-              style="width: 96px"
-            >
-              <el-option v-for="year in releaseYearOptions" :key="`end-${year}`" :label="String(year)" :value="year" />
-            </el-select>
+              style="width: 120px"
+            />
           </div>
         </el-form-item>
         <el-form-item label="状态">
@@ -588,32 +586,37 @@ defineProps({
 const searchForm = reactive({
   title: '',
   type: [],
-  release_year_start: null,
-  release_year_end: null,
+  release_month_start: null,
+  release_month_end: null,
   status: [],
   is_completed: '',
   is_update: ''
 })
 
-// 上映年份：近年在前，可输入筛选
-const releaseYearOptions = computed(() => {
-  const current = new Date().getFullYear()
-  const years = []
-  for (let year = current; year >= 1900; year -= 1) {
-    years.push(year)
+// 上映年月：开始取当月 1 号，结束取当月最后一天
+const monthRangeBound = (month, bound) => {
+  if (!month || typeof month !== 'string') return ''
+  const match = /^(\d{4})-(\d{2})$/.exec(month)
+  if (!match) return ''
+  const year = Number(match[1])
+  const mon = Number(match[2])
+  if (!year || mon < 1 || mon > 12) return ''
+  if (bound === 'start') {
+    return `${match[1]}-${match[2]}-01`
   }
-  return years
-})
+  const lastDay = new Date(year, mon, 0).getDate()
+  return `${match[1]}-${match[2]}-${String(lastDay).padStart(2, '0')}`
+}
 
 const releaseDateQuery = () => {
-  let start = searchForm.release_year_start
-  let end = searchForm.release_year_end
-  if (start != null && end != null && start > end) {
+  let start = searchForm.release_month_start
+  let end = searchForm.release_month_end
+  if (start && end && start > end) {
     ;[start, end] = [end, start]
   }
   return {
-    release_date_start: start != null ? `${start}-01-01` : '',
-    release_date_end: end != null ? `${end}-12-31` : ''
+    release_date_start: monthRangeBound(start, 'start'),
+    release_date_end: monthRangeBound(end, 'end')
   }
 }
 
@@ -783,8 +786,8 @@ const searchVideos = () => {
 const resetSearch = () => {
   searchForm.title = ''
   searchForm.type = []
-  searchForm.release_year_start = null
-  searchForm.release_year_end = null
+  searchForm.release_month_start = null
+  searchForm.release_month_end = null
   searchForm.status = []
   searchForm.is_completed = ''
   searchForm.is_update = ''

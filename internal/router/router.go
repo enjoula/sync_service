@@ -107,6 +107,16 @@ func SetupRouter() *gin.Engine {
 			userRead.GET("/users/watch-records", userHandler.ListWatchRecords)
 			userRead.GET("/users/logins", userHandler.ListLogins)
 
+			feedbackHandler := admin.NewFeedbackHandler()
+			feedbackRead := authed.Group("")
+			feedbackRead.Use(middleware.RequireAdminPerm(model.PermFeedbackRead))
+			feedbackRead.GET("/feedbacks", feedbackHandler.List)
+			feedbackRead.GET("/feedbacks/:id", feedbackHandler.Get)
+
+			feedbackWrite := authed.Group("")
+			feedbackWrite.Use(middleware.RequireAdminPerm(model.PermFeedbackWrite))
+			feedbackWrite.PUT("/feedbacks/:id", feedbackHandler.Update)
+
 			accountHandler := admin.NewAccountHandler()
 			accountManage := authed.Group("")
 			accountManage.Use(middleware.RequireAdminPerm(model.PermAdminManage))

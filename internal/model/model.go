@@ -225,19 +225,21 @@ const (
 
 // 管理后台权限点
 const (
-	PermVideoRead   = "video:read"   // 查看视频和剧集
-	PermVideoWrite  = "video:write"  // 修改视频和剧集
-	PermUserRead    = "user:read"    // 查看前台用户
-	PermMemberRead  = "member:read"  // 查看会员
-	PermAdminManage = "admin:manage" // 管理管理员账号
+	PermVideoRead     = "video:read"     // 查看视频和剧集
+	PermVideoWrite    = "video:write"    // 修改视频和剧集
+	PermUserRead      = "user:read"      // 查看前台用户
+	PermMemberRead    = "member:read"    // 查看会员
+	PermFeedbackRead  = "feedback:read"  // 查看用户反馈
+	PermFeedbackWrite = "feedback:write" // 处理用户反馈
+	PermAdminManage   = "admin:manage"   // 管理管理员账号
 )
 
 // AdminRolePermissions 角色对应的权限
 var AdminRolePermissions = map[string][]string{
-	AdminRoleSuper:    {PermVideoRead, PermVideoWrite, PermUserRead, PermMemberRead, PermAdminManage},
-	AdminRoleEditor:   {PermVideoRead, PermVideoWrite, PermUserRead, PermMemberRead},
-	AdminRoleOperator: {PermVideoRead, PermUserRead, PermMemberRead},
-	AdminRoleViewer:   {PermVideoRead},
+	AdminRoleSuper:    {PermVideoRead, PermVideoWrite, PermUserRead, PermMemberRead, PermFeedbackRead, PermFeedbackWrite, PermAdminManage},
+	AdminRoleEditor:   {PermVideoRead, PermVideoWrite, PermUserRead, PermMemberRead, PermFeedbackRead, PermFeedbackWrite},
+	AdminRoleOperator: {PermVideoRead, PermUserRead, PermMemberRead, PermFeedbackRead, PermFeedbackWrite},
+	AdminRoleViewer:   {PermVideoRead, PermFeedbackRead},
 }
 
 // AdminRoleNames 角色中文名
@@ -289,4 +291,102 @@ type Admin struct {
 // TableName 指定管理员表名
 func (Admin) TableName() string {
 	return "admins"
+}
+
+// 用户反馈来源（与 video_service.feedbacks.source 一致）
+const (
+	FeedbackSourceFeedback = "feedback" // 用户主动纠错反馈
+	FeedbackSourceSearch   = "search"   // 搜索无结果自动记录
+)
+
+// ValidFeedbackSources 合法来源
+var ValidFeedbackSources = map[string]string{
+	FeedbackSourceFeedback: "主动反馈",
+	FeedbackSourceSearch:   "搜索无结果",
+}
+
+// IsValidFeedbackSource 校验来源是否合法
+func IsValidFeedbackSource(source string) bool {
+	_, ok := ValidFeedbackSources[source]
+	return ok
+}
+
+// 用户反馈问题类型
+const (
+	FeedbackTypePlayError      = "play_error"
+	FeedbackTypeWrongContent   = "wrong_content"
+	FeedbackTypeMissingEpisode = "missing_episode"
+	FeedbackTypeMissingVideo   = "missing_video"
+	FeedbackTypeSubtitleError  = "subtitle_error"
+	FeedbackTypeAudioError     = "audio_error"
+	FeedbackTypeOther          = "other"
+)
+
+// ValidFeedbackTypes 合法问题类型及其展示文案
+var ValidFeedbackTypes = map[string]string{
+	FeedbackTypePlayError:      "无法播放/卡顿/花屏",
+	FeedbackTypeWrongContent:   "内容错误/不对版",
+	FeedbackTypeMissingEpisode: "缺少剧集",
+	FeedbackTypeMissingVideo:   "缺少视频",
+	FeedbackTypeSubtitleError:  "字幕问题",
+	FeedbackTypeAudioError:     "音画不同步/无声",
+	FeedbackTypeOther:          "其他",
+}
+
+// IsValidFeedbackType 校验问题类型是否合法
+func IsValidFeedbackType(t string) bool {
+	_, ok := ValidFeedbackTypes[t]
+	return ok
+}
+
+// 用户反馈处理状态
+const (
+	FeedbackStatusPending    = "pending"
+	FeedbackStatusProcessing = "processing"
+	FeedbackStatusResolved   = "resolved"
+	FeedbackStatusRejected   = "rejected"
+	FeedbackStatusClosed     = "closed"
+)
+
+// ValidFeedbackStatuses 合法处理状态及其展示文案
+var ValidFeedbackStatuses = map[string]string{
+	FeedbackStatusPending:    "待处理",
+	FeedbackStatusProcessing: "处理中",
+	FeedbackStatusResolved:   "已解决",
+	FeedbackStatusRejected:   "已驳回",
+	FeedbackStatusClosed:     "已关闭",
+}
+
+// IsValidFeedbackStatus 校验处理状态是否合法
+func IsValidFeedbackStatus(status string) bool {
+	_, ok := ValidFeedbackStatuses[status]
+	return ok
+}
+
+// VideoFeedback 用户视频纠错/搜索无结果反馈（与 video_service 共用 feedbacks 表）
+type VideoFeedback struct {
+	ID            int64      `gorm:"primaryKey;autoIncrement;comment:反馈ID" json:"id"`
+	UserID        int64      `gorm:"column:user_id;not null;index:idx_feedbacks_user_created,priority:1;comment:反馈/搜索用户ID" json:"user_id"`
+	Source        string     `gorm:"size:20;not null;default:feedback;index:idx_feedbacks_source_created,priority:1;comment:来源方式(feedback:主动反馈,search:搜索无结果)" json:"source"`
+	VideoID       *int64     `gorm:"column:video_id;index:idx_feedbacks_video_id;comment:视频ID(缺少视频/搜索无结果时可空)" json:"video_id"`
+	EpisodeID     *int64     `gorm:"column:episode_id;comment:剧集ID(可选)" json:"episode_id"`
+	EpisodeNumber *int64     `gorm:"column:episode_number;comment:集数编号(可选)" json:"episode_number"`
+	VideoTitle    string     `gorm:"size:255;comment:视频标题快照或缺失/搜索视频名称" json:"video_title"`
+	SearchKeyword string     `gorm:"column:search_keyword;size:255;index:idx_feedbacks_search_keyword;comment:搜索关键词(source=search时填写)" json:"search_keyword"`
+	ProblemType   string     `gorm:"size:32;not null;index:idx_feedbacks_type_status,priority:1;comment:问题类型" json:"problem_type"`
+	Content       string     `gorm:"type:text;not null;comment:问题描述或搜索说明" json:"content"`
+	Contact       string     `gorm:"size:100;comment:联系方式(可选)" json:"contact"`
+	Status        string     `gorm:"size:20;not null;default:pending;index:idx_feedbacks_status_created,priority:1;index:idx_feedbacks_type_status,priority:2;comment:处理状态" json:"status"`
+	AdminRemark   string     `gorm:"type:text;comment:管理员备注" json:"admin_remark"`
+	HandledBy     *int64     `gorm:"column:handled_by;comment:处理人管理员ID" json:"handled_by"`
+	HandledAt     *time.Time `gorm:"column:handled_at;comment:处理时间" json:"handled_at"`
+	ClientDevice  string     `gorm:"column:client_device;size:100;comment:客户端设备信息" json:"client_device"`
+	ClientIP      string     `gorm:"column:client_ip;size:45;comment:客户端IP" json:"client_ip"`
+	CreatedAt     time.Time  `gorm:"autoCreateTime;index:idx_feedbacks_user_created,priority:2;index:idx_feedbacks_status_created,priority:2;index:idx_feedbacks_source_created,priority:2;comment:创建时间(反馈/搜索时间)" json:"created_at"`
+	UpdatedAt     time.Time  `gorm:"autoUpdateTime;comment:更新时间" json:"updated_at"`
+}
+
+// TableName 指定用户反馈表名
+func (VideoFeedback) TableName() string {
+	return "feedbacks"
 }
