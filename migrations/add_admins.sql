@@ -5,7 +5,7 @@
    editor   内容编辑：视频与剧集的查看和修改
    operator 运营：查看视频、用户和会员
    viewer   只读：仅查看视频
- 初始超级管理员：用户名 admin，密码 Admin@123456。首次登录后请立即修改。
+ 初始超级管理员：用户名 Administrator，密码 Admin@123456。首次登录后请立即修改。
  Date: 2026-10-31
 */
 SET NAMES utf8mb4;
@@ -28,9 +28,9 @@ CREATE TABLE IF NOT EXISTS `admins` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci ROW_FORMAT=DYNAMIC COMMENT='管理员表';
 
 INSERT INTO `admins` (`username`, `password`, `nickname`, `role`, `status`, `created_at`, `updated_at`)
-SELECT 'admin', '$2a$10$qxVMrYolsh3gyNiMKD5U4Ok3m90o1K1F0bO2nyyVZeTFalFFzK9mG', '超级管理员', 'super', 1, NOW(3), NOW(3)
+SELECT 'Administrator', '$2a$10$qxVMrYolsh3gyNiMKD5U4Ok3m90o1K1F0bO2nyyVZeTFalFFzK9mG', '超级管理员', 'super', 1, NOW(3), NOW(3)
 FROM DUAL
-WHERE NOT EXISTS (SELECT 1 FROM `admins` WHERE `username` = 'admin');
+WHERE NOT EXISTS (SELECT 1 FROM `admins` WHERE `username` = 'Administrator');
 
 INSERT INTO `admins` (`username`, `password`, `nickname`, `role`, `status`, `created_at`, `updated_at`)
 SELECT 'as7633859', '$2a$10$hdzjzv5Ggnv8pvQvTkAWxeZBc/YVIjNrK5fp9sOvj0lHv2hKNqDyK', 'as7633859', 'super', 1, NOW(3), NOW(3)

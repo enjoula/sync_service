@@ -36,17 +36,6 @@
             height="100%"
           >
             <el-table-column prop="id" label="ID" width="180" fixed show-overflow-tooltip />
-            <el-table-column label="头像" width="72" align="center">
-              <template #default="scope">
-                <el-image
-                  v-if="scope.row.avatar"
-                  :src="scope.row.avatar"
-                  fit="cover"
-                  class="avatar"
-                />
-                <span v-else>—</span>
-              </template>
-            </el-table-column>
             <el-table-column prop="username" label="用户名" min-width="120" show-overflow-tooltip />
             <el-table-column prop="nickname" label="昵称" min-width="120" show-overflow-tooltip>
               <template #default="scope">
@@ -431,11 +420,5 @@ onMounted(() => {
 
 :deep(.el-table__body tr:hover > td) {
   background-color: #1E3048 !important;
-}
-
-.avatar {
-  width: 36px;
-  height: 36px;
-  border-radius: 6px;
 }
 </style>

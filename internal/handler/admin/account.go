@@ -9,6 +9,7 @@ import (
 	"video-service/internal/middleware"
 	"video-service/internal/model"
 	"video-service/internal/pkg/errors"
+	"video-service/internal/pkg/oplog"
 	"video-service/internal/pkg/response"
 	"video-service/internal/repository"
 
@@ -145,9 +146,36 @@ func (h *AccountHandler) Create(c *gin.Context) {
 		Status:   1,
 	}
 	if err := h.adminRepo.Create(adminUser); err != nil {
+		oplog.Record(c, oplog.Entry{
+			Action:     oplog.ActionCreate,
+			ObjectType: oplog.ObjectAccount,
+			ObjectName: username,
+			After: gin.H{
+				"username": username,
+				"nickname": nickname,
+				"role":     req.Role,
+				"status":   1,
+			},
+			Success:  false,
+			ErrorMsg: "创建管理员失败",
+		})
 		response.Error(c, errors.CodeInternalErr, "创建管理员失败")
 		return
 	}
+	oplog.Record(c, oplog.Entry{
+		Action:     oplog.ActionCreate,
+		ObjectType: oplog.ObjectAccount,
+		ObjectID:   strconv.FormatInt(adminUser.ID, 10),
+		ObjectName: adminUser.Username,
+		After: gin.H{
+			"id":       adminUser.ID,
+			"username": adminUser.Username,
+			"nickname": adminUser.Nickname,
+			"role":     adminUser.Role,
+			"status":   adminUser.Status,
+		},
+		Success: true,
+	})
 	response.Success(c, toAccountResponse(adminUser))
 }
 
@@ -177,6 +205,13 @@ func (h *AccountHandler) Update(c *gin.Context) {
 	nextRole := current.Role
 	nextStatus := current.Status
 	fields := map[string]interface{}{}
+	before := gin.H{
+		"id":       current.ID,
+		"username": current.Username,
+		"nickname": current.Nickname,
+		"role":     current.Role,
+		"status":   current.Status,
+	}
 
 	if req.Nickname != nil {
 		nickname := strings.TrimSpace(*req.Nickname)
@@ -232,6 +267,15 @@ func (h *AccountHandler) Update(c *gin.Context) {
 		return
 	}
 	if err := h.adminRepo.Update(id, fields); err != nil {
+		oplog.Record(c, oplog.Entry{
+			Action:     oplog.ActionUpdate,
+			ObjectType: oplog.ObjectAccount,
+			ObjectID:   strconv.FormatInt(id, 10),
+			ObjectName: current.Username,
+			Before:     before,
+			Success:    false,
+			ErrorMsg:   "更新管理员失败",
+		})
 		response.Error(c, errors.CodeInternalErr, "更新管理员失败")
 		return
 	}
@@ -241,6 +285,26 @@ func (h *AccountHandler) Update(c *gin.Context) {
 		response.Error(c, errors.CodeInternalErr, "查询管理员失败")
 		return
 	}
+	after := gin.H{
+		"id":       updated.ID,
+		"username": updated.Username,
+		"nickname": updated.Nickname,
+		"role":     updated.Role,
+		"status":   updated.Status,
+	}
+	if _, ok := fields["password"]; ok {
+		after["password"] = "***"
+		before["password"] = "***"
+	}
+	oplog.Record(c, oplog.Entry{
+		Action:     oplog.ActionUpdate,
+		ObjectType: oplog.ObjectAccount,
+		ObjectID:   strconv.FormatInt(id, 10),
+		ObjectName: updated.Username,
+		Before:     before,
+		After:      after,
+		Success:    true,
+	})
 	response.Success(c, toAccountResponse(updated))
 }
 

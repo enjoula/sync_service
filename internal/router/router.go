@@ -117,6 +117,12 @@ func SetupRouter() *gin.Engine {
 			feedbackWrite.Use(middleware.RequireAdminPerm(model.PermFeedbackWrite))
 			feedbackWrite.PUT("/feedbacks/:id", feedbackHandler.Update)
 
+			opLogHandler := admin.NewOpLogHandler()
+			opLogRead := authed.Group("")
+			opLogRead.Use(middleware.RequireSuperAdmin()) // 操作日志仅超级管理员可见
+			opLogRead.GET("/operation-logs", opLogHandler.List)
+			opLogRead.GET("/operation-logs/:id", opLogHandler.Get)
+
 			accountHandler := admin.NewAccountHandler()
 			accountManage := authed.Group("")
 			accountManage.Use(middleware.RequireAdminPerm(model.PermAdminManage))

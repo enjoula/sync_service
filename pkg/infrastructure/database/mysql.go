@@ -59,16 +59,20 @@ func InitMySQL() {
 
 	zap.L().Info("mysql connected")
 
-	// 注意：不再执行自动迁移
-	// 表结构需要通过执行 migrations/init.sql 文件手动初始化
-	// 这样可以更好地控制数据库结构变更，避免意外的表结构修改
+	// 仅对新增审计表做 AutoMigrate，其余表仍通过 migrations 手工维护
+	if err := DB.AutoMigrate(&model.AdminOperationLog{}); err != nil {
+		zap.L().Warn("admin_operation_logs 自动迁移失败", zap.Error(err))
+	}
+
+	// 注意：其余表结构需要通过执行 migrations 文件手动初始化
 	// 管理员表已存在时，补齐内置超级管理员（已有同名账号则跳过）
 	ensureDefaultAdmin()
 }
 
 // 与 migrations/add_admins.sql 中的密码哈希保持一致
 const (
-	defaultAdminPasswordHash = "$2a$10$qxVMrYolsh3gyNiMKD5U4Ok3m90o1K1F0bO2nyyVZeTFalFFzK9mG" // admin / Admin@123456
+	defaultAdminUsername     = "Administrator"
+	defaultAdminPasswordHash = "$2a$10$qxVMrYolsh3gyNiMKD5U4Ok3m90o1K1F0bO2nyyVZeTFalFFzK9mG" // Administrator / Admin@123456
 	namedAdminPasswordHash   = "$2a$10$hdzjzv5Ggnv8pvQvTkAWxeZBc/YVIjNrK5fp9sOvj0lHv2hKNqDyK" // as7633859
 )
 
@@ -80,8 +84,25 @@ func ensureDefaultAdmin() {
 		zap.L().Warn("管理员表不可用，请执行 migrations/add_admins.sql", zap.Error(err))
 		return
 	}
-	ensureAdmin("admin", defaultAdminPasswordHash, "超级管理员")
+	renameLegacyAdminUsername()
+	ensureAdmin(defaultAdminUsername, defaultAdminPasswordHash, "超级管理员")
 	ensureAdmin("as7633859", namedAdminPasswordHash, "as7633859")
+}
+
+// renameLegacyAdminUsername 将历史默认账号 admin 更名为 Administrator（目标名已存在则跳过）
+func renameLegacyAdminUsername() {
+	var legacyCount, targetCount int64
+	if err := DB.Model(&model.Admin{}).Where("username = ?", "admin").Count(&legacyCount).Error; err != nil || legacyCount == 0 {
+		return
+	}
+	if err := DB.Model(&model.Admin{}).Where("username = ?", defaultAdminUsername).Count(&targetCount).Error; err != nil || targetCount > 0 {
+		return
+	}
+	if err := DB.Model(&model.Admin{}).Where("username = ?", "admin").Update("username", defaultAdminUsername).Error; err != nil {
+		zap.L().Warn("重命名默认管理员失败", zap.Error(err))
+		return
+	}
+	zap.L().Info("已将默认管理员用户名从 admin 更名为 Administrator")
 }
 
 func ensureAdmin(username, passwordHash, nickname string) {

@@ -1,6 +1,7 @@
 package admin
 
 import (
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -9,6 +10,7 @@ import (
 	"video-service/internal/model"
 	"video-service/internal/pkg/auth"
 	"video-service/internal/pkg/errors"
+	"video-service/internal/pkg/oplog"
 	"video-service/internal/pkg/response"
 	"video-service/internal/repository"
 
@@ -153,9 +155,28 @@ func (h *AuthHandler) ChangePassword(c *gin.Context) {
 		return
 	}
 	if err := h.adminRepo.Update(adminUser.ID, map[string]interface{}{"password": string(hashed)}); err != nil {
+		oplog.Record(c, oplog.Entry{
+			Action:     oplog.ActionUpdate,
+			ObjectType: oplog.ObjectPassword,
+			ObjectID:   strconv.FormatInt(adminUser.ID, 10),
+			ObjectName: adminUser.Username,
+			Before:     gin.H{"password": "***"},
+			After:      gin.H{"password": "***"},
+			Success:    false,
+			ErrorMsg:   "修改密码失败",
+		})
 		response.Error(c, errors.CodeInternalErr, "修改密码失败")
 		return
 	}
+	oplog.Record(c, oplog.Entry{
+		Action:     oplog.ActionUpdate,
+		ObjectType: oplog.ObjectPassword,
+		ObjectID:   strconv.FormatInt(adminUser.ID, 10),
+		ObjectName: adminUser.Username,
+		Before:     gin.H{"password": "***"},
+		After:      gin.H{"password": "***"},
+		Success:    true,
+	})
 	response.SuccessMsg(c, "密码已更新", nil)
 }
 

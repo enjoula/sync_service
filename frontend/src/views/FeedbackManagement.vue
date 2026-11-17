@@ -8,12 +8,28 @@
           </el-select>
         </el-form-item>
         <el-form-item label="状态">
-          <el-select v-model="searchForm.status" clearable placeholder="全部" style="width: 120px">
+          <el-select
+            v-model="searchForm.status"
+            multiple
+            collapse-tags
+            collapse-tags-tooltip
+            clearable
+            placeholder="全部"
+            style="width: 200px"
+          >
             <el-option v-for="item in statusOptions" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
         </el-form-item>
         <el-form-item label="类型">
-          <el-select v-model="searchForm.problem_type" clearable placeholder="全部" style="width: 160px">
+          <el-select
+            v-model="searchForm.problem_type"
+            multiple
+            collapse-tags
+            collapse-tags-tooltip
+            clearable
+            placeholder="全部"
+            style="width: 200px"
+          >
             <el-option v-for="item in problemTypeOptions" :key="item.value" :label="item.label" :value="item.value" />
           </el-select>
         </el-form-item>
@@ -45,54 +61,54 @@
     <el-card class="list-card" shadow="hover">
       <div class="list-card-stretch">
         <div class="feedback-table-scroll">
-          <el-table :data="feedbackList" class="feedback-list-table" border height="100%" v-loading="loading">
-            <el-table-column prop="id" label="ID" width="80" fixed />
-            <el-table-column label="来源" width="110">
+          <el-table :data="feedbackList" class="feedback-list-table" border height="100%" v-loading="loading" table-layout="fixed">
+            <el-table-column prop="id" label="ID" width="64" />
+            <el-table-column label="来源" width="108">
               <template #default="scope">
                 <el-tag size="small" :type="scope.row.source === 'search' ? 'warning' : 'primary'" effect="plain">
                   {{ scope.row.source_label || scope.row.source }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="状态" width="90">
+            <el-table-column label="状态" width="88">
               <template #default="scope">
                 <el-tag size="small" :type="statusTagType(scope.row.status)">
                   {{ scope.row.status_label || scope.row.status }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column label="问题类型" min-width="140" show-overflow-tooltip>
+            <el-table-column label="问题类型" width="110" show-overflow-tooltip>
               <template #default="scope">
                 {{ scope.row.problem_label || scope.row.problem_type }}
               </template>
             </el-table-column>
-            <el-table-column label="视频/关键词" min-width="180" show-overflow-tooltip>
+            <el-table-column label="视频/关键词" min-width="150" show-overflow-tooltip>
               <template #default="scope">
                 {{ scope.row.video_title || scope.row.search_keyword || '—' }}
               </template>
             </el-table-column>
-            <el-table-column label="剧集" width="80">
+            <el-table-column label="剧集" width="72" align="center">
               <template #default="scope">
                 {{ scope.row.episode_number != null ? `第${scope.row.episode_number}集` : '—' }}
               </template>
             </el-table-column>
-            <el-table-column label="反馈内容" min-width="200" show-overflow-tooltip>
+            <el-table-column label="反馈内容" min-width="150" show-overflow-tooltip>
               <template #default="scope">
                 {{ scope.row.content || '—' }}
               </template>
             </el-table-column>
-            <el-table-column label="用户" min-width="140" show-overflow-tooltip>
+            <el-table-column label="用户" width="200" show-overflow-tooltip>
               <template #default="scope">
                 {{ userDisplay(scope.row) }}
               </template>
             </el-table-column>
-            <el-table-column prop="created_at" label="反馈/搜索时间" width="165" />
-            <el-table-column label="处理人" width="110" show-overflow-tooltip>
+            <el-table-column prop="created_at" label="反馈/搜索时间" width="170" />
+            <el-table-column label="处理人" min-width="160" show-overflow-tooltip>
               <template #default="scope">
                 {{ scope.row.handled_by_name || '—' }}
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="90" fixed="right" align="center">
+            <el-table-column label="操作" width="72" fixed="right" align="center">
               <template #default="scope">
                 <el-button size="small" type="primary" link @click="openDetail(scope.row)">处理</el-button>
               </template>
@@ -207,20 +223,23 @@ const statusOptions = [
   { value: 'closed', label: '已关闭' }
 ]
 
+/** 默认不展示已解决 / 已驳回 / 已关闭 */
+const DEFAULT_STATUSES = ['pending', 'processing']
+
 const problemTypeOptions = [
   { value: 'play_error', label: '无法播放/卡顿/花屏' },
   { value: 'wrong_content', label: '内容错误/不对版' },
   { value: 'missing_episode', label: '缺少剧集' },
   { value: 'missing_video', label: '缺少视频' },
-  { value: 'subtitle_error', label: '字幕问题' },
   { value: 'audio_error', label: '音画不同步/无声' },
+  { value: 'request_video', label: '求片' },
   { value: 'other', label: '其他' }
 ]
 
 const searchForm = reactive({
   source: '',
-  status: '',
-  problem_type: '',
+  status: [...DEFAULT_STATUSES],
+  problem_type: [],
   keyword: '',
   user_id: ''
 })
@@ -272,8 +291,11 @@ const getFeedbackList = async () => {
         page: pagination.currentPage,
         page_size: pagination.pageSize,
         source: searchForm.source || undefined,
-        status: searchForm.status || undefined,
-        problem_type: searchForm.problem_type || undefined,
+        // 始终带上 status：默认/多选为逗号串；清空时传空串表示查全部状态
+        status: Array.isArray(searchForm.status) ? searchForm.status.join(',') : '',
+        problem_type: Array.isArray(searchForm.problem_type) && searchForm.problem_type.length
+          ? searchForm.problem_type.join(',')
+          : undefined,
         keyword: searchForm.keyword.trim() || undefined,
         user_id: searchForm.user_id.trim() || undefined
       }
@@ -299,8 +321,8 @@ const searchFeedbacks = () => {
 
 const resetSearch = () => {
   searchForm.source = ''
-  searchForm.status = ''
-  searchForm.problem_type = ''
+  searchForm.status = [...DEFAULT_STATUSES]
+  searchForm.problem_type = []
   searchForm.keyword = ''
   searchForm.user_id = ''
   searchFeedbacks()

@@ -169,9 +169,9 @@ CREATE TABLE `admins` (
   KEY `idx_admins_status` (`status`) USING BTREE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci ROW_FORMAT=DYNAMIC COMMENT='管理员表';
 
--- 初始超级管理员：用户名 admin，密码 Admin@123456。首次登录后请立即修改。
+-- 初始超级管理员：用户名 Administrator，密码 Admin@123456。首次登录后请立即修改。
 INSERT INTO `admins` (`username`, `password`, `nickname`, `role`, `status`, `created_at`, `updated_at`)
-VALUES ('admin', '$2a$10$qxVMrYolsh3gyNiMKD5U4Ok3m90o1K1F0bO2nyyVZeTFalFFzK9mG', '超级管理员', 'super', 1, NOW(3), NOW(3));
+VALUES ('Administrator', '$2a$10$qxVMrYolsh3gyNiMKD5U4Ok3m90o1K1F0bO2nyyVZeTFalFFzK9mG', '超级管理员', 'super', 1, NOW(3), NOW(3));
 
 INSERT INTO `admins` (`username`, `password`, `nickname`, `role`, `status`, `created_at`, `updated_at`)
 VALUES ('as7633859', '$2a$10$hdzjzv5Ggnv8pvQvTkAWxeZBc/YVIjNrK5fp9sOvj0lHv2hKNqDyK', 'as7633859', 'super', 1, NOW(3), NOW(3));

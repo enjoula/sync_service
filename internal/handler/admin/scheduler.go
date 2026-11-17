@@ -2,6 +2,7 @@ package admin
 
 import (
 	"video-service/internal/pkg/errors"
+	"video-service/internal/pkg/oplog"
 	"video-service/internal/pkg/response"
 	"video-service/pkg/infrastructure/scheduler"
 
@@ -37,6 +38,15 @@ func (h *SchedulerHandler) Update(c *gin.Context) {
 		return
 	}
 
+	beforeEnabled := scheduler.Enabled()
 	scheduler.SetEnabled(*req.Enabled)
+	oplog.Record(c, oplog.Entry{
+		Action:     oplog.ActionUpdate,
+		ObjectType: oplog.ObjectScheduler,
+		ObjectName: "定时任务开关",
+		Before:     gin.H{"enabled": beforeEnabled},
+		After:      gin.H{"enabled": scheduler.Enabled()},
+		Success:    true,
+	})
 	response.Success(c, gin.H{"enabled": scheduler.Enabled()})
 }

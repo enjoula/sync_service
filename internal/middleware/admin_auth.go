@@ -98,3 +98,13 @@ func CurrentAdminID(c *gin.Context) (int64, bool) {
 	id, ok := value.(int64)
 	return id, ok
 }
+
+// CurrentAdminUsername 读取当前登录管理员用户名
+func CurrentAdminUsername(c *gin.Context) (string, bool) {
+	value, ok := c.Get(ctxAdminUsername)
+	if !ok {
+		return "", false
+	}
+	name, ok := value.(string)
+	return name, ok && name != ""
+}

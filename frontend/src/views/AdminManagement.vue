@@ -24,29 +24,29 @@
     <el-card class="list-card" shadow="hover">
       <div class="list-card-stretch">
         <div class="admin-table-scroll">
-          <el-table :data="accountList" class="admin-list-table" border height="100%">
-            <el-table-column prop="id" label="ID" width="80" />
-            <el-table-column prop="username" label="用户名" min-width="120" show-overflow-tooltip />
-            <el-table-column prop="nickname" label="昵称" min-width="120" show-overflow-tooltip>
+          <el-table :data="accountList" class="admin-list-table" border height="100%" table-layout="fixed">
+            <el-table-column prop="id" label="ID" width="64" />
+            <el-table-column prop="username" label="用户名" width="140" show-overflow-tooltip />
+            <el-table-column prop="nickname" label="昵称" min-width="220" show-overflow-tooltip>
               <template #default="scope">
                 {{ scope.row.nickname || '—' }}
               </template>
             </el-table-column>
             <el-table-column prop="role_name" label="角色" width="120" />
-            <el-table-column label="状态" width="90">
+            <el-table-column label="状态" width="88">
               <template #default="scope">
                 <el-tag size="small" :type="scope.row.status === 1 ? 'success' : 'info'">
                   {{ scope.row.status === 1 ? '启用' : '禁用' }}
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column prop="last_login_at" label="最后登录" width="165">
+            <el-table-column prop="last_login_at" label="最后登录" width="170">
               <template #default="scope">
                 {{ scope.row.last_login_at || '—' }}
               </template>
             </el-table-column>
-            <el-table-column prop="created_at" label="创建时间" width="165" />
-            <el-table-column label="操作" width="80" fixed="right" align="center">
+            <el-table-column prop="created_at" label="创建时间" width="170" />
+            <el-table-column label="操作" width="72" fixed="right" align="center">
               <template #default="scope">
                 <el-button size="small" type="primary" link @click="openEdit(scope.row)">编辑</el-button>
               </template>
@@ -92,7 +92,7 @@
             :placeholder="form.id ? '留空则不修改' : '6-64位'"
           />
         </el-form-item>
-        <p class="role-hint">超级管理员可管理全部功能。内容编辑负责视频并可处理反馈。运营可查看视频、用户、会员并处理反馈。只读可查看视频与反馈。</p>
+        <p class="role-hint">超级管理员可管理全部功能（含操作日志）。内容编辑负责视频并可处理反馈。运营可查看视频、用户、会员并处理反馈。只读可查看视频与反馈。</p>
       </el-form>
       <template #footer>
         <el-button @click="formVisible = false">取消</el-button>

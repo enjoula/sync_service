@@ -9,6 +9,7 @@ import (
 	"video-service/internal/middleware"
 	"video-service/internal/model"
 	"video-service/internal/pkg/errors"
+	"video-service/internal/pkg/oplog"
 	"video-service/internal/pkg/response"
 	"video-service/internal/repository"
 	"video-service/pkg/infrastructure/database"
@@ -102,24 +103,36 @@ func (h *FeedbackHandler) List(c *gin.Context) {
 		response.Error(c, errors.CodeBadRequest, "来源方式无效")
 		return
 	}
-	status := strings.TrimSpace(req.Status)
-	if status != "" && !model.IsValidFeedbackStatus(status) {
-		response.Error(c, errors.CodeBadRequest, "处理状态无效")
-		return
+
+	// 状态支持多选（逗号分隔）。未传 status 参数时默认仅看待处理/处理中；
+	// 显式传空（status=）表示不过滤状态。
+	statusRaw, statusPresent := c.GetQuery("status")
+	statuses := parseFeedbackCSVQuery(statusRaw)
+	if !statusPresent {
+		statuses = []string{model.FeedbackStatusPending, model.FeedbackStatusProcessing}
 	}
-	problemType := strings.TrimSpace(req.ProblemType)
-	if problemType != "" && !model.IsValidFeedbackType(problemType) {
-		response.Error(c, errors.CodeBadRequest, "问题类型无效")
-		return
+	for _, status := range statuses {
+		if !model.IsValidFeedbackStatus(status) {
+			response.Error(c, errors.CodeBadRequest, "处理状态无效")
+			return
+		}
+	}
+
+	problemTypes := parseFeedbackCSVQuery(req.ProblemType)
+	for _, problemType := range problemTypes {
+		if !model.IsValidFeedbackType(problemType) {
+			response.Error(c, errors.CodeBadRequest, "问题类型无效")
+			return
+		}
 	}
 
 	filter := repository.FeedbackListFilter{
-		Source:      source,
-		Status:      status,
-		ProblemType: problemType,
-		Keyword:     strings.TrimSpace(req.Keyword),
-		Page:        req.Page,
-		PageSize:    req.PageSize,
+		Source:       source,
+		Statuses:     statuses,
+		ProblemTypes: problemTypes,
+		Keyword:      strings.TrimSpace(req.Keyword),
+		Page:         req.Page,
+		PageSize:     req.PageSize,
 	}
 
 	if videoIDStr := strings.TrimSpace(req.VideoID); videoIDStr != "" {
@@ -213,6 +226,14 @@ func (h *FeedbackHandler) Update(c *gin.Context) {
 		response.Error(c, errors.CodeInternalErr, "查询反馈失败")
 		return
 	}
+	before := gin.H{
+		"id":           feedback.ID,
+		"status":       feedback.Status,
+		"admin_remark": feedback.AdminRemark,
+		"handled_by":   feedback.HandledBy,
+		"video_title":  feedback.VideoTitle,
+		"source":       feedback.Source,
+	}
 
 	feedback.Status = status
 	if req.AdminRemark != nil {
@@ -231,9 +252,35 @@ func (h *FeedbackHandler) Update(c *gin.Context) {
 	feedback.HandledAt = &now
 
 	if err := h.feedbackRepo.Update(feedback); err != nil {
+		oplog.Record(c, oplog.Entry{
+			Action:     oplog.ActionUpdate,
+			ObjectType: oplog.ObjectFeedback,
+			ObjectID:   strconv.FormatInt(id, 10),
+			ObjectName: feedback.VideoTitle,
+			Before:     before,
+			Success:    false,
+			ErrorMsg:   "更新反馈失败",
+		})
 		response.Error(c, errors.CodeInternalErr, "更新反馈失败")
 		return
 	}
+
+	oplog.Record(c, oplog.Entry{
+		Action:     oplog.ActionUpdate,
+		ObjectType: oplog.ObjectFeedback,
+		ObjectID:   strconv.FormatInt(feedback.ID, 10),
+		ObjectName: feedback.VideoTitle,
+		Before:     before,
+		After: gin.H{
+			"id":           feedback.ID,
+			"status":       feedback.Status,
+			"admin_remark": feedback.AdminRemark,
+			"handled_by":   feedback.HandledBy,
+			"video_title":  feedback.VideoTitle,
+			"source":       feedback.Source,
+		},
+		Success: true,
+	})
 
 	userNames := h.loadUserNames([]int64{feedback.UserID})
 	adminNames := h.loadAdminNames(collectHandledByIDs([]model.VideoFeedback{*feedback}))
@@ -347,4 +394,23 @@ func toFeedbackResponse(feedback *model.VideoFeedback, userNames map[int64][2]st
 		resp.HandledAt = feedback.HandledAt.Format("2006-01-02 15:04:05")
 	}
 	return resp
+}
+
+// parseFeedbackCSVQuery 解析逗号分隔的多选查询参数
+func parseFeedbackCSVQuery(raw string) []string {
+	parts := strings.Split(raw, ",")
+	values := make([]string, 0, len(parts))
+	seen := make(map[string]struct{}, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+		if _, ok := seen[part]; ok {
+			continue
+		}
+		seen[part] = struct{}{}
+		values = append(values, part)
+	}
+	return values
 }

@@ -89,19 +89,19 @@
             :data="videoList"
             class="video-list-table"
             border
-            allow-drag-last-column
+            :fit="false"
             height="100%"
             style="width: 100%"
             @row-click="handleVideoClick"
           >
-        <el-table-column prop="id" label="ID" width="120" fixed />
-        <el-table-column prop="source_id" label="来源ID" width="76" show-overflow-tooltip>
+        <el-table-column prop="id" label="ID" width="168" fixed show-overflow-tooltip />
+        <el-table-column prop="source_id" label="来源ID" width="78" show-overflow-tooltip>
           <template #default="scope">
             {{ scope.row.source_id != null ? scope.row.source_id : '—' }}
           </template>
         </el-table-column>
-        <el-table-column prop="source" label="来源" width="68" show-overflow-tooltip />
-        <el-table-column label="封面" width="52" align="center">
+        <el-table-column prop="source" label="来源" width="64" show-overflow-tooltip />
+        <el-table-column label="封面" width="48" align="center">
           <template #default="scope">
             <div
               v-if="coverSrc(scope.row.cover_url)"
@@ -119,59 +119,59 @@
             <span v-else>—</span>
           </template>
         </el-table-column>
-        <el-table-column prop="title" label="标题" min-width="140" show-overflow-tooltip />
-        <el-table-column prop="type" label="类型" width="100">
+        <el-table-column prop="title" label="标题" width="150" show-overflow-tooltip />
+        <el-table-column prop="type" label="类型" width="72">
           <template #default="scope">
             <el-tag size="small" :type="getTypeTagType(scope.row.type)">
               {{ getTypeText(scope.row.type) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="description" label="简介" min-width="160" show-overflow-tooltip />
-        <el-table-column prop="release_date" label="上映日期" width="120">
+        <el-table-column prop="description" label="简介" width="320" show-overflow-tooltip />
+        <el-table-column prop="release_date" label="上映日期" width="100">
           <template #default="scope">
             {{ scope.row.release_date || '—' }}
           </template>
         </el-table-column>
-        <el-table-column prop="score" label="评分" width="56">
+        <el-table-column prop="score" label="评分" width="48" align="center">
           <template #default="scope">
             {{ scope.row.score != null ? scope.row.score : '—' }}
           </template>
         </el-table-column>
-        <el-table-column label="国家/地区" min-width="120" show-overflow-tooltip>
+        <el-table-column label="国家/地区" width="88" show-overflow-tooltip>
           <template #default="scope">
             {{ formatJsonDisplay(scope.row.country_json) }}
           </template>
         </el-table-column>
-        <el-table-column label="标签" min-width="120" show-overflow-tooltip>
+        <el-table-column label="标签" width="160" show-overflow-tooltip>
           <template #default="scope">
             {{ formatJsonDisplay(scope.row.tags_json) }}
           </template>
         </el-table-column>
-        <el-table-column prop="status" label="状态" width="90">
+        <el-table-column prop="status" label="状态" width="72">
           <template #default="scope">
             <el-tag size="small" :type="statusTagType(scope.row.status)">
               {{ statusText(scope.row.status) }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="episode_count" label="剧集数" width="64" />
-        <el-table-column prop="is_completed" label="是否完结" width="90">
+        <el-table-column prop="episode_count" label="剧集数" width="56" align="center" />
+        <el-table-column prop="is_completed" label="是否完结" width="80">
           <template #default="scope">
             <el-tag size="small" :type="scope.row.is_completed ? 'success' : 'warning'">
               {{ scope.row.is_completed ? '已完结' : '未完结' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="is_update" label="是否有更新" width="100">
+        <el-table-column prop="is_update" label="是否有更新" width="88">
           <template #default="scope">
             <el-tag size="small" :type="scope.row.is_update ? 'danger' : 'info'">
               {{ scope.row.is_update ? '有更新' : '无更新' }}
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="created_at" label="创建时间" width="165" />
-        <el-table-column label="操作" width="96" fixed="right" align="center">
+        <el-table-column prop="created_at" label="创建时间" width="160" />
+        <el-table-column label="操作" width="90" fixed="right" align="center">
           <template #default="scope">
             <div class="table-ops-cell">
               <el-button v-if="canWrite" size="small" type="primary" link @click.stop="openVideoForm(scope.row)">
@@ -213,8 +213,9 @@
         <el-table :data="episodeList" style="width: 100%">
           <el-table-column prop="id" label="ID" width="80" />
           <el-table-column prop="episode_number" label="集数" width="80" />
-          <el-table-column prop="name" label="名称" min-width="200" />
-          <el-table-column prop="play_urls" label="播放地址" min-width="300" />
+          <el-table-column prop="name" label="名称" min-width="160" show-overflow-tooltip />
+          <el-table-column prop="channel" label="渠道" min-width="120" show-overflow-tooltip />
+          <el-table-column prop="play_urls" label="播放地址" min-width="280" show-overflow-tooltip />
           <el-table-column prop="duration_seconds" label="时长(秒)" width="100" />
           <el-table-column v-if="canWrite" label="操作" width="150" fixed="right">
             <template #default="scope">
@@ -542,11 +543,14 @@
       width="600px"
     >
       <el-form :model="episodeForm" :rules="episodeFormRules" ref="episodeFormRef" label-width="100px">
-        <el-form-item label="集数" prop="episode_number">
-          <el-input-number v-model="episodeForm.episode_number" :min="1" />
+        <el-form-item label="渠道" prop="channel">
+          <el-input v-model="episodeForm.channel" placeholder="渠道名称" />
         </el-form-item>
         <el-form-item label="名称" prop="name">
-          <el-input v-model="episodeForm.name" placeholder="请输入剧集名称" />
+          <el-input v-model="episodeForm.name" disabled placeholder="自动填充视频名称" />
+        </el-form-item>
+        <el-form-item label="集数" prop="episode_number">
+          <el-input-number v-model="episodeForm.episode_number" :min="0" />
         </el-form-item>
         <el-form-item label="播放地址" prop="play_urls">
           <el-input v-model="episodeForm.play_urls" placeholder="请输入播放地址" />
@@ -692,10 +696,13 @@ const videoFormRules = computed(() => {
   }
 })
 
+const DEFAULT_EPISODE_CHANNEL = '电影天堂资源'
+
 // 剧集表单
 const episodeFormVisible = ref(false)
 const episodeForm = reactive({
   id: '',
+  channel: DEFAULT_EPISODE_CHANNEL,
   episode_number: 1,
   name: '',
   play_urls: '',
@@ -703,8 +710,23 @@ const episodeForm = reactive({
 })
 const episodeFormRef = ref(null)
 const episodeFormRules = {
+  channel: [{ required: true, whitespace: true, message: '请输入渠道', trigger: 'blur' }],
   episode_number: [{ required: true, message: '请输入集数', trigger: 'blur' }],
   play_urls: [{ required: true, message: '请输入播放地址', trigger: 'blur' }]
+}
+
+const nextEpisodeNumber = () => {
+  if (selectedVideo.value?.type === 'movie') {
+    return 0
+  }
+  let max = -1
+  for (const ep of episodeList.value || []) {
+    const n = Number(ep.episode_number)
+    if (!Number.isNaN(n) && n > max) {
+      max = n
+    }
+  }
+  return max < 0 ? 1 : max + 1
 }
 
 // Tag输入
@@ -722,7 +744,7 @@ const coverSrc = (url) => {
   const normalized = trimmed.startsWith('//') ? `https:${trimmed}` : trimmed
   try {
     const parsed = new URL(normalized)
-    // 豆瓣 CDN 浏览器直链会触发防盗链/CORS，改走同域代理
+    // 豆瓣 CDN 直链会触发防盗链/CORS，管理后台仍走同域代理中转
     if (/(\.|^)doubanio\.com$/i.test(parsed.hostname)) {
       return `/api/admin/cover?url=${encodeURIComponent(parsed.href)}`
     }
@@ -969,16 +991,22 @@ const saveVideo = async () => {
 
 // 打开剧集表单（新增必须 openEpisodeForm()，否则点击事件会被当成剧集对象）
 const openEpisodeForm = (episode = null) => {
+  const videoTitle = selectedVideo.value?.title || ''
   if (episode && episode.id != null && episode.id !== '') {
     episodeForm.id = episode.id
-    episodeForm.episode_number = Number(episode.episode_number) || 1
-    episodeForm.name = episode.name || ''
+    episodeForm.channel = episode.channel || DEFAULT_EPISODE_CHANNEL
+    episodeForm.episode_number = Number(episode.episode_number)
+    if (Number.isNaN(episodeForm.episode_number) || episodeForm.episode_number < 0) {
+      episodeForm.episode_number = selectedVideo.value?.type === 'movie' ? 0 : 1
+    }
+    episodeForm.name = videoTitle || episode.name || ''
     episodeForm.play_urls = episode.play_urls || ''
     episodeForm.duration_seconds = Number(episode.duration_seconds) || 0
   } else {
     episodeForm.id = ''
-    episodeForm.episode_number = 1
-    episodeForm.name = ''
+    episodeForm.channel = DEFAULT_EPISODE_CHANNEL
+    episodeForm.episode_number = nextEpisodeNumber()
+    episodeForm.name = videoTitle
     episodeForm.play_urls = ''
     episodeForm.duration_seconds = 0
   }
@@ -998,25 +1026,33 @@ const saveEpisode = async () => {
 
     const episodeNumber = Number(episodeForm.episode_number)
     const playURLs = (episodeForm.play_urls || '').trim()
-    const name = (episodeForm.name || '').trim()
+    const channel = (episodeForm.channel || '').trim() || DEFAULT_EPISODE_CHANNEL
+    const name = (selectedVideo.value.title || episodeForm.name || '').trim()
     const durationSeconds = Number(episodeForm.duration_seconds) || 0
+
+    if (Number.isNaN(episodeNumber) || episodeNumber < 0) {
+      ElMessage.warning('请填写有效集数')
+      return
+    }
 
     if (episodeForm.id) {
       const payload = {
+        channel,
         episode_number: episodeNumber,
-        play_urls: playURLs
+        play_urls: playURLs,
+        name
       }
-      if (name) payload.name = name
       if (durationSeconds > 0) payload.duration_seconds = durationSeconds
       await axios.put(`/admin/episodes/${episodeForm.id}`, payload)
     } else {
       const payload = {
         // 雪花 ID 保持字符串，避免 Number 精度丢失
         video_id: String(selectedVideo.value.id),
+        channel,
         episode_number: episodeNumber,
-        play_urls: playURLs
+        play_urls: playURLs,
+        name
       }
-      if (name) payload.name = name
       if (durationSeconds > 0) payload.duration_seconds = durationSeconds
       const response = await axios.post('/admin/episodes', payload)
       if (response.data?.code !== 0 && response.data?.code !== 200) {

@@ -7,14 +7,14 @@ import (
 
 // FeedbackListFilter 管理端反馈列表筛选
 type FeedbackListFilter struct {
-	Source      string
-	Status      string
-	ProblemType string
-	VideoID     *int64
-	UserID      *int64
-	Keyword     string
-	Page        int
-	PageSize    int
+	Source       string
+	Statuses     []string
+	ProblemTypes []string
+	VideoID      *int64
+	UserID       *int64
+	Keyword      string
+	Page         int
+	PageSize     int
 }
 
 // FeedbackRepository 用户反馈数据访问
@@ -56,11 +56,15 @@ func (r *feedbackRepository) List(filter FeedbackListFilter) ([]model.VideoFeedb
 	if filter.Source != "" {
 		query = query.Where("source = ?", filter.Source)
 	}
-	if filter.Status != "" {
-		query = query.Where("status = ?", filter.Status)
+	if len(filter.Statuses) == 1 {
+		query = query.Where("status = ?", filter.Statuses[0])
+	} else if len(filter.Statuses) > 1 {
+		query = query.Where("status IN ?", filter.Statuses)
 	}
-	if filter.ProblemType != "" {
-		query = query.Where("problem_type = ?", filter.ProblemType)
+	if len(filter.ProblemTypes) == 1 {
+		query = query.Where("problem_type = ?", filter.ProblemTypes[0])
+	} else if len(filter.ProblemTypes) > 1 {
+		query = query.Where("problem_type IN ?", filter.ProblemTypes)
 	}
 	if filter.VideoID != nil {
 		query = query.Where("video_id = ?", *filter.VideoID)

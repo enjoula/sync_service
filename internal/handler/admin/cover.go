@@ -56,7 +56,9 @@ func Cover(c *gin.Context) {
 	}
 
 	c.Header("Content-Type", contentType)
-	c.Header("Cache-Control", "public, max-age=86400")
+	// 封面 URL 稳定，允许浏览器长期缓存，减少重复中转豆瓣
+	c.Header("Cache-Control", "public, max-age=31536000, immutable")
+	c.Header("Expires", time.Now().UTC().Add(365*24*time.Hour).Format(http.TimeFormat))
 	c.Status(http.StatusOK)
 	_, _ = io.Copy(c.Writer, io.LimitReader(resp.Body, 8<<20))
 }

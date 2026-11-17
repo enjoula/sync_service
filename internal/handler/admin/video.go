@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"video-service/internal/model"
+	"video-service/internal/pkg/oplog"
 	"video-service/internal/pkg/response"
 	"video-service/internal/pkg/utils"
 	"video-service/internal/repository"
@@ -351,10 +352,39 @@ func (h *VideoHandler) Create(c *gin.Context) {
 		UpdatedAt: now,
 	}
 	if err := h.videoRepo.CreateBasic(video); err != nil {
+		oplog.Record(c, oplog.Entry{
+			Action:     oplog.ActionCreate,
+			ObjectType: oplog.ObjectVideo,
+			ObjectName: title,
+			After: gin.H{
+				"source_id": req.SourceID,
+				"source":    source,
+				"title":     title,
+				"type":      videoType,
+				"cover_url": coverURL,
+			},
+			Success:  false,
+			ErrorMsg: "创建视频失败",
+		})
 		response.Error(c, http.StatusInternalServerError, "创建视频失败")
 		return
 	}
 
+	oplog.Record(c, oplog.Entry{
+		Action:     oplog.ActionCreate,
+		ObjectType: oplog.ObjectVideo,
+		ObjectID:   strconv.FormatInt(video.ID, 10),
+		ObjectName: video.Title,
+		After: gin.H{
+			"id":        video.ID,
+			"source_id": video.SourceID,
+			"source":    video.Source,
+			"title":     video.Title,
+			"type":      video.Type,
+			"cover_url": video.CoverURL,
+		},
+		Success: true,
+	})
 	response.Success(c, gin.H{"id": strconv.FormatInt(video.ID, 10)})
 }
 
@@ -395,6 +425,7 @@ func (h *VideoHandler) Update(c *gin.Context) {
 		response.Error(c, http.StatusNotFound, "视频不存在")
 		return
 	}
+	before := videoSnapshot(existingVideo)
 
 	var req UpdateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -433,10 +464,29 @@ func (h *VideoHandler) Update(c *gin.Context) {
 
 	// 保存更新
 	if err := h.videoRepo.Update(existingVideo); err != nil {
+		oplog.Record(c, oplog.Entry{
+			Action:     oplog.ActionUpdate,
+			ObjectType: oplog.ObjectVideo,
+			ObjectID:   strconv.FormatInt(videoID, 10),
+			ObjectName: existingVideo.Title,
+			Before:     before,
+			After:      videoSnapshot(existingVideo),
+			Success:    false,
+			ErrorMsg:   "更新视频失败",
+		})
 		response.Error(c, http.StatusInternalServerError, "更新视频失败")
 		return
 	}
 
+	oplog.Record(c, oplog.Entry{
+		Action:     oplog.ActionUpdate,
+		ObjectType: oplog.ObjectVideo,
+		ObjectID:   strconv.FormatInt(existingVideo.ID, 10),
+		ObjectName: existingVideo.Title,
+		Before:     before,
+		After:      videoSnapshot(existingVideo),
+		Success:    true,
+	})
 	response.Success(c, gin.H{"id": strconv.FormatInt(existingVideo.ID, 10)})
 }
 
@@ -449,18 +499,57 @@ func (h *VideoHandler) Delete(c *gin.Context) {
 		return
 	}
 
-	// 检查视频是否存在
-	_, err = h.videoRepo.FindByID(videoID)
+	existing, err := h.videoRepo.FindByID(videoID)
 	if err != nil {
 		response.Error(c, http.StatusNotFound, "视频不存在")
 		return
 	}
+	before := videoSnapshot(existing)
 
-	// 删除视频
 	if err := h.videoRepo.DeleteByID(videoID); err != nil {
+		oplog.Record(c, oplog.Entry{
+			Action:     oplog.ActionDelete,
+			ObjectType: oplog.ObjectVideo,
+			ObjectID:   strconv.FormatInt(videoID, 10),
+			ObjectName: existing.Title,
+			Before:     before,
+			Success:    false,
+			ErrorMsg:   "删除视频失败",
+		})
 		response.Error(c, http.StatusInternalServerError, "删除视频失败")
 		return
 	}
 
+	oplog.Record(c, oplog.Entry{
+		Action:     oplog.ActionDelete,
+		ObjectType: oplog.ObjectVideo,
+		ObjectID:   strconv.FormatInt(videoID, 10),
+		ObjectName: existing.Title,
+		Before:     before,
+		Success:    true,
+	})
 	response.Success(c, gin.H{"message": "删除成功"})
+}
+
+func videoSnapshot(video *model.Video) gin.H {
+	if video == nil {
+		return nil
+	}
+	item := gin.H{
+		"id":            video.ID,
+		"source_id":     video.SourceID,
+		"source":        video.Source,
+		"title":         video.Title,
+		"type":          video.Type,
+		"cover_url":     video.CoverURL,
+		"status":        video.Status,
+		"episode_count": video.EpisodeCount,
+		"is_completed":  video.IsCompleted,
+		"is_update":     video.IsUpdate,
+		"score":         video.Score,
+	}
+	if video.ReleaseDate != nil {
+		item["release_date"] = video.ReleaseDate.Format("2006-01-02")
+	}
+	return item
 }

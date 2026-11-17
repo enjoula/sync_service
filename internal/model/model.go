@@ -231,12 +231,13 @@ const (
 	PermMemberRead    = "member:read"    // 查看会员
 	PermFeedbackRead  = "feedback:read"  // 查看用户反馈
 	PermFeedbackWrite = "feedback:write" // 处理用户反馈
+	PermLogRead       = "log:read"       // 查看管理员操作日志（仅超级管理员）
 	PermAdminManage   = "admin:manage"   // 管理管理员账号
 )
 
 // AdminRolePermissions 角色对应的权限
 var AdminRolePermissions = map[string][]string{
-	AdminRoleSuper:    {PermVideoRead, PermVideoWrite, PermUserRead, PermMemberRead, PermFeedbackRead, PermFeedbackWrite, PermAdminManage},
+	AdminRoleSuper:    {PermVideoRead, PermVideoWrite, PermUserRead, PermMemberRead, PermFeedbackRead, PermFeedbackWrite, PermLogRead, PermAdminManage},
 	AdminRoleEditor:   {PermVideoRead, PermVideoWrite, PermUserRead, PermMemberRead, PermFeedbackRead, PermFeedbackWrite},
 	AdminRoleOperator: {PermVideoRead, PermUserRead, PermMemberRead, PermFeedbackRead, PermFeedbackWrite},
 	AdminRoleViewer:   {PermVideoRead, PermFeedbackRead},
@@ -317,8 +318,8 @@ const (
 	FeedbackTypeWrongContent   = "wrong_content"
 	FeedbackTypeMissingEpisode = "missing_episode"
 	FeedbackTypeMissingVideo   = "missing_video"
-	FeedbackTypeSubtitleError  = "subtitle_error"
 	FeedbackTypeAudioError     = "audio_error"
+	FeedbackTypeRequestVideo   = "request_video"
 	FeedbackTypeOther          = "other"
 )
 
@@ -328,8 +329,8 @@ var ValidFeedbackTypes = map[string]string{
 	FeedbackTypeWrongContent:   "内容错误/不对版",
 	FeedbackTypeMissingEpisode: "缺少剧集",
 	FeedbackTypeMissingVideo:   "缺少视频",
-	FeedbackTypeSubtitleError:  "字幕问题",
 	FeedbackTypeAudioError:     "音画不同步/无声",
+	FeedbackTypeRequestVideo:   "求片",
 	FeedbackTypeOther:          "其他",
 }
 
@@ -389,4 +390,26 @@ type VideoFeedback struct {
 // TableName 指定用户反馈表名
 func (VideoFeedback) TableName() string {
 	return "feedbacks"
+}
+
+// AdminOperationLog 管理员操作日志（增删改审计）
+type AdminOperationLog struct {
+	ID            int64     `gorm:"primaryKey;autoIncrement;comment:日志ID" json:"id"`
+	AdminID       int64     `gorm:"column:admin_id;not null;index:idx_admin_op_logs_admin_created,priority:1;comment:操作人管理员ID" json:"admin_id"`
+	AdminUsername string    `gorm:"column:admin_username;size:100;not null;comment:操作人用户名" json:"admin_username"`
+	Action        string    `gorm:"size:20;not null;index:idx_admin_op_logs_action_created,priority:1;comment:操作类型(create/update/delete)" json:"action"`
+	ObjectType    string    `gorm:"column:object_type;size:32;not null;index:idx_admin_op_logs_object,priority:1;comment:操作对象类型" json:"object_type"`
+	ObjectID      string    `gorm:"column:object_id;size:64;index:idx_admin_op_logs_object,priority:2;comment:操作对象ID" json:"object_id"`
+	ObjectName    string    `gorm:"column:object_name;size:255;comment:操作对象名称" json:"object_name"`
+	BeforeData    string    `gorm:"column:before_data;type:longtext;comment:操作前关键数据(JSON)" json:"before_data"`
+	AfterData     string    `gorm:"column:after_data;type:longtext;comment:操作后关键数据(JSON)" json:"after_data"`
+	Result        string    `gorm:"size:20;not null;default:success;index:idx_admin_op_logs_result_created,priority:1;comment:操作结果(success/failure)" json:"result"`
+	ErrorMsg      string    `gorm:"column:error_msg;size:500;comment:失败原因" json:"error_msg"`
+	ClientIP      string    `gorm:"column:client_ip;size:45;comment:操作IP" json:"client_ip"`
+	CreatedAt     time.Time `gorm:"autoCreateTime;index:idx_admin_op_logs_admin_created,priority:2;index:idx_admin_op_logs_action_created,priority:2;index:idx_admin_op_logs_result_created,priority:2;comment:操作时间" json:"created_at"`
+}
+
+// TableName 指定管理员操作日志表名
+func (AdminOperationLog) TableName() string {
+	return "admin_operation_logs"
 }
